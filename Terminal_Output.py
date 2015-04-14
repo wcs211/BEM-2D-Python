@@ -12,11 +12,11 @@ class printOutput(object):
     'Toolkit for formated terminal output'
     def progTitle(self, version):
         print "/*---------------------------------------------------------------------------*\\"
-        print "| .   )\\      B oundary     |                                                 |"
-        print "| \\`.-' `-oo  E lement      | Written by:  Dr. Keith Moored                   |"
-        print "|  ) _  __,0) F luid        | Version:     %s                              |" % version
-        print "| /.' )/      S tructure    | Web:         http://www.lehigh.edu/             |"
-        print "| '           I nteraction  |                                                 |"
+        print "| .   )\\      Py thon       |                                                 |"
+        print "| \\`.-' `-oo                | Written by:  Lehigh Biofluids Group             |"
+        print "|  ) _  __,0) B  oundary    | Version:     %s                              |" % version
+        print "| /.' )/      E  lement     | Web:         http://www.lehigh.edu/             |"
+        print "| '           M  ethod      |                                                 |"
         print "\\*---------------------------------------------------------------------------*/"
         print 'Date     : %s' % time.strftime("%B %d, %Y")
         print 'Time     : %s' % time.strftime("%I:%M:%S %p")
