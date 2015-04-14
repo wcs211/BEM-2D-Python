@@ -1,4 +1,5 @@
 import numpy as np
+from Terminal_Output import printOutput as PO
 from BodyClass import Body
 from EdgeClass import Edge
 from WakeClass import Wake
@@ -9,6 +10,7 @@ import Postprocess as post
 import time # for timing simulation
 #import resource # for monitoring resource usage
 
+PO().progTitle('1.0.0')
 start_time=time.time()
 
 Ce=0.4
@@ -39,17 +41,22 @@ tstep=10**-5
 S=0.1
 #delt=0.01
 delt = (0.01/RF)*np.pi
-rho=998.
+rho=998.2
+mu=0.001003
+Re=rho*-V0*c/mu
 
 t=delt*np.arange(0,counter)
 
+PO().calcInput(theta_max/np.pi*180.,Re,theta_max/np.pi*180.,delt)
+
 # data points per cycle == 1/(f*delt)
 for i in np.arange(0,counter):
+    if i==0:
+        PO().initializeOutput(t[i])
 
-    if i>0:
-        
+    else: #i>0:
         if np.fmod(i,1)==0:
-            print i
+            PO().timestepHeader(i+1,t[i])
             #print resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         
         (Body1.x_neut,Body1.z_neut)=NeutralAxis(Body1,Body1.x_col,dstep,tstep,t[i])
@@ -64,6 +71,9 @@ for i in np.arange(0,counter):
          
         #Pressure(Body1,Edge1,Wake1,dstep,tstep,delt,rho,S,i,counter)
         #Force(Body1,i)
+        #PO().solutionOutput(D_visc,Cf,Cl,Ct,Cpow,Gamma)
+        PO().solutionOutput(0,0,0,0,0,0)
+        PO().solutionCompleteOutput(i/float(counter-1)*100.)
 
 total_time=time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
