@@ -46,9 +46,9 @@ class Body(object):
         self.mu=np.zeros(N)
         self.gamma=np.zeros(N+1)
         
+        self.P=np.zeros(N)
         self.Cp=np.zeros(N)
         self.mu_past=np.zeros((2,N))
         
-#        self.Pb=np.zeros((counter-1,N))
 #        self.D=np.zeros(counter-1)
 #        self.L=np.zeros(counter-1)

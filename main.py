@@ -8,13 +8,12 @@ from Kinematics import NeutralAxis, SurfaceKinematics, EdgeShed, WakeShed, WakeR
 from InfForce import InfluenceMatrices, Kutta
 import Postprocess as post
 import time # for timing simulation
-#import resource # for monitoring resource usage
 
 PO().progTitle('1.0.0')
 start_time=time.time()
 
 Ce=0.4
-counter=101
+counter=151
 
 RF = 0.1 # reduced frequency
 switch_Kutta = 1 # 0 for explicit, 1 for unsteady
@@ -55,9 +54,6 @@ for i in np.arange(0,counter):
         PO().initializeOutput(t[i])
 
     else: #i>0:
-        if np.fmod(i,1)==0:
-            PO().timestepHeader(i+1,t[i])
-            #print resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         
         (Body1.x_neut,Body1.z_neut)=NeutralAxis(Body1,Body1.x_col,dstep,tstep,t[i])
         SurfaceKinematics(Body1,dstep,tstep,t[i])
@@ -66,14 +62,16 @@ for i in np.arange(0,counter):
         WakeShed(Edge1,Wake1,i,delt)
         
         InfluenceMatrices(Body1,Edge1,Wake1,dstep,tstep,S,i,counter)
-        Kutta(Body1,Edge1,Wake1,i,delt,switch_Kutta)
+        Kutta(Body1,Edge1,Wake1,rho,i,delt,switch_Kutta)
         WakeRollup(Body1,Edge1,Wake1,delta_core,i,delt)
-         
-        #Pressure(Body1,Edge1,Wake1,dstep,tstep,delt,rho,S,i,counter)
+        
         #Force(Body1,i)
         #PO().solutionOutput(D_visc,Cf,Cl,Ct,Cpow,Gamma)
-        PO().solutionOutput(0,0,0,0,0,0)
-        PO().solutionCompleteOutput(i/float(counter-1)*100.)
+         
+        if np.fmod(i,10)==0:
+            PO().timestepHeader(i+1,t[i])
+            PO().solutionOutput(0,0,0,0,0,0)
+            PO().solutionCompleteOutput(i/float(counter-1)*100.)
 
 total_time=time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"

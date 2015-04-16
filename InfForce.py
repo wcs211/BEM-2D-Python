@@ -73,8 +73,8 @@ def InfluenceMatrices(Body,Edge,Wake,dstep,tstep,S,i,counter):
         - np.arctan2(Zp , Xpleft))/(2*np.pi) )
         
 import time
-def Kutta(Body,Edge,Wake,i,delt,switch_Kutta):
-# uses Body.(N, phidw, phis, sigma, phidb), Wake.mu, CpCalc()
+def Kutta(Body,Edge,Wake,rho,i,delt,switch_Kutta):
+# uses Body.(N, phidw, phis, sigma, phidb), Wake.mu, Pressure()
 # gets Edge.(mu, gamma), Body.(phidinv, mu, mu_past, gamma)
 # others: n_iter, mu_guess, delta_Cp, Rhs, slope
     
@@ -130,16 +130,16 @@ def Kutta(Body,Edge,Wake,i,delt,switch_Kutta):
                 Body.mu=np.dot(Body.phidinv,Rhs)
                 
             
-            CpCalc(Body,i,delt)
+            Pressure(Body,rho,i,delt)
             if switch_Kutta == 0:
                 break
-#            delta_Cp[0] = np.absolute(Body.Cp[-1]-Body.Cp[0])
+            delta_Cp[0] = np.absolute(Body.Cp[-1]-Body.Cp[0])
 #            print n_iter, delta_Cp[0]
-            time.sleep(1)
+#            time.sleep(1)
             if delta_Cp[0]<0.0001:
                 break
                     
-        # mu_past used in differencing for CpCalc
+        # mu_past used in differencing for Pressure
         Body.mu_past[1,:] = Body.mu_past[0,:]
         Body.mu_past[0,:] = Body.mu
         
@@ -152,38 +152,10 @@ def Kutta(Body,Edge,Wake,i,delt,switch_Kutta):
         Body.gamma[1:-1]=Body.mu[:-1]-Body.mu[1:]
         Body.gamma[-1]=Body.mu[-1]
 
-#this method calculates the pressure coefficient for each body panel
-#def CpCalc(Body,i,delt):
-## uses Body.(N, X, Z)
-## gets Body.Cp
-## others: dmu_dl, PanelVectors, dmu_dt
-#    
-#    if i>0:
-#        
-#        (tx,tz,nx,nz,lpanel)=PanelVectors(Body.X,Body.Z)
-#        
-#        # tangential panel velocity dmu/dl, first-order differencing
-#        dmu_dl=np.empty(Body.N)
-#        dmu_dl[0]   = (Body.mu[1]-Body.mu[0]) / (lpanel[0]/2 + lpanel[1]/2)
-#        dmu_dl[1:-1]= (Body.mu[2:]-Body.mu[:-2]) / (lpanel[:-2]/2 + lpanel[1:-1] + lpanel[2:]/2)
-#        dmu_dl[-1]  = (Body.mu[-1]-Body.mu[-2]) / (lpanel[-2]/2 + lpanel[-1]/2)
-#        
-#        # potential change dmu/dt, second-order differencing after first time step
-#        if i==1:
-#            dmu_dt = (Body.mu - Body.mu_past[0,:])/delt
-#        else:
-#            dmu_dt = (3*Body.mu - 4*Body.mu_past[0,:] + Body.mu_past[1,:])/(2*delt)
-#        
-#        # Katz-Plotkin eqn 9.29 (steady Cp calculation, does not include dmu_dt)
-##        Body.Cp = 1 - ( ((Body.V0+Body.Vx)*tx + Body.Vz*tz - dmu_dl)**2 ) / ((Body.V0 + Body.Vx)**2 + Body.Vz**2)
-#        
-#        # Katz-Plotkin eqn 13.28 (full unsteady Cp calculation)
-#        Body.Cp = 1 - ( ((Body.V0+Body.Vx)*tx - dmu_dl)**2 + (Body.Vz*tz-Body.sigma)**2 + 2*dmu_dt ) / ((Body.V0 + Body.Vx)**2 + Body.Vz**2)
-
-def CpCalc(Body,i,delt):
-# uses Body.(N, X, Z)
-# gets Body.Cp
-# others: dmu_dl, PanelVectors, dmu_dt
+def Pressure(Body,rho,i,delt):
+# uses Body.(N, X, Z, V0, Vx, Vz, sigma, mu, mu_past), PanelVectors()
+# gets Body.Cp and Body.P
+# others: dmu_dl, PanelVectors, dmu_dt, Qp_tot_x, Qp_tot_z
     
     if i>0:
         
@@ -201,14 +173,12 @@ def CpCalc(Body,i,delt):
         else:
             dmu_dt = (3*Body.mu - 4*Body.mu_past[0,:] + Body.mu_past[1,:])/(2*delt)
         
-        # unsteady Cp calculation from Matlab code
-        Qinf = np.absolute(Body.V0)
-        Qt = dmu_dl - (Body.V0 + Body.Vx)*tx - Body.Vz*tz
+        # unsteady pressure calculation (from Matlab code)
+        Qp_tot_x = dmu_dl*tx + Body.sigma*nx
+        Qp_tot_z = dmu_dl*tz + Body.sigma*nz
         
-        Cp_s = 1. - Qt**2/Qinf**2
-        Cp_us= 2.*dmu_dt/Qinf**2 + (Body.Vx**2 + Body.Vz**2)/Qinf**2 - 2.*Body.Vx/Qinf
-        
-        Body.Cp = Cp_s + Cp_us
+        Body.P = -rho*(Qp_tot_x**2 + Qp_tot_z**2)/2. + rho*dmu_dt + rho*(Qp_tot_x*(Body.V0+Body.Vx) + Qp_tot_z*Body.Vz)
+        Body.Cp= Body.P / (0.5*rho*Body.V0**2)
 
 def SingularityCalculations(Body,Edge,Wake,i):
 # uses Body.(phis, sigma, phidb, phidw, phidinv), Wake.mu
@@ -241,55 +211,6 @@ def KuttaExplicit(Body,Edge,i):
         Body.gamma[0]=-Body.mu[0]
         Body.gamma[1:-1]=Body.mu[:-1]-Body.mu[1:]
         Body.gamma[-1]=Body.mu[-1]
-
-#this method calculates the pressure on top of each panel
-def Pressure(Body,Edge,Wake,dstep,tstep,delt,rho,S,i,counter):
-    
-    if i>0:
-        InfluenceMatrices(Body,Edge,Wake,dstep,tstep,S,i,counter)
-        SingularityCalculations(Body,Edge,Wake,i)
-        
-        tx=PanelVectors(Body.X,Body.Z)[0]  ;  tz=PanelVectors(Body.X,Body.Z)[1]
-        nx=PanelVectors(Body.X,Body.Z)[2]  ;  nz=PanelVectors(Body.X,Body.Z)[3]
-        lpanel=PanelVectors(Body.X,Body.Z)[4]
-    
-        ##minus delmu over deldistance(calculating the tangential velocity on body panels)
-        mu_v_one = (Body.mu[0] - Body.mu[1])/(lpanel[1]/2 + lpanel[0]/2)        
-        mu_v = (Body.mu[0:-2] - Body.mu[2:])/(lpanel[0:-2]/2 +lpanel[1:-1] + lpanel[2:]/2)
-        mu_v_N = (Body.mu[-2] - Body.mu[-1])/(lpanel[-2]/2 + lpanel[-1]/2)
-        mu_v = np.vstack((np.reshape(mu_v,(Body.N-2,1)) , mu_v_N))
-        mu_v = np.vstack((mu_v_one , mu_v))
-        
-##first order differencing (differencing wrt time)
-#            dummy[1,:] = mub
-#
-#            mu_del_t = (dummy[1,:] - dummy[0,:])/delt
-#            
-#            Pb[i-1,:] = -rho*mu_del_t + rho*(((Vx+V0)*nx + Vz*nz)*sigma \
-#            + ((Vx+V0)*tx+Vz*tz)*np.reshape(mu_v,(1,N)))\
-#            - rho*(sigma**2 + np.reshape(mu_v,(1,N))**2)/2
-#         
-#            dummy[0,:]=dummy[1,:]
-        
-#second order differencing (differencing wrt time)
-        if i==1:
-            Body.dummy[1,:]=Body.mu
-            mu_del_t = (Body.dummy[1,:] - Body.dummy[0,:])/delt
-            
-            Body.Pb[i-1,:] = -rho*mu_del_t + rho*(((Body.Vx+Body.V0)*nx + Body.Vz*nz)*Body.sigma \
-            + ((Body.Vx+Body.V0)*tx+Body.Vz*tz)*np.reshape(mu_v,(1,Body.N)))\
-            - rho*(Body.sigma**2 + np.reshape(mu_v,(1,Body.N))**2)/2
-        
-        else:
-            Body.dummy[2,:]=Body.mu
-            mu_del_t = (3*Body.dummy[2,:] - 4*Body.dummy[1,:] + Body.dummy[0,:])/(2*delt)
-            
-            Body.Pb[i-1,:] = -rho*mu_del_t + rho*(((Body.Vx+Body.V0)*nx + Body.Vz*nz)*Body.sigma \
-            + ((Body.Vx+Body.V0)*tx+Body.Vz*tz)*np.reshape(mu_v,(1,Body.N)))\
-            - rho*(Body.sigma**2 + np.reshape(mu_v,(1,Body.N))**2)/2
-            
-            Body.dummy[0,:]=Body.dummy[1,:]
-            Body.dummy[1,:]=Body.dummy[2,:]
        
 #calculation of drag and lift forces affecting overall airfoil      
 def Force(Body,i):
@@ -302,8 +223,8 @@ def Force(Body,i):
         nx=PanelVectors(Body.X,Body.Z)[2]  ;  nz=PanelVectors(Body.X,Body.Z)[3]
         lpanel=PanelVectors(Body.X,Body.Z)[4]
                               
-        Body.D[i-1] = np.dot(Body.Pb[i-1,:]*lpanel , np.reshape(tx,(Body.N,1)))\
-                    + np.dot(Body.Pb[i-1,:]*lpanel , np.reshape(-tz,(Body.N,1)))
+        Body.D[i-1] = np.dot(Body.P[i-1,:]*lpanel , np.reshape(tx,(Body.N,1)))\
+                    + np.dot(Body.P[i-1,:]*lpanel , np.reshape(-tz,(Body.N,1)))
 
-        Body.L[i-1] = np.dot(Body.Pb[i-1,:]*lpanel , np.reshape(-nz,(Body.N,1)))\
-                    + np.dot(Body.Pb[i-1,:]*lpanel , np.reshape(nx,(Body.N,1)))
+        Body.L[i-1] = np.dot(Body.P[i-1,:]*lpanel , np.reshape(-nz,(Body.N,1)))\
+                    + np.dot(Body.P[i-1,:]*lpanel , np.reshape(nx,(Body.N,1)))
