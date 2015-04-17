@@ -6,6 +6,16 @@ import copy
 # this is to make sure each plot is drawn in a new window, no matter which plotting methods are used
 N_fig=1
 
+def BasicXY(x,y):
+    
+    global N_fig
+    figure = plt.figure(N_fig)
+    figure.add_subplot(1, 1, 1, axisbg='1') # change background color here
+    plt.gca().set_aspect('equal')
+    
+    plt.plot(x,y)
+    N_fig+=1
+
 def BodyWakePlot(Body,Edge,Wake):
     
     global N_fig

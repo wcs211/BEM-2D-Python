@@ -25,7 +25,7 @@ def NeutralAxis(Body,x_ref,dstep,tstep,t):
 # this method calculates the actual surface positions of the airfoil for each time step 
 # using the neutral axis and appropriate normal vectors of each point on the neutral axis
 # this class also calculates the velocity of the panel midpoints for each time step 
-def SurfaceKinematics(Body,dstep,tstep,t):
+def SurfaceKinematics(Body,dstep,tstep,t,i):
 # uses NeutralAxis
 # uses Body.(x_col, z_col_top, z_col_bot, x, z_top, z_bot, V0)
 # gets Body.(Vx, Vz, Xts, Zts, Xbs, Zbs, X, Z, X_mid, Z_mid)
@@ -231,7 +231,7 @@ def WakeRollup(Body,Edge,Wake,delta_core,i,delt):
     
 # collocation points are the points where impermeable boundary condition is forced
 # they should be shifted inside or outside of the boundary depending on the dirichlet or neumann condition
-def CollocationPoints(Body,S):
+def CollocationPoints(Body,S,i):
 # uses Body.(z_col_top, z_col_bot, Xts, Xbs, Zts, Zbs)
 # gets Body(X_col, Z_col)
 # others: h_top, h_bot, Xtscol, Xbscol, Ztscol, Zbscol, Xtcol, Xbcol, Ztcol, Zbcol

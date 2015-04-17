@@ -15,7 +15,7 @@ start_time=time.time()
 Ce=0.4
 counter=151
 
-RF = 0.1 # reduced frequency
+RF = 0.5 # reduced frequency
 switch_Kutta = 1 # 0 for explicit, 1 for unsteady
 
 N_Body=100
@@ -56,8 +56,8 @@ for i in np.arange(0,counter):
     else: #i>0:
         
         (Body1.x_neut,Body1.z_neut)=NeutralAxis(Body1,Body1.x_col,dstep,tstep,t[i])
-        SurfaceKinematics(Body1,dstep,tstep,t[i])
-        CollocationPoints(Body1,S)
+        SurfaceKinematics(Body1,dstep,tstep,t[i],i)
+        CollocationPoints(Body1,S,i)
         EdgeShed(Body1,Edge1,i,delt)
         WakeShed(Edge1,Wake1,i,delt)
         
@@ -68,15 +68,15 @@ for i in np.arange(0,counter):
         #Force(Body1,i)
         #PO().solutionOutput(D_visc,Cf,Cl,Ct,Cpow,Gamma)
          
-        if np.fmod(i,10)==0:
-            PO().timestepHeader(i+1,t[i])
-            PO().solutionOutput(0,0,0,0,0,0)
-            PO().solutionCompleteOutput(i/float(counter-1)*100.)
+#        if np.fmod(i,10)==0:
+#            PO().timestepHeader(i+1,t[i])
+#            PO().solutionOutput(0,0,0,0,0,0)
+#            PO().solutionCompleteOutput(i/float(counter-1)*100.)
 
 total_time=time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
 
 #post.BodyWakePlot(Body1,Edge1,Wake1)
-post.CpPlot(Body1)
+#post.CpPlot(Body1)
 #plt.gca().invert_yaxis()
 #post.DragVsPeriod(Body1,rho,t)
