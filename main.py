@@ -1,80 +1,80 @@
+import time
 import numpy as np
-from Terminal_Output import printOutput as PO
-from BodyClass import Body
-from EdgeClass import Edge
-from WakeClass import Wake
-from Geometries import VanDeVooren
-from Kinematics import NeutralAxis, PanelPositions, SurfaceKinematics, EdgeShed, WakeShed, WakeRollup
-from InfForce import InfluenceMatrices, Kutta
-import Graphics as graph
-import time # for timing simulation
+from terminal_output import print_output as po
+from body_class import Body
+from edge_class import Edge
+from wake_class import Wake
+from geometries import van_de_vooren
+from kinematics import neutral_axis, panel_positions, surface_kinematics, edge_shed, wake_shed, wake_rollup
+from inf_force import influence_matrices, kutta
+import graphics as graph
 
-PO().progTitle('1.0.0')
-start_time=time.time()
+po().prog_title('1.0.0')
+start_time = time.time()
 
-Ce=0.4
-counter=151
+CE = 0.4
+COUNTER = 151
 
-RF = 1.0 # reduced frequency
-switch_Kutta = 1 # 0 for explicit, 1 for unsteady
+RF = 1.0 # Reduced frequency
+SWITCH_KUTTA = 1 # 0 for explicit, 1 for unsteady
 
-N_Body=100
-V0=-1.
-epsilon=0.075
-k=2.-(12.4/180)
-c=1.
-theta_max=5.0*np.pi/180
-h_c=0
-#f=0.5
-f = RF/2/np.pi
-phi=0
-delta_core=(0.005*theta_max+0.09)*c
-Body1=Body(N_Body,V0,epsilon,k,c,theta_max,h_c,f,phi,counter)
-VanDeVooren(Body1)
+N_BODY = 100
+V0 = -1.
+EPSILON = 0.075
+K = 2.-(12.4/180)
+C = 1.
+THETA_MAX = 5.0*np.pi/180
+H_C = 0
+#F = 0.5
+F = RF/(2*np.pi)
+PHI = 0
+DELTA_CORE = (0.005*THETA_MAX+0.09)*C
+Body1 = Body(N_BODY,V0,EPSILON,K,C,THETA_MAX,H_C,F,PHI,COUNTER)
+van_de_vooren(Body1)
 
-Edge1=Edge(Body1.V0,Ce,counter)
-Wake1=Wake(Body1,counter-2)
+Edge1 = Edge(Body1.V0,CE,COUNTER)
+Wake1 = Wake(Body1,COUNTER-2)
 
-dstep=10**-5
-tstep=10**-5
-S=0.1
-#delt=0.01
-delt = (0.01/RF)*np.pi
-rho=998.2
-mu=0.001003
-Re=rho*-V0*c/mu
+DSTEP = 10**-5
+TSTEP = 10**-5
+S = 0.1
+#DEL_T = 0.01
+DEL_T = (0.01/RF)*np.pi
+RHO = 998.2
+MU = 0.001003
+RE = RHO*-V0*C/MU
 
-t=delt*np.arange(0,counter)
+t = DEL_T*np.arange(0,COUNTER)
 
-PO().calcInput(theta_max/np.pi*180.,Re,theta_max/np.pi*180.,delt)
+po().calc_input(THETA_MAX/np.pi*180.,RE,THETA_MAX/np.pi*180.,DEL_T)
 
-# data points per cycle == 1/(f*delt)
-for i in np.arange(0,counter):
-    if i==0:
-        PO().initializeOutput(t[i])
+# Data points per cycle == 1/(F*DEL_T)
+for i in np.arange(0,COUNTER):
+    if i == 0:
+        po().initialize_output(t[i])
 
-    else: #i>0:
+    else: #i > 0:
         
-        (Body1.x_neut,Body1.z_neut)=NeutralAxis(Body1,Body1.x_col[:Body1.N/2],dstep,tstep,t[i])
-        PanelPositions(Body1,S,dstep,t[i])
-        SurfaceKinematics(Body1,dstep,tstep,t[i],i,delt)
-        EdgeShed(Body1,Edge1,i,delt)
-        WakeShed(Edge1,Wake1,i,delt)
+        (Body1.x_neut,Body1.z_neut) = neutral_axis(Body1,Body1.xb_col[:Body1.N/2],DSTEP,TSTEP,t[i])
+        panel_positions(Body1,S,DSTEP,t[i])
+        surface_kinematics(Body1,DSTEP,TSTEP,t[i],i,DEL_T)
+        edge_shed(Body1,Edge1,i,DEL_T)
+        wake_shed(Edge1,Wake1,i,DEL_T)
         
-        InfluenceMatrices(Body1,Edge1,Wake1,dstep,tstep,S,i,counter)
-        Kutta(Body1,Edge1,Wake1,rho,i,delt,switch_Kutta)
-        WakeRollup(Body1,Edge1,Wake1,delta_core,i,delt)
+        influence_matrices(Body1,Edge1,Wake1,i)
+        kutta(Body1,Edge1,Wake1,RHO,i,DEL_T,SWITCH_KUTTA)
+        wake_rollup(Body1,Edge1,Wake1,DELTA_CORE,i,DEL_T)
         
-        #Force(Body1,i)
-        #PO().solutionOutput(D_visc,Cf,Cl,Ct,Cpow,Gamma)
+        #force(Body1,i)
+        #po().solution_output(d_visc,cf,cl,ct,cpow,gamma)
          
-        if np.fmod(i,10)==0:
-            PO().timestepHeader(i+1,t[i])
-            PO().solutionOutput(0,0,0,0,0,0)
-            PO().solutionCompleteOutput(i/float(counter-1)*100.)
+        if np.fmod(i,10) == 0:
+            po().timestep_header(i+1,t[i])
+            po().solution_output(0,0,0,0,0,0)
+            po().solution_complete_output(i/float(COUNTER-1)*100.)
 
-total_time=time.time()-start_time
+total_time = time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
 
-#graph.BodyWakePlot(Body1,Edge1,Wake1)
-graph.CpPlot(Body1)
+#graph.body_wake_plot(Body1,Edge1,Wake1)
+graph.cp_plot(Body1)

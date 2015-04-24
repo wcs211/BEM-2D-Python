@@ -8,13 +8,13 @@ import os
 import time
 import socket
 
-class printOutput(object):
+class print_output(object):
     'Toolkit for formated terminal output'
-    def progTitle(self, version):
+    def prog_title(self, VERSION):
         print "/*---------------------------------------------------------------------------*\\"
         print "| .   )\\      Py thon       |                                                 |"
         print "| \\`.-' `-oo                | Written by:  Lehigh Biofluids Group             |"
-        print "|  ) _  __,0) B  oundary    | Version:     %s                              |" % version
+        print "|  ) _  __,0) B  oundary    | Version:     %s                              |" % VERSION
         print "| /.' )/      E  lement     | Web:         http://www.lehigh.edu/             |"
         print "| '           M  ethod      |                                                 |"
         print "\\*---------------------------------------------------------------------------*/"
@@ -26,57 +26,57 @@ class printOutput(object):
         print ''
         print '// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
         
-    def calcInput(self,alpha_max,Re,AoA_max,delT):
+    def calc_input(self,ALPHA_MAX,RE,AOA_MAX,DEL_T):
         print 'Calculated inputs:'
-        print '     alpha_max = %f' % alpha_max
-        print '     Re = %e'        % Re
-        print '     AoA_max = %f'   % AoA_max
-        print '     delT = %f'      % delT
+        print '     ALPHA_MAX = %f' % ALPHA_MAX
+        print '     RE = %e'        % RE
+        print '     AOA_MAX = %f'   % AOA_MAX
+        print '     DEL_T = %f'     % DEL_T
         
-    def initializeOutput(self,t):
+    def initialize_output(self,t):
         print '\nInitializing the flow solution for FLOW TIME = %f\n' % t
         
-    def timestepHeader(self,i_t,t):
+    def timestep_header(self,i_t,t):
         print '==============================================================================='
         print ' TIME-STEP NUMBER = %i, FLOW TIME = %f' % (i_t-1,t)
         print '-------------------------------------------------------------------------------'
         
-    def fsiHeader(self):
+    def fsi_header(self):
         print '|  Iter.  |  Relax.    |  Max Displ |  Max Res  | RMS Res Norm | Max Res Norm |'
         print '+---------+------------+------------+-----------+--------------+--------------+'
         
-    def fsiIterOut(self,outerCorr,fsiRelaxationFactor,maxDispl,maxMagFsiResidual,fsiResidualNorm,maxFsiResidualNorm):
+    def fsi_iter_out(self,outer_corr,fsi_relaxation_factor,max_displ,max_mag_fsi_residual,fsi_residual_norm,max_fsi_residual_norm):
         print '| %7i |   %.2E |   %.2E |  %.2E |     %.2E |     %.2E |' % (
-        outerCorr,fsiRelaxationFactor,maxDispl,maxMagFsiResidual,
-        fsiResidualNorm,maxFsiResidualNorm )
+            outer_corr,fsi_relaxation_factor,max_displ,max_mag_fsi_residual,
+            fsi_residual_norm,max_fsi_residual_norm )
         
-    def fsiConverged(self):
+    def fsi_converged(self):
         print '| SOLUTION CONVERGED!                                                         |'
         print '+-----------------------------------------------------------------------------+'
         
-    def fsiNotConverged(self):
+    def fsi_not_converged(self):
         print '| WARNING! MAX INNER-LOOP ITERATIONS REACHED                                  |'
         print '+-----------------------------------------------------------------------------+'
         
-    def solutionOutput(self,D_visc,Cf,Cl,Ct,Cpow,Gamma):
+    def solution_output(self,d_visc,cf,cl,ct,cpow,gamma):
         print '| Solution Information:                                                       |'
-        print '|     D_visc   = %13e                                                |' % D_visc
-        print '|     Cf       = %13e                                                |' % Cf    
-        print '|     Cl       = %13e                                                |' % Cl    
-        print '|     Ct       = %13e                                                |' % Ct    
-        print '|     Cpow     = %13e                                                |' % Cpow  
-        print '|     Gamma    = %13e                                                |' % Gamma 
+        print '|     d_visc   = %13e                                                |' % d_visc
+        print '|     cf       = %13e                                                |' % cf    
+        print '|     cl       = %13e                                                |' % cl    
+        print '|     ct       = %13e                                                |' % ct    
+        print '|     cpow     = %13e                                                |' % cpow  
+        print '|     gamma    = %13e                                                |' % gamma 
         
-    def solutionAvgOutput(self,Cl_avg,Ct_avg,Tnet_avg,D_avg,Pow_avg,Cpow_avg):
+    def solution_avg_output(self,cl_avg,ct_avg,tnet_avg,d_avg,pow_avg,cpow_avg):
         print '|                                                                             |'
         print '| Solution Average Cycle Information:                                         |'
-        print '|     Cl_avg   = %13e                                                |' % Cl_avg  
-        print '|     Ct_avg   = %13e                                                |' % Ct_avg  
-        print '|     Tnet_avg = %13e                                                |' % Tnet_avg
-        print '|     D_avg    = %13e                                                |' % D_avg   
-        print '|     Pow_avg  = %13e                                                |' % Pow_avg 
-        print '|     Cpow_avg = %13e                                                |' % Cpow_avg
+        print '|     cl_avg   = %13e                                                |' % cl_avg  
+        print '|     ct_avg   = %13e                                                |' % ct_avg  
+        print '|     tnet_avg = %13e                                                |' % tnet_avg
+        print '|     d_avg    = %13e                                                |' % d_avg   
+        print '|     pow_avg  = %13e                                                |' % pow_avg 
+        print '|     cpow_avg = %13e                                                |' % cpow_avg
         
-    def solutionCompleteOutput(self, perDone):
+    def solution_complete_output(self, perDone):
        print '|     %3i%% Complete                                                           |' % perDone
        print '+-----------------------------------------------------------------------------+\n'
