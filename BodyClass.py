@@ -14,25 +14,16 @@ class Body(object):
         self.f=f
         self.phi=phi
         
-        self.x=np.zeros(N/2)
-        self.z_bot=np.zeros(N/2)
-        self.z_top=np.zeros(N/2)
-        self.x_col=np.zeros(N/2+1)
-        self.z_col_top=np.zeros(N/2+1)
-        self.z_col_bot=np.zeros(N/2+1)
+        self.x=np.zeros(N+1)
+        self.z=np.zeros(N+1)
+        self.x_col=np.zeros(N)
+        self.z_col=np.zeros(N)
         
         self.Vx=np.zeros(N)
         self.Vz=np.zeros(N)
         
-        self.Xts=np.zeros(N/2+1)
-        self.Xbs=np.zeros(N/2+1)
-        self.Zts=np.zeros(N/2+1)
-        self.Zbs=np.zeros(N/2+1)
-        
         self.X=np.zeros(N+1)
         self.Z=np.zeros(N+1)
-        self.X_mid=np.zeros(N)
-        self.Z_mid=np.zeros(N)
         self.X_col=np.zeros(N)
         self.Z_col=np.zeros(N)
         

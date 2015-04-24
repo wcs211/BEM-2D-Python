@@ -55,8 +55,8 @@ for i in np.arange(0,counter):
 
     else: #i>0:
         
-        (Body1.x_neut,Body1.z_neut)=NeutralAxis(Body1,Body1.x_col,dstep,tstep,t[i])
-        SurfaceKinematics(Body1,dstep,tstep,t[i],i)
+        (Body1.x_neut,Body1.z_neut)=NeutralAxis(Body1,Body1.x_col[:Body1.N/2],dstep,tstep,t[i])
+        SurfaceKinematics(Body1,dstep,tstep,t[i])
         CollocationPoints(Body1,S,i)
         EdgeShed(Body1,Edge1,i,delt)
         WakeShed(Edge1,Wake1,i,delt)
@@ -77,6 +77,4 @@ total_time=time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
 
 #post.BodyWakePlot(Body1,Edge1,Wake1)
-#post.CpPlot(Body1)
-#plt.gca().invert_yaxis()
-#post.DragVsPeriod(Body1,rho,t)
+post.CpPlot(Body1)

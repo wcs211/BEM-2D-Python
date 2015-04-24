@@ -6,14 +6,14 @@ import copy
 # this is to make sure each plot is drawn in a new window, no matter which plotting methods are used
 N_fig=1
 
-def BasicXY(x,y):
+def BasicXY(x,y,color='b'):
     
     global N_fig
     figure = plt.figure(N_fig)
     figure.add_subplot(1, 1, 1, axisbg='1') # change background color here
     plt.gca().set_aspect('equal')
     
-    plt.plot(x,y)
+    plt.plot(x,y,color)
     N_fig+=1
 
 def BodyWakePlot(Body,Edge,Wake):
@@ -54,8 +54,8 @@ def CpPlot(Body):
     plt.gca().set_aspect('equal')
     plt.gca().invert_yaxis()
     
-    plt.plot(Body.X_mid[:Body.N/2],Body.Cp[:Body.N/2],'g')
-    plt.plot(Body.X_mid[Body.N/2:],Body.Cp[Body.N/2:],'b')
+    plt.plot(Body.X_col[:Body.N/2],Body.Cp[:Body.N/2],'g')
+    plt.plot(Body.X_col[Body.N/2:],Body.Cp[Body.N/2:],'b')
     plt.plot(Body.X,-Body.Z,'k')
     
     N_fig+=1

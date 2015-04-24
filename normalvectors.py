@@ -2,7 +2,7 @@ import numpy as np
        
     #x,z components of each panel's tangential and normal vectors
 def PanelVectors(x,z):
-    lpanel=np.sqrt((x[1:]-x[0:-1])**2 + (z[1:]-z[0:-1])**2)
+    lpanel=np.sqrt((x[1:]-x[:-1])**2 + (z[1:]-z[:-1])**2)
     tx=(x[1:]-x[:-1])/lpanel
     tz=(z[1:]-z[:-1])/lpanel
     nx=-tz

@@ -3,7 +3,7 @@ import numpy as np
 # VandeVooren airfoil type
 def VanDeVooren(Body):
 # uses Body.(c, epsilon, k, N)
-# gets Body.(x, z_top, z_bot, x_col, z_col_top, z_col_bot)
+# gets Body.(x, z, x_col, z_col)
 # others: a, phi, r1, r2, phi1, phi2
     
     a=Body.c*((1+Body.epsilon)**(Body.k-1))*(2**(-Body.k))
@@ -25,9 +25,14 @@ def VanDeVooren(Body):
     
     Body.z_top[0]=0
     Body.z_bot[0]=0
-    Body.x_col=((Body.x[1:] + Body.x[0:-1])/2)
-    Body.z_col_top = ((Body.z_top[1:] + Body.z_top[0:-1])/2)
-    Body.z_col_bot = -Body.z_col_top
+    Body.z_bot[-1]=0
+    
+    # merge top and bottom surfaces together
+    Body.x=np.hstack((Body.x , Body.x[-2::-1]))
+    Body.z=np.hstack((Body.z_bot , Body.z_top[-2::-1]))
+    
+    Body.x_col=((Body.x[1:] + Body.x[:-1])/2)
+    Body.z_col=((Body.z[1:] + Body.z[:-1])/2)
 
 #flat plate geometry
 def FlatPlate(Body):
