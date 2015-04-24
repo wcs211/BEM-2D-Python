@@ -4,16 +4,16 @@ from BodyClass import Body
 from EdgeClass import Edge
 from WakeClass import Wake
 from Geometries import VanDeVooren
-from Kinematics import NeutralAxis, SurfaceKinematics, EdgeShed, WakeShed, WakeRollup, CollocationPoints
+from Kinematics import NeutralAxis, PanelPositions, SurfaceKinematics, EdgeShed, WakeShed, WakeRollup
 from InfForce import InfluenceMatrices, Kutta
-import Postprocess as post
+import Graphics as graph
 import time # for timing simulation
 
 PO().progTitle('1.0.0')
 start_time=time.time()
 
 Ce=0.4
-counter=151
+counter=5
 
 RF = 0.5 # reduced frequency
 switch_Kutta = 1 # 0 for explicit, 1 for unsteady
@@ -56,8 +56,8 @@ for i in np.arange(0,counter):
     else: #i>0:
         
         (Body1.x_neut,Body1.z_neut)=NeutralAxis(Body1,Body1.x_col[:Body1.N/2],dstep,tstep,t[i])
+        PanelPositions(Body1,S,dstep,t[i])
         SurfaceKinematics(Body1,dstep,tstep,t[i])
-        CollocationPoints(Body1,S,i)
         EdgeShed(Body1,Edge1,i,delt)
         WakeShed(Edge1,Wake1,i,delt)
         
@@ -76,5 +76,5 @@ for i in np.arange(0,counter):
 total_time=time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
 
-#post.BodyWakePlot(Body1,Edge1,Wake1)
-post.CpPlot(Body1)
+#graph.BodyWakePlot(Body1,Edge1,Wake1)
+#graph.CpPlot(Body1)

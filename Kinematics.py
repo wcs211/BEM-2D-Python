@@ -22,39 +22,12 @@ def NeutralAxis(Body,x_ref,dstep,tstep,t):
     # overall neutral axis position
     return(x_neut_p,z_neut_p)
     
-# this method calculates the actual surface positions of the airfoil for each time step 
-# using the neutral axis and appropriate normal vectors of each point on the neutral axis
-# this class also calculates the velocity of the panel midpoints for each time step 
-def SurfaceKinematics(Body,dstep,tstep,t):
-# uses NeutralAxis
-# uses Body.(x_col, z_col, x, z, V0)
-# gets Body.(Vx, Vz, X, Z)
-# others: a million
-    
-    # Panel Midpoint Velocity Calculations
-    # calculating the surface positions at tplus(tp) and tminus(tm) for every timestep
-    (xtpneut,ztpneut)=NeutralAxis(Body,Body.x_col,0,tstep,t)
-  
-    (xtpdp,ztpdp)=NeutralAxis(Body,Body.x_col,dstep,tstep,t)
-
-    (xtpdm,ztpdm)=NeutralAxis(Body,Body.x_col,-dstep,tstep,t)
-
-    (xtmneut,ztmneut)=NeutralAxis(Body,Body.x_col,0,-tstep,t)
-    
-    (xtmdp,ztmdp)=NeutralAxis(Body,Body.x_col,dstep,-tstep,t)
-    
-    (xtmdm,ztmdm)=NeutralAxis(Body,Body.x_col,-dstep,-tstep,t)
-    
-    # displaced airfoil's panel midpoints for times tplus(tp) and tminus(tm)      
-    Xctp = xtpneut + PointVectors(xtpdp,xtpdm,ztpdp,ztpdm)[2]*Body.z_col + Body.V0*t
-    Xctm = xtmneut + PointVectors(xtmdp,xtmdm,ztmdp,ztmdm)[2]*Body.z_col + Body.V0*t
-        
-    Zctp = ztpneut + PointVectors(xtpdp,xtpdm,ztpdp,ztpdm)[3]*Body.z_col
-    Zctm = ztmneut + PointVectors(xtmdp,xtmdm,ztmdp,ztmdm)[3]*Body.z_col
-    
-    # velocity calculations on the surface panel midpoints
-    Body.Vx = (Xctp - Xctm)/(2*tstep)
-    Body.Vz = (Zctp - Zctm)/(2*tstep)
+# gets the panel endpoint positions and collocation point positions of the body
+def PanelPositions(Body,S,dstep,t):
+# uses NeutralAxis()
+# uses Body.(x, z, z_col, V0)
+# gets Body.(X, Z, X_col, Z_col)
+# others: xneut, zneut, xdp_s, zdp_s, xdm_s, zdm_s
     
     # Body Surface Panel Endpoint Calculations
     (xneut,zneut)=NeutralAxis(Body,Body.x,0,0,t)
@@ -62,10 +35,46 @@ def SurfaceKinematics(Body,dstep,tstep,t):
     # infinitesimal differences on the neutral axis to calculate the tangential and normal vectors
     (xdp_s,zdp_s)=NeutralAxis(Body,Body.x,dstep,0,t)
     (xdm_s,zdm_s)=NeutralAxis(Body,Body.x,-dstep,0,t)
-
+    
     # displaced airfoil's surface points for time t0
     Body.X = xneut + PointVectors(xdp_s,xdm_s,zdp_s,zdm_s)[2]*Body.z + Body.V0*t
     Body.Z = zneut + PointVectors(xdp_s,xdm_s,zdp_s,zdm_s)[3]*Body.z
+    
+    # collocation points are the points where impermeable boundary condition is forced
+    # they should be shifted inside or outside of the boundary depending on the dirichlet or neumann condition
+    # shifting surface collocation points some percent of the height from the neutral axis
+    # normal vectors point outward but positive S is inward, so the shift must be subtracted from the panel midpoints
+    Body.X_col = (Body.X[1:]+Body.X[:-1])/2 - S*PanelVectors(Body.X,Body.Z)[2]*np.absolute(Body.z_col)
+    Body.Z_col = (Body.Z[1:]+Body.Z[:-1])/2 - S*PanelVectors(Body.X,Body.Z)[3]*np.absolute(Body.z_col)
+    
+# this method calculates the actual surface positions of the airfoil for each time step
+# using the neutral axis and appropriate normal vectors of each point on the neutral axis
+# this class also calculates the velocity of the panel midpoints for each time step
+def SurfaceKinematics(Body,dstep,tstep,t):
+# uses NeutralAxis(), PointVectors()
+# uses Body.(x_col, z_col, V0)
+# gets Body.(Vx, Vz)
+# others: xtpneut, ztpneut, xtpdp, ztpdp, xtpdm, ztpdm, xtmneut, ztmneut, xtmdp, ztmdp, xtmdm, ztmdm, xctp, xctm, zctp, zctm
+    
+    # Panel Midpoint Velocity Calculations
+    # calculating the surface positions at tplus(tp) and tminus(tm) for every timestep
+    (xtpneut,ztpneut)=NeutralAxis(Body,Body.x_col,0,tstep,t)
+    (xtpdp,ztpdp)=NeutralAxis(Body,Body.x_col,dstep,tstep,t)
+    (xtpdm,ztpdm)=NeutralAxis(Body,Body.x_col,-dstep,tstep,t)
+    (xtmneut,ztmneut)=NeutralAxis(Body,Body.x_col,0,-tstep,t)
+    (xtmdp,ztmdp)=NeutralAxis(Body,Body.x_col,dstep,-tstep,t)
+    (xtmdm,ztmdm)=NeutralAxis(Body,Body.x_col,-dstep,-tstep,t)
+    
+    # displaced airfoil's panel midpoints for times tplus(tp) and tminus(tm)      
+    xctp = xtpneut + PointVectors(xtpdp,xtpdm,ztpdp,ztpdm)[2]*Body.z_col + Body.V0*t
+    xctm = xtmneut + PointVectors(xtmdp,xtmdm,ztmdp,ztmdm)[2]*Body.z_col + Body.V0*t
+        
+    zctp = ztpneut + PointVectors(xtpdp,xtpdm,ztpdp,ztpdm)[3]*Body.z_col
+    zctm = ztmneut + PointVectors(xtmdp,xtmdm,ztmdp,ztmdm)[3]*Body.z_col
+    
+    # velocity calculations on the surface panel midpoints
+    Body.Vx = (xctp - xctm)/(2*tstep)
+    Body.Vz = (zctp - zctm)/(2*tstep)
     
 def EdgeShed(Body,Edge,i,delt):
 # uses Body.(X, Z, x_neut, z_neut, V0) and Edge.Ce
@@ -203,17 +212,3 @@ def WakeRollup(Body,Edge,Wake,delta_core,i,delt):
         # modify wake with the total induced velocity
         Wake.X[1:i]+=Vx*delt
         Wake.Z[1:i]+=Vz*delt
-    
-# collocation points are the points where impermeable boundary condition is forced
-# they should be shifted inside or outside of the boundary depending on the dirichlet or neumann condition
-def CollocationPoints(Body,S,i):
-# uses Body.(z_col, X, Z)
-# gets Body(X_col, Z_col)
-# others: none
-    
-    S=S    # shifting parameter (inward:positive, outward:negative)
-    
-    # shifting surface collocation points some percent of the height from the neutral axis
-    # normal vectors point outward but positive S is inward, so the shift must be subtracted from the panel midpoints
-    Body.X_col = (Body.X[1:]+Body.X[:-1])/2 - S*PanelVectors(Body.X,Body.Z)[2]*np.absolute(Body.z_col)
-    Body.Z_col = (Body.Z[1:]+Body.Z[:-1])/2 - S*PanelVectors(Body.X,Body.Z)[3]*np.absolute(Body.z_col)
