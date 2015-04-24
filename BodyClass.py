@@ -26,6 +26,8 @@ class Body(object):
         self.Z=np.zeros(N+1)
         self.X_col=np.zeros(N)
         self.Z_col=np.zeros(N)
+        self.X_mid=np.zeros((3,N))
+        self.Z_mid=np.zeros((3,N))
         
         self.x_neut=np.zeros(N/2)
         self.z_neut=np.zeros(N/2)

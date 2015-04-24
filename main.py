@@ -13,9 +13,9 @@ PO().progTitle('1.0.0')
 start_time=time.time()
 
 Ce=0.4
-counter=5
+counter=151
 
-RF = 0.5 # reduced frequency
+RF = 1.0 # reduced frequency
 switch_Kutta = 1 # 0 for explicit, 1 for unsteady
 
 N_Body=100
@@ -57,7 +57,7 @@ for i in np.arange(0,counter):
         
         (Body1.x_neut,Body1.z_neut)=NeutralAxis(Body1,Body1.x_col[:Body1.N/2],dstep,tstep,t[i])
         PanelPositions(Body1,S,dstep,t[i])
-        SurfaceKinematics(Body1,dstep,tstep,t[i])
+        SurfaceKinematics(Body1,dstep,tstep,t[i],i,delt)
         EdgeShed(Body1,Edge1,i,delt)
         WakeShed(Edge1,Wake1,i,delt)
         
@@ -68,13 +68,13 @@ for i in np.arange(0,counter):
         #Force(Body1,i)
         #PO().solutionOutput(D_visc,Cf,Cl,Ct,Cpow,Gamma)
          
-#        if np.fmod(i,10)==0:
-#            PO().timestepHeader(i+1,t[i])
-#            PO().solutionOutput(0,0,0,0,0,0)
-#            PO().solutionCompleteOutput(i/float(counter-1)*100.)
+        if np.fmod(i,10)==0:
+            PO().timestepHeader(i+1,t[i])
+            PO().solutionOutput(0,0,0,0,0,0)
+            PO().solutionCompleteOutput(i/float(counter-1)*100.)
 
 total_time=time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
 
 #graph.BodyWakePlot(Body1,Edge1,Wake1)
-#graph.CpPlot(Body1)
+graph.CpPlot(Body1)
