@@ -5,13 +5,13 @@ class Body(object):
     def __init__(self,N,xb,zb,xb_col,zb_col,V0,THETA_MAX,H_C,F,PHI):
         
         self.N = N
-        # positions in body frame of reference
+        # Positions in body frame of reference
         self.xb = xb
         self.zb = zb
         self.xb_col = xb_col
         self.zb_col = zb_col
         
-        # prescribed motion
+        # Prescribed motion
         self.V0 = V0
         self.THETA_MAX = THETA_MAX
         self.H_C = H_C
@@ -44,8 +44,8 @@ class Body(object):
     
     @classmethod
     # VandeVooren airfoil geometry mapping
-    def from_van_de_vooren(cls, N, C, K, EPSILON, V0,THETA_MAX,H_C,F,PHI):
-    # Uses self.(C, EPSILON, K, N)
+    def from_van_de_vooren(cls, (N,C,K,EPSILON,V0,THETA_MAX,H_C,F,PHI)):
+    # Uses self.(N, C, K, EPSILON)
     # Gets self.(xb, zb, xb_col, zb_col)
     # Others: A, phi, r1, r2, phi1, phi2
         
