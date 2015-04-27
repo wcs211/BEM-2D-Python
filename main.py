@@ -4,7 +4,6 @@ from terminal_output import print_output as po
 from body_class import Body
 from edge_class import Edge
 from wake_class import Wake
-from geometries import van_de_vooren
 from kinematics import neutral_axis, panel_positions, surface_kinematics, edge_shed, wake_shed, wake_rollup
 from inf_force import influence_matrices, kutta
 import graphics as graph
@@ -31,9 +30,8 @@ def main():
     F = RF/(2*np.pi)
     PHI = 0
     DELTA_CORE = (0.005*THETA_MAX+0.09)*C
-    Body1 = Body(N_BODY,V0,EPSILON,K,C,THETA_MAX,H_C,F,PHI,COUNTER)
-    van_de_vooren(Body1)
     
+    Body1 = Body.from_van_de_vooren(N_BODY,C,K,EPSILON,V0,THETA_MAX,H_C,F,PHI)
     Edge1 = Edge(Body1.V0,CE,COUNTER)
     Wake1 = Wake(Body1,COUNTER-2)
     
@@ -78,8 +76,8 @@ def main():
     total_time = time.time()-start_time
     print "Simulation time:", np.round(total_time, 3), "seconds"
 
-graph.body_wake_plot(Body1,Edge1,Wake1)
-#graph.cp_plot(Body1)
+    graph.body_wake_plot(Body1,Edge1,Wake1)
+    #graph.cp_plot(Body1)
 
 if __name__ == '__main__':
     main()
