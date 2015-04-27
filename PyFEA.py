@@ -258,7 +258,8 @@ class PyFEA(object):
         self.UdotDot_n = np.linalg.solve(self.M, Fext_n)
         
         # March through time until the total simulated time has elapsed
-        for i in xrange(np.size(np.s_[self.deltaT:self.endTime:self.deltaT])):
+        j = np.size(np.s_[self.deltaT:self.endTime:self.deltaT])
+        for i in xrange(j):
             Fext_nPlus = Fext_n
             if (method == 'HHT'):
                 self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, fixedNodes)
@@ -273,7 +274,10 @@ class PyFEA(object):
                 print '    HHT'
                 print '    NEWMARK'
                 print '    TRAPEZOIDAL'
-        
+            if (i != j):
+                self.U_n = self.U_nPlus
+                self.Udot_n = self.Udot_nPlus
+                self.UdotDot_n = self.UdotDot_nPlus
         
             
         

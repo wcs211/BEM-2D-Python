@@ -26,7 +26,7 @@ class solid(object):
         """
         This function initializes the element nodal positions.
         
-        Positional Arguments
+        Keyword arguments:
         tmax -- array of solid thicknesses for each element
         c -- undeformed/initial chord length
         constThickBeam -- flag argument for constant thickness properties 
@@ -54,26 +54,38 @@ class solid(object):
                     self.tBeamStruct[i,0] = self.tBeamStruct[i-1,0]
                 else:
                     self.tBeamStruct[i,0] = self.tBeam[i,0]
-                if self.nodes[i,2] <= flexionRatio:
+                if (self.nodes[i,2] <= flexionRatio):
                     fixedCounter += 1
 
-    def meanline(self):
+    def meanline(self, xc_0, xp_0):
         """
         Function to calculate the meanline fraction position along the body.
         0 corresponds to the leading edge 
         1 corresponds to the trailing edge
+        
+        Keyword arguments:
+        xc_0 -- Initial colocation point (x-component)
+        xp_0 -- Iniital element endpoint (x-component)
         """
         
+        meanline_p0 = xp_0 / (np.max(xp_0) - np.min(xp_0))
+        meanline_c0 = xc_0 / (np.max(xp_0) - np.min(xp_0))
+        
+        return meanline_p0, meanline_c0
 
     def initMesh(self):
         """
         Initializes the finite element mesh based on the object's __init__
         values. This is only valid for the undeformed structure at time t = 0.
         """
-        self.nodes[:,0] = np.arange(min(self.xp_0),max(self.xp_0),(max(self.xp_0)-min(self.xp_0))/self.Nelements)
+        self.nodes[:,0] = np.arange(min(self.xp_0),max(self.xp_0),\
+                                (max(self.xp_0)-min(self.xp_0))/self.Nelements)
         self.nodes[:,1] = np.zeros((self.Nnodes,1))
         self.nodes[:,2] = self.nodes[:,0] / (max(self.nodes[:,0])-min(self.nodes[:,1]))
         self.nodes_0 = self.nodes
         
-
+    def rotatePts(x0, y0, theta):
+        x = x0 * np.cos(theta) - y0 * np.sin(theta)
+        y = x0 * np.sin(theta) + y0 * np.cos(theta)
+        return x, y
         
