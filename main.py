@@ -14,17 +14,16 @@ def main():
     po().prog_title('1.0.0')
     start_time = time.time()
     
-    # Recurring parameters
+    # Recurring constants
     COUNTER = P['COUNTER']
     DEL_T = P['DEL_T']
     DSTEP = P['DSTEP']
     TSTEP = P['TSTEP']
+    t = [DEL_T*i for i in xrange(COUNTER)]
     
     Body1 = Body.from_van_de_vooren([P[key] for key in ['N_BODY','C','K','EPSILON','V0','THETA_MAX','H_C','F','PHI']])
     Edge1 = Edge(Body1.V0,P['CE'],COUNTER)
     Wake1 = Wake(Body1,COUNTER-2)
-
-    t = DEL_T*np.arange(0,COUNTER)
     
     po().calc_input(P['THETA_MAX']/np.pi*180.,P['RE'],P['THETA_MAX']/np.pi*180.,DEL_T)
     
