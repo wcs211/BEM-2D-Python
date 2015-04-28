@@ -24,6 +24,9 @@ def main():
     Body1 = Body.from_van_de_vooren([P[key] for key in ['N_BODY','C','K','EPSILON','V0','THETA_MAX','H_C','F','PHI']])
     Edge1 = Edge(Body1.V0,P['CE'],COUNTER)
     Wake1 = Wake(Body1,COUNTER-2)
+#    FSI1 = FSI(Npanels,Nelements)
+#    PyFEA1 = PyFEA(Nelements, fracDeltaT, endTime, E, I, A, l, rho, Fload, U_n, Udot_n)
+#    Solid1 = solid(Nnodes,xp_0,zp_0,tmax)
     
     po().calc_input(P['THETA_MAX']/np.pi*180.,P['RE'],P['THETA_MAX']/np.pi*180.,DEL_T)
     
@@ -33,24 +36,44 @@ def main():
             po().initialize_output(t[i])
     
         else: #i > 0:
+        
+#            readFsiControls(fixedPtRelax, nOuterCorrMax)
+#            FSI1.__init__(Npanels,Nelements)
             
-            (Body1.x_neut,Body1.z_neut) = neutral_axis(Body1,Body1.xb_col[:Body1.N/2],DSTEP,TSTEP,t[i])
-            panel_positions(Body1,P['S'],DSTEP,t[i])
-            surface_kinematics(Body1,DSTEP,TSTEP,t[i],i,DEL_T)
-            edge_shed(Body1,Edge1,i,DEL_T)
-            wake_shed(Edge1,Wake1,i,DEL_T)
+            while True:
+                
+#                FSI1.setInterfaceDisplacemet(displ, relaxationFactor, 
+#                                             residual, outerCorr, couplingScheme)
             
-            influence_matrices(Body1,Edge1,Wake1,i)
-            kutta(Body1,Edge1,Wake1,P['RHO'],i,DEL_T,P['SWITCH_KUTTA'])
-            wake_rollup(Body1,Edge1,Wake1,P['DELTA_CORE'],i,DEL_T)
-            
-            #force(Body1,i)
-            #po().solution_output(d_visc,cf,cl,ct,cpow,gamma)
-             
-            if np.fmod(i,10) == 0:
-                po().timestep_header(i+1,t[i])
-                po().solution_output(0,0,0,0,0,0)
-                po().solution_complete_output(i/float(COUNTER-1)*100.)
+                (Body1.x_neut,Body1.z_neut) = neutral_axis(Body1,Body1.xb_col[:Body1.N/2],DSTEP,TSTEP,t[i])
+                panel_positions(Body1,P['S'],DSTEP,t[i])
+                surface_kinematics(Body1,DSTEP,TSTEP,t[i],i,DEL_T)
+                edge_shed(Body1,Edge1,i,DEL_T)
+                wake_shed(Edge1,Wake1,i,DEL_T)
+                
+                influence_matrices(Body1,Edge1,Wake1,i)
+                kutta(Body1,Edge1,Wake1,P['RHO'],i,DEL_T,P['SWITCH_KUTTA'])
+                
+#                FSI1.setInterfaceForce(outerCorr, nodes, nodesNew, theta, heave, 
+#                                       x_b, z_b, xp, zp, xc, zc, P_b, ViscDrag, vn, delFs, 
+#                                       interpMtd, meanline_c0, tBeamStruct, fixedCounter, c,
+#                                       U_nPlus, Udot_nPlus, i_t)
+#                PyFEA1.solve(mType, method, theta, fixedNodes, alpha, beta, gamma)
+#                (DU, tempNodes) = FSI1.getDisplacements(theta, heavePos, xp, zp, nodalDelxp, nodalDelzp, tBeam, nodes_0, U_nPlus, interpMtd, meanline_p0, fixedNodes, flexionRatio)
+#                FSI1.calcFSIResidual(DU, nodes, tempNodes, outerCorr)
+#                
+#                if (FSI1.fsiResidualNorm <= FSI1.outerCorrTolerance or FSI1.outerCorr >= FSI1.nOuterCorr):
+                wake_rollup(Body1,Edge1,Wake1,P['DELTA_CORE'],i,DEL_T)
+                
+                #force(Body1,i)
+                #po().solution_output(d_visc,cf,cl,ct,cpow,gamma)
+                 
+                if np.fmod(i,10) == 0:
+                    po().timestep_header(i+1,t[i])
+                    po().solution_output(0,0,0,0,0,0)
+                    po().solution_complete_output(i/float(COUNTER-1)*100.)
+                
+                break # TODO: remove this once FSI is ready
     
     total_time = time.time()-start_time
     print "Simulation time:", np.round(total_time, 3), "seconds"
