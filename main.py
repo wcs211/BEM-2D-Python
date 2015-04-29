@@ -5,7 +5,6 @@ from setup_parameters import PARAMETERS as P
 from body_class import Body, GeoParametersVDV, MotionParameters, SwimmerParameters
 from edge_class import Edge
 from wake_class import Wake
-from general_functions import archive
 from kinematics import neutral_axis, panel_positions, surface_kinematics, edge_shed, wake_shed, wake_rollup
 from inf_force import influence_matrices, kutta
 import graphics as graph
@@ -51,9 +50,7 @@ def main():
 #                                             residual, outerCorr, couplingScheme)
             
                 (Body1.x_neut,Body1.z_neut) = neutral_axis(Body1.PMotion,Body1.BFC.x_col[:Body1.N/2],DSTEP,TSTEP,t[i])
-                archive(Body1.x_mid)
-                archive(Body1.z_mid)
-                (Body1.AFC, Body1.x_mid[0,:], Body1.z_mid[0,:]) = panel_positions(Body1.BFC,Body1.PMotion,P['S'],DSTEP,t[i])
+                panel_positions(Body1,P['S'],DSTEP,t[i])
                 surface_kinematics(Body1,DSTEP,TSTEP,t[i],i,DEL_T)
                 edge_shed(Body1,Edge1,i,DEL_T)
                 wake_shed(Edge1,Wake1,i,DEL_T)

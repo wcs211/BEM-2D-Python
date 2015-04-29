@@ -1,6 +1,5 @@
 import numpy as np
-from general_functions import panel_vectors, point_vectors
-from body_class import CoordinatesWithCol
+from general_functions import panel_vectors, point_vectors, archive
 from inf_force import transformation
 
 # Neutral axis is the axis which coincides with the chord line and divides the symmetric airfoil into two
@@ -27,25 +26,26 @@ def neutral_axis(MotionParameters,x,DSTEP,TSTEP,t):
     return(x_neut_p,z_neut_p)
     
 # Gets the panel endpoint positions and collocation point positions of the body
-def panel_positions(BodyFrameCoordinates,MotionParameters,S,DSTEP,t):
+def panel_positions(Body,S,DSTEP,t):
 # Uses neutral_axis()
 # Uses Body.(xb, zb, zb_col, V0)
 # Gets Body.(x, z, x_col, z_col, x_mid, z_mid)
 # Others: x_neut, z_neut, xdp_s, zdp_s, xdm_s, zdm_s
 
-    (x, z, x_col, z_col) = BodyFrameCoordinates
-    V0 = MotionParameters.V0
+    (bfx, bfz, bfx_col, bfz_col) = Body.BFC
+    V0 = Body.V0
     
     # Body surface panel endpoint calculations
-    (x_neut,z_neut) = neutral_axis(MotionParameters,x,0,0,t)
+    (x_neut,z_neut) = neutral_axis(Body.PMotion,bfx,0,0,t)
     
     # Infinitesimal differences on the neutral axis to calculate the tangential and normal vectors
-    (xdp_s,zdp_s) = neutral_axis(MotionParameters,x,DSTEP,0,t)
-    (xdm_s,zdm_s) = neutral_axis(MotionParameters,x,-DSTEP,0,t)
+    (xdp_s,zdp_s) = neutral_axis(Body.PMotion,bfx,DSTEP,0,t)
+    (xdm_s,zdm_s) = neutral_axis(Body.PMotion,bfx,-DSTEP,0,t)
     
     # Absolute-frame panel endpoint positions for time t
-    afx = x_neut + point_vectors(xdp_s,xdm_s,zdp_s,zdm_s)[2]*z + V0*t
-    afz = z_neut + point_vectors(xdp_s,xdm_s,zdp_s,zdm_s)[3]*z
+    afx = x_neut + point_vectors(xdp_s,xdm_s,zdp_s,zdm_s)[2]*bfz + V0*t
+    afz = z_neut + point_vectors(xdp_s,xdm_s,zdp_s,zdm_s)[3]*bfz
+    
     # Absolute-frame panel midpoint positions
     x_mid = (afx[:-1]+afx[1:])/2
     z_mid = (afz[:-1]+afz[1:])/2
@@ -54,10 +54,19 @@ def panel_positions(BodyFrameCoordinates,MotionParameters,S,DSTEP,t):
     # They should be shifted inside or outside of the boundary depending on the dirichlet or neumann condition
     # Shifting surface collocation points some percent of the height from the neutral axis
     # Normal vectors point outward but positive S is inward, so the shift must be subtracted from the panel midpoints
-    afx_col = x_mid - S*panel_vectors(afx,afz)[2]*np.absolute(z_col)
-    afz_col = z_mid - S*panel_vectors(afx,afz)[3]*np.absolute(z_col)
+    afx_col = x_mid - S*panel_vectors(afx,afz)[2]*np.absolute(bfz_col)
+    afz_col = z_mid - S*panel_vectors(afx,afz)[3]*np.absolute(bfz_col)
     
-    return(CoordinatesWithCol(afx, afz, afx_col, afz_col), x_mid, z_mid)
+    # Archive past values of x_mid and z_mid for differencing wrt time later
+    archive(Body.AFC.x_mid)
+    archive(Body.AFC.z_mid)
+    
+    Body.AFC.x[:] = afx
+    Body.AFC.z[:] = afz
+    Body.AFC.x_col[:] = afx_col
+    Body.AFC.z_col[:] = afz_col
+    Body.AFC.x_mid[0,:] = x_mid
+    Body.AFC.z_mid[0,:] = z_mid
     
 # This method calculates the actual surface positions of the airfoil for each time step
 # Using the neutral axis and appropriate normal vectors of each point on the neutral axis
@@ -95,13 +104,13 @@ def surface_kinematics(Body,DSTEP,TSTEP,t,i,DEL_T):
         
     elif i == 2:
         # First-order backwards differencing of body collocation point positions
-        Body.vx = (Body.x_mid[0,:]-Body.x_mid[1,:])/DEL_T - Body.V0
-        Body.vz = (Body.z_mid[0,:]-Body.z_mid[1,:])/DEL_T
+        Body.vx = (Body.AFC.x_mid[0,:]-Body.AFC.x_mid[1,:])/DEL_T - Body.V0
+        Body.vz = (Body.AFC.z_mid[0,:]-Body.AFC.z_mid[1,:])/DEL_T
     
     else:
         # Second-order backwards differencing of body collocation point positions
-        Body.vx = (3*Body.x_mid[0,:]-4*Body.x_mid[1,:]+Body.x_mid[2,:])/(2*DEL_T) - Body.V0
-        Body.vz = (3*Body.z_mid[0,:]-4*Body.z_mid[1,:]+Body.z_mid[2,:])/(2*DEL_T)
+        Body.vx = (3*Body.AFC.x_mid[0,:]-4*Body.AFC.x_mid[1,:]+Body.AFC.x_mid[2,:])/(2*DEL_T) - Body.V0
+        Body.vz = (3*Body.AFC.z_mid[0,:]-4*Body.AFC.z_mid[1,:]+Body.AFC.z_mid[2,:])/(2*DEL_T)
     
 def edge_shed(Body,Edge,i,DEL_T):
 # Uses Body.(x, z, x_neut, z_neut, V0) and Edge.CE

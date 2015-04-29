@@ -4,20 +4,31 @@ import numpy as np
 GeoParametersVDV = namedtuple('GeoParamVDV', 'N C K EPSILON')
 MotionParameters = namedtuple('MotionParam', 'V0 THETA_MAX H_C F PHI')
 SwimmerParameters = namedtuple('SimParam', 'CE S SW_GEOMETRY SW_KUTTA')
-Coordinates = namedtuple('Coordinates', 'x z')
-CoordinatesWithCol = namedtuple('CoordinatesWithCol', 'x z x_col z_col')
-#CoordinatesWithColMid = namedtuple('CoordinatesWithColMid','x z x_col z_col x_mid z_mid')
+BodyFrameCoordinates = namedtuple('BodyFrameCoordinates', 'x z x_col z_col')
+AbsFrameCoordinates = namedtuple('AbsFrameCoordinates', 'x z x_col z_col x_mid z_mid x_neut z_neut')
+
+class Swimmer(object):
+    
+    def __init__(self, SwimmerParameters, GeoParameters, MotionParameters):
+        self.CE = SwimmerParameters.CE
+        self.S = SwimmerParameters.S
+        self.SW_GEOMETRY = SwimmerParameters.SW_GEOMETRY
+        self.SW_KUTTA = SwimmerParameters.SW_KUTTA
+        
+        if self.SW_GEOMETRY == 'VDV':
+            self.Body = Body.from_van_de_vooren(GeoParameters, MotionParameters)
 
 class Body(object):
     
-    def __init__(self,N,BodyFrameCoordinates,MotionParam):
+    def __init__(self,N,BFC,MotionParam):
         
         self.N = N
         
         # Body-frame panel coordinates
-        self.BFC = BodyFrameCoordinates
-        # Absolute-frame panel coordinates = BFC just for the sake of initialization
-        self.AFC = BodyFrameCoordinates
+        self.BFC = BFC
+        # Initialize absolute-frame panel coordinates
+        self.AFC = AbsFrameCoordinates(np.empty(N+1), np.empty(N+1), np.empty(N), np.empty(N),\
+                                       np.zeros((3,N)), np.zeros((3,N)), np.empty(N/2), np.empty(N/2))
         
         # Prescribed motion
         self.V0 = MotionParam.V0 # gets used frequently enough
@@ -25,11 +36,6 @@ class Body(object):
         
         self.vx = np.zeros(N)
         self.vz = np.zeros(N)
-        self.x_mid = np.zeros((3,N))
-        self.z_mid = np.zeros((3,N))
-        
-        self.x_neut = np.zeros(N/2)
-        self.z_neut = np.zeros(N/2)
         
         self.sigma = np.zeros(N)
         self.phi_s = np.zeros((N,N))
@@ -83,9 +89,9 @@ class Body(object):
         x_col = ((x[1:] + x[:-1])/2)
         z_col = ((z[1:] + z[:-1])/2)
         
-        BodyFrameCoordinates = CoordinatesWithCol(x, z, x_col, z_col)
+        BFC = BodyFrameCoordinates(x, z, x_col, z_col)
         
-        return Body(N,BodyFrameCoordinates,MotionParam)
+        return Body(N,BFC,MotionParam)
     
 #    #Flat plate geometry
 #    def flat_plate(self):        
