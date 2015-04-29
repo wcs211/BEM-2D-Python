@@ -27,7 +27,7 @@ def body_wake_plot(Body,Edge,Wake):
     
     # Make color map based on vorticity
     color = copy.deepcopy(Wake.gamma[1:-1])
-    #Ttake a look at positive and negative circulations separately
+    # Take a look at positive and negative circulations separately
     if np.min(color) < 0: # Check if negative circulations exist (in case of short simulations)
         # Truncate any negative outliers
         color[color < np.percentile(color[color < 0],100-maxpercentile)] = np.percentile(color[color < 0],100-maxpercentile)
@@ -41,7 +41,7 @@ def body_wake_plot(Body,Edge,Wake):
     
     # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
     plt.scatter(Wake.x[1:-1],Wake.z[1:-1], s=30, c=color, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
-    plt.plot(Body.AFC.x,Body.AFC.z,'k')
+    plt.plot(Body.AF.x,Body.AF.z,'k')
     plt.plot(Edge.x,Edge.z,'g')
     
     n_fig += 1

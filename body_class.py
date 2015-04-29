@@ -1,9 +1,9 @@
 from collections import namedtuple
 import numpy as np
 
-GeoParametersVDV = namedtuple('GeoParamVDV', 'N C K EPSILON')
-MotionParameters = namedtuple('MotionParam', 'V0 THETA_MAX H_C F PHI')
-SwimmerParameters = namedtuple('SimParam', 'CE S SW_GEOMETRY SW_KUTTA')
+GeoVDVParameters = namedtuple('GeoVDVParameters', 'N C K EPSILON')
+MotionParameters = namedtuple('MotionParameters', 'V0 THETA_MAX H_C F PHI')
+SwimmerParameters = namedtuple('SimParameters', 'CE S SW_GEOMETRY SW_KUTTA')
 BodyFrameCoordinates = namedtuple('BodyFrameCoordinates', 'x z x_col z_col')
 AbsFrameCoordinates = namedtuple('AbsFrameCoordinates', 'x z x_col z_col x_mid z_mid x_neut z_neut')
 
@@ -20,19 +20,21 @@ class Swimmer(object):
 
 class Body(object):
     
-    def __init__(self,N,BFC,MotionParam):
+    def __init__(self, N, BodyFrameCoordinates, MotionParameters):
         
         self.N = N
         
         # Body-frame panel coordinates
-        self.BFC = BFC
+        # x, z, x_col, z_col
+        self.BF = BodyFrameCoordinates
         # Initialize absolute-frame panel coordinates
-        self.AFC = AbsFrameCoordinates(np.empty(N+1), np.empty(N+1), np.empty(N), np.empty(N),\
+        # x, z, x_col, z_col, x_mid, z_mid, x_neut, z_neut
+        self.AF = AbsFrameCoordinates(np.empty(N+1), np.empty(N+1), np.empty(N), np.empty(N),\
                                        np.zeros((3,N)), np.zeros((3,N)), np.empty(N/2), np.empty(N/2))
         
         # Prescribed motion
-        self.V0 = MotionParam.V0 # gets used frequently enough
-        self.PMotion = MotionParam
+        self.MP = MotionParameters
+        self.V0 = MotionParameters.V0 # gets used frequently enough
         
         self.vx = np.zeros(N)
         self.vz = np.zeros(N)
@@ -50,16 +52,16 @@ class Body(object):
     
     @classmethod
     # VandeVooren airfoil geometry mapping
-    def from_van_de_vooren(cls, GeoParamVDV, MotionParam):
+    def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
         """
         Creates Body based on Van de Vooren airfoil geometry.
         Motion parameters are unused here, just getting passed through.
         """
     
-        N = GeoParamVDV.N
-        C = GeoParamVDV.C
-        K = GeoParamVDV.K
-        EPSILON = GeoParamVDV.EPSILON
+        N = GeoVDVParameters.N
+        C = GeoVDVParameters.C
+        K = GeoVDVParameters.K
+        EPSILON = GeoVDVParameters.EPSILON
         
         A = C*((1+EPSILON)**(K-1))*(2**(-K))
         
@@ -91,9 +93,4 @@ class Body(object):
         
         BFC = BodyFrameCoordinates(x, z, x_col, z_col)
         
-        return Body(N,BFC,MotionParam)
-    
-#    #Flat plate geometry
-#    def flat_plate(self):        
-#        self.xf = np.linspace(1,0,self.N/2+1)
-#        self.zf = np.zeros(self.N/2+1)
+        return Body(N, BFC, MotionParameters)

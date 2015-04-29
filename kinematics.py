@@ -32,15 +32,15 @@ def panel_positions(Body,S,DSTEP,t):
 # Gets Body.(x, z, x_col, z_col, x_mid, z_mid)
 # Others: x_neut, z_neut, xdp_s, zdp_s, xdm_s, zdm_s
 
-    (bfx, bfz, bfx_col, bfz_col) = Body.BFC
+    (bfx, bfz, bfx_col, bfz_col) = Body.BF
     V0 = Body.V0
     
     # Body surface panel endpoint calculations
-    (x_neut,z_neut) = neutral_axis(Body.PMotion,bfx,0,0,t)
+    (x_neut,z_neut) = neutral_axis(Body.MP,bfx,0,0,t)
     
     # Infinitesimal differences on the neutral axis to calculate the tangential and normal vectors
-    (xdp_s,zdp_s) = neutral_axis(Body.PMotion,bfx,DSTEP,0,t)
-    (xdm_s,zdm_s) = neutral_axis(Body.PMotion,bfx,-DSTEP,0,t)
+    (xdp_s,zdp_s) = neutral_axis(Body.MP,bfx,DSTEP,0,t)
+    (xdm_s,zdm_s) = neutral_axis(Body.MP,bfx,-DSTEP,0,t)
     
     # Absolute-frame panel endpoint positions for time t
     afx = x_neut + point_vectors(xdp_s,xdm_s,zdp_s,zdm_s)[2]*bfz + V0*t
@@ -58,15 +58,15 @@ def panel_positions(Body,S,DSTEP,t):
     afz_col = z_mid - S*panel_vectors(afx,afz)[3]*np.absolute(bfz_col)
     
     # Archive past values of x_mid and z_mid for differencing wrt time later
-    archive(Body.AFC.x_mid)
-    archive(Body.AFC.z_mid)
+    archive(Body.AF.x_mid)
+    archive(Body.AF.z_mid)
     
-    Body.AFC.x[:] = afx
-    Body.AFC.z[:] = afz
-    Body.AFC.x_col[:] = afx_col
-    Body.AFC.z_col[:] = afz_col
-    Body.AFC.x_mid[0,:] = x_mid
-    Body.AFC.z_mid[0,:] = z_mid
+    Body.AF.x[:] = afx
+    Body.AF.z[:] = afz
+    Body.AF.x_col[:] = afx_col
+    Body.AF.z_col[:] = afz_col
+    Body.AF.x_mid[0,:] = x_mid
+    Body.AF.z_mid[0,:] = z_mid
     
 # This method calculates the actual surface positions of the airfoil for each time step
 # Using the neutral axis and appropriate normal vectors of each point on the neutral axis
@@ -79,17 +79,17 @@ def surface_kinematics(Body,DSTEP,TSTEP,t,i,DEL_T):
         
     if i == 1:
         
-        x_col = Body.BFC.x_col
-        z_col = Body.BFC.z_col
+        x_col = Body.BF.x_col
+        z_col = Body.BF.z_col
         
         # Panel midpoint velocity calculations
         # Calculating the surface positions at tplus(tp) and tminus(tm) for every timestep
-        (xtpneut,ztpneut) = neutral_axis(Body.PMotion,x_col,0,TSTEP,t)
-        (xtpdp,ztpdp) = neutral_axis(Body.PMotion,x_col,DSTEP,TSTEP,t)
-        (xtpdm,ztpdm) = neutral_axis(Body.PMotion,x_col,-DSTEP,TSTEP,t)
-        (xtmneut,ztmneut) = neutral_axis(Body.PMotion,x_col,0,-TSTEP,t)
-        (xtmdp,ztmdp) = neutral_axis(Body.PMotion,x_col,DSTEP,-TSTEP,t)
-        (xtmdm,ztmdm) = neutral_axis(Body.PMotion,x_col,-DSTEP,-TSTEP,t)
+        (xtpneut,ztpneut) = neutral_axis(Body.MP,x_col,0,TSTEP,t)
+        (xtpdp,ztpdp) = neutral_axis(Body.MP,x_col,DSTEP,TSTEP,t)
+        (xtpdm,ztpdm) = neutral_axis(Body.MP,x_col,-DSTEP,TSTEP,t)
+        (xtmneut,ztmneut) = neutral_axis(Body.MP,x_col,0,-TSTEP,t)
+        (xtmdp,ztmdp) = neutral_axis(Body.MP,x_col,DSTEP,-TSTEP,t)
+        (xtmdm,ztmdm) = neutral_axis(Body.MP,x_col,-DSTEP,-TSTEP,t)
         
         # Displaced airfoil's panel midpoints for times tplus(tp) and tminus(tm)      
         xctp = xtpneut + point_vectors(xtpdp,xtpdm,ztpdp,ztpdm)[2]*z_col + Body.V0*t
@@ -104,13 +104,13 @@ def surface_kinematics(Body,DSTEP,TSTEP,t,i,DEL_T):
         
     elif i == 2:
         # First-order backwards differencing of body collocation point positions
-        Body.vx = (Body.AFC.x_mid[0,:]-Body.AFC.x_mid[1,:])/DEL_T - Body.V0
-        Body.vz = (Body.AFC.z_mid[0,:]-Body.AFC.z_mid[1,:])/DEL_T
+        Body.vx = (Body.AF.x_mid[0,:]-Body.AF.x_mid[1,:])/DEL_T - Body.V0
+        Body.vz = (Body.AF.z_mid[0,:]-Body.AF.z_mid[1,:])/DEL_T
     
     else:
         # Second-order backwards differencing of body collocation point positions
-        Body.vx = (3*Body.AFC.x_mid[0,:]-4*Body.AFC.x_mid[1,:]+Body.AFC.x_mid[2,:])/(2*DEL_T) - Body.V0
-        Body.vz = (3*Body.AFC.z_mid[0,:]-4*Body.AFC.z_mid[1,:]+Body.AFC.z_mid[2,:])/(2*DEL_T)
+        Body.vx = (3*Body.AF.x_mid[0,:]-4*Body.AF.x_mid[1,:]+Body.AF.x_mid[2,:])/(2*DEL_T) - Body.V0
+        Body.vz = (3*Body.AF.z_mid[0,:]-4*Body.AF.z_mid[1,:]+Body.AF.z_mid[2,:])/(2*DEL_T)
     
 def edge_shed(Body,Edge,i,DEL_T):
 # Uses Body.(x, z, x_neut, z_neut, V0) and Edge.CE
@@ -122,10 +122,10 @@ def edge_shed(Body,Edge,i,DEL_T):
     
     # The trailing edge panel whose length can be varied to optimize the solution
     else:
-        Edge.x[0] = Body.AFC.x[0]
-        Edge.z[0] = Body.AFC.z[0]
-        Edge.x[1] = Body.AFC.x[0] + Edge.CE*panel_vectors(Body.x_neut,Body.z_neut)[0][0]*Body.V0*DEL_T
-        Edge.z[1] = Body.AFC.z[0] + Edge.CE*panel_vectors(Body.x_neut,Body.z_neut)[1][0]*Body.V0*DEL_T
+        Edge.x[0] = Body.AF.x[0]
+        Edge.z[0] = Body.AF.z[0]
+        Edge.x[1] = Body.AF.x[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[0][0]*Body.V0*DEL_T
+        Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
     
 # Wake position calculations
 def wake_shed(Edge,Wake,i,DEL_T):
@@ -179,10 +179,10 @@ def wake_rollup(Body,Edge,Wake,DELTA_CORE,i,DEL_T):
         vz = np.zeros(NT)
         
         # Coordinate transformation for body panels influencing wake
-        (xp1,xp2,zp) = transformation(Wake.x[1:i],Wake.z[1:i],Body.AFC.x,Body.AFC.z)
+        (xp1,xp2,zp) = transformation(Wake.x[1:i],Wake.z[1:i],Body.AF.x,Body.AF.z)
         
         # Angle of normal vector with respect to global z-axis
-        (nx,nz) = panel_vectors(Body.AFC.x,Body.AFC.z)[2:4]
+        (nx,nz) = panel_vectors(Body.AF.x,Body.AF.z)[2:4]
         beta = np.arctan2(-nx,nz)
         
         # Katz-Plotkin eqns 10.20 and 10.21 for body source influence
@@ -199,8 +199,8 @@ def wake_rollup(Body,Edge,Wake,DELTA_CORE,i,DEL_T):
         
         # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
         NI = Body.N+1
-        xp = np.repeat(Wake.x[1:i,np.newaxis].T,NI,0) - np.repeat(Body.AFC.x[:,np.newaxis],NT,1)
-        zp = np.repeat(Wake.z[1:i,np.newaxis].T,NI,0) - np.repeat(Body.AFC.z[:,np.newaxis],NT,1)
+        xp = np.repeat(Wake.x[1:i,np.newaxis].T,NI,0) - np.repeat(Body.AF.x[:,np.newaxis],NT,1)
+        zp = np.repeat(Wake.z[1:i,np.newaxis].T,NI,0) - np.repeat(Body.AF.z[:,np.newaxis],NT,1)
         
         # Find distance r_b between each influence/target
         r_b = np.sqrt(xp**2+zp**2)

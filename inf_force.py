@@ -42,7 +42,7 @@ def influence_matrices(Body,Edge,Wake,i):
     
     if i > 0:
         # Tangential and normal body panels and panel length calculations
-        (xp1,xp2,zp) = transformation(Body.AFC.x_col,Body.AFC.z_col,Body.AFC.x,Body.AFC.z)
+        (xp1,xp2,zp) = transformation(Body.AF.x_col,Body.AF.z_col,Body.AF.x,Body.AF.z)
     
         # Body source singularities influencing the body
         # Transpose so that row elements represent the effect on the (row number)th panel
@@ -50,7 +50,7 @@ def influence_matrices(Body,Edge,Wake,i):
                                   + 2*zp*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1)))/(4*np.pi))
         
         # Body source strength calculations
-        (nx,nz) = panel_vectors(Body.AFC.x,Body.AFC.z)[2:4]
+        (nx,nz) = panel_vectors(Body.AF.x,Body.AF.z)[2:4]
         Body.sigma = nx*(Body.V0 + Body.vx) + nz*Body.vz   # normal vector pointing outward(overall sigma pointing outward)
         
         # Body doublet singularities influencing body itself
@@ -59,11 +59,11 @@ def influence_matrices(Body,Edge,Wake,i):
                                   - np.arctan2(zp,xp1))/(2*np.pi))
         
         # Edge doublet influencing the body
-        (xp1,xp2,zp) = transformation(Body.AFC.x_col,Body.AFC.z_col,Edge.x,Edge.z)
+        (xp1,xp2,zp) = transformation(Body.AF.x_col,Body.AF.z_col,Edge.x,Edge.z)
         
         if i > 1: # No wake panels until i==2
             # Wake doublets influencing the body
-            (xp1_w,xp2_w,zp_w) = transformation(Body.AFC.x_col,Body.AFC.z_col,Wake.x[:i],Wake.z[:i])
+            (xp1_w,xp2_w,zp_w) = transformation(Body.AF.x_col,Body.AF.z_col,Wake.x[:i],Wake.z[:i])
             # Join edge and wake doublet influences into a single matrix
             xp1 = np.insert(xp1, Edge.N, xp1_w, axis=0)
             xp2 = np.insert(xp2, Edge.N, xp2_w, axis=0)
@@ -156,7 +156,7 @@ def pressure(Body,RHO,i,DEL_T):
     
     if i > 0:
         
-        (tx,tz,nx,nz,lpanel) = panel_vectors(Body.AFC.x,Body.AFC.z)
+        (tx,tz,nx,nz,lpanel) = panel_vectors(Body.AF.x,Body.AF.z)
         
         # Tangential panel velocity dmu/dl, first-order differencing
         dmu_dl = np.empty(Body.N)

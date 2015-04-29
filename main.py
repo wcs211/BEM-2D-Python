@@ -2,7 +2,7 @@ import time
 import numpy as np
 from terminal_output import print_output as po
 from setup_parameters import PARAMETERS as P
-from body_class import Body, GeoParametersVDV, MotionParameters, SwimmerParameters
+from body_class import Body, GeoVDVParameters, MotionParameters, SwimmerParameters
 from edge_class import Edge
 from wake_class import Wake
 from kinematics import neutral_axis, panel_positions, surface_kinematics, edge_shed, wake_shed, wake_rollup
@@ -21,7 +21,7 @@ def main():
     TSTEP = P['TSTEP']
     t = [DEL_T*i for i in xrange(COUNTER)]
     
-    PGeo = GeoParametersVDV(P['N_BODY'], P['C'], P['K'], P['EPSILON'])
+    PGeo = GeoVDVParameters(P['N_BODY'], P['C'], P['K'], P['EPSILON'])
     PMotion = MotionParameters(P['V0'], P['THETA_MAX'], P['H_C'], P['F'], P['PHI'])
     PSwimmer = SwimmerParameters(P['CE'], P['S'], P['SW_GEOMETRY'], P['SW_KUTTA'])
     
@@ -49,7 +49,7 @@ def main():
 #                FSI1.setInterfaceDisplacemet(displ, relaxationFactor, 
 #                                             residual, outerCorr, couplingScheme)
             
-                (Body1.x_neut,Body1.z_neut) = neutral_axis(Body1.PMotion,Body1.BFC.x_col[:Body1.N/2],DSTEP,TSTEP,t[i])
+                (Body1.AF.x_neut[:],Body1.AF.z_neut[:]) = neutral_axis(Body1.MP,Body1.BF.x_col[:Body1.N/2],DSTEP,TSTEP,t[i])
                 panel_positions(Body1,P['S'],DSTEP,t[i])
                 surface_kinematics(Body1,DSTEP,TSTEP,t[i],i,DEL_T)
                 edge_shed(Body1,Edge1,i,DEL_T)
