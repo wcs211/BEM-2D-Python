@@ -16,3 +16,14 @@ def point_vectors(xdp,xdm,zdp,zdm):
     nx = -tz
     nz = tx
     return(tx,tz,nx,nz)
+    
+def archive(array, axis=0):
+    """
+    Shifts array values along an axis (row-wise by default).
+    Used for arrays that keep past values for differencing with respect to time.
+    """
+    
+    if axis == 0:
+        array[1:,:] = array[:-1,:]
+    elif axis == 1:
+        array[:,1:] = array[:,:-1]

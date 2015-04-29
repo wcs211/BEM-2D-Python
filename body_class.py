@@ -1,30 +1,30 @@
+from collections import namedtuple
 import numpy as np
+
+GeoParametersVDV = namedtuple('GeoParamVDV', 'N C K EPSILON')
+MotionParameters = namedtuple('MotionParam', 'V0 THETA_MAX H_C F PHI')
+SwimmerParameters = namedtuple('SimParam', 'CE S SW_GEOMETRY SW_KUTTA')
+Coordinates = namedtuple('Coordinates', 'x z')
+CoordinatesWithCol = namedtuple('CoordinatesWithCol', 'x z x_col z_col')
+#CoordinatesWithColMid = namedtuple('CoordinatesWithColMid','x z x_col z_col x_mid z_mid')
 
 class Body(object):
     
-    def __init__(self,N,xb,zb,xb_col,zb_col,V0,THETA_MAX,H_C,F,PHI):
+    def __init__(self,N,BodyFrameCoordinates,MotionParam):
         
         self.N = N
-        # Positions in body frame of reference
-        self.xb = xb
-        self.zb = zb
-        self.xb_col = xb_col
-        self.zb_col = zb_col
+        
+        # Body-frame panel coordinates
+        self.BFC = BodyFrameCoordinates
+        # Absolute-frame panel coordinates = BFC just for the sake of initialization
+        self.AFC = BodyFrameCoordinates
         
         # Prescribed motion
-        self.V0 = V0
-        self.THETA_MAX = THETA_MAX
-        self.H_C = H_C
-        self.F = F
-        self.PHI = PHI
+        self.V0 = MotionParam.V0 # gets used frequently enough
+        self.PMotion = MotionParam
         
         self.vx = np.zeros(N)
         self.vz = np.zeros(N)
-        
-        self.x = np.zeros(N+1)
-        self.z = np.zeros(N+1)
-        self.x_col = np.zeros(N)
-        self.z_col = np.zeros(N)
         self.x_mid = np.zeros((3,N))
         self.z_mid = np.zeros((3,N))
         
@@ -44,10 +44,16 @@ class Body(object):
     
     @classmethod
     # VandeVooren airfoil geometry mapping
-    def from_van_de_vooren(cls, (N,C,K,EPSILON,V0,THETA_MAX,H_C,F,PHI)):
-    # Uses self.(N, C, K, EPSILON)
-    # Gets self.(xb, zb, xb_col, zb_col)
-    # Others: A, phi, r1, r2, phi1, phi2
+    def from_van_de_vooren(cls, GeoParamVDV, MotionParam):
+        """
+        Creates Body based on Van de Vooren airfoil geometry.
+        Motion parameters are unused here, just getting passed through.
+        """
+    
+        N = GeoParamVDV.N
+        C = GeoParamVDV.C
+        K = GeoParamVDV.K
+        EPSILON = GeoParamVDV.EPSILON
         
         A = C*((1+EPSILON)**(K-1))*(2**(-K))
         
@@ -59,25 +65,27 @@ class Body(object):
         phi1 = np.arctan2((A*np.sin(phi)) , (A*np.cos(phi)-A))
         phi2 = np.arctan2(A*np.sin(phi) ,(A*np.cos(phi)-EPSILON*A))
         
-        xb = ((r1**K)/(r2**(K-1)))*(np.cos(K*phi1)*np.cos((K-1)*phi2) + np.sin(K*phi1)*np.sin((K-1)*phi2))
-        zb_top = ((r1**K)/(r2**(K-1)))*(np.sin(K*phi1)*np.cos((K-1)*phi2) - np.cos(K*phi1)*np.sin((K-1)*phi2))
-        zb_bot = -((r1**K)/(r2**(K-1)))*(np.sin(K*phi1)*np.cos((K-1)*phi2) - np.cos(K*phi1)*np.sin((K-1)*phi2))
+        x = ((r1**K)/(r2**(K-1)))*(np.cos(K*phi1)*np.cos((K-1)*phi2) + np.sin(K*phi1)*np.sin((K-1)*phi2))
+        z_top = ((r1**K)/(r2**(K-1)))*(np.sin(K*phi1)*np.cos((K-1)*phi2) - np.cos(K*phi1)*np.sin((K-1)*phi2))
+        z_bot = -((r1**K)/(r2**(K-1)))*(np.sin(K*phi1)*np.cos((K-1)*phi2) - np.cos(K*phi1)*np.sin((K-1)*phi2))
         
-        xb = xb-xb[-1] # Carrying the leading edge to the origin
-        xb[0] = C
+        x = x-x[-1] # Carrying the leading edge to the origin
+        x[0] = C
         
-        zb_top[0] = 0
-        zb_bot[0] = 0
-        zb_bot[-1] = 0
+        z_top[0] = 0
+        z_bot[0] = 0
+        z_bot[-1] = 0
         
         # Merge top and bottom surfaces together
-        xb = np.hstack((xb , xb[-2::-1]))
-        zb = np.hstack((zb_bot , zb_top[-2::-1]))
+        x = np.hstack((x , x[-2::-1]))
+        z = np.hstack((z_bot , z_top[-2::-1]))
         
-        xb_col = ((xb[1:] + xb[:-1])/2)
-        zb_col = ((zb[1:] + zb[:-1])/2)
+        x_col = ((x[1:] + x[:-1])/2)
+        z_col = ((z[1:] + z[:-1])/2)
         
-        return Body(N,xb,zb,xb_col,zb_col,V0,THETA_MAX,H_C,F,PHI)
+        BodyFrameCoordinates = CoordinatesWithCol(x, z, x_col, z_col)
+        
+        return Body(N,BodyFrameCoordinates,MotionParam)
     
 #    #Flat plate geometry
 #    def flat_plate(self):        

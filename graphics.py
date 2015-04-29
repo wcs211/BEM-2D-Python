@@ -41,7 +41,7 @@ def body_wake_plot(Body,Edge,Wake):
     
     # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
     plt.scatter(Wake.x[1:-1],Wake.z[1:-1], s=30, c=color, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
-    plt.plot(Body.x,Body.z,'k')
+    plt.plot(Body.AFC.x,Body.AFC.z,'k')
     plt.plot(Edge.x,Edge.z,'g')
     
     n_fig += 1

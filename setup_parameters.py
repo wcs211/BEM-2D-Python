@@ -34,7 +34,8 @@ P = PARAMETERS = {
 , 'S':              0.1
 , 'RHO':            998.2
 
-, 'SWITCH_KUTTA':   1
+, 'SW_GEOMETRY':    'VDV'
+, 'SW_KUTTA':       1
 
 }
 
