@@ -1,35 +1,5 @@
 import numpy as np
-from general_functions import panel_vectors
-
-# Velocity and velocity potential equations are defined in panel coordinates so a transformation should be done
-# Each row of xpleft/xpright/zp is an influence, and each column is a target
-# NI is N influences, NT is N targets
-# xi/zi is x/z of influences, xt/zt is x/z of target points
-def transformation(xt,zt,xi,zi):
-# Returns xp1, xp2, zp
-# Others: NT, NI, tx, tz, nx, nz, dummy, x_tile, z_tile, tx_tile, tz_tile
-    
-    NT = np.size(xt)
-    NI = np.size(xi)-1
-    
-    (tx,tz,nx,nz) = panel_vectors(xi,zi)[:-1]
-    
-    # Intermediary variables to reduce number of tile/repeat operations
-    # From normalvectors: tx==nz, tz==-nx
-    x_tile = np.repeat(xt[:,np.newaxis].T,NI,0) - np.repeat(xi[:-1,np.newaxis],NT,1)
-    z_tile = np.repeat(zt[:,np.newaxis].T,NI,0) - np.repeat(zi[:-1,np.newaxis],NT,1)
-    tx_tile = np.repeat(tx[:,np.newaxis],NT,1)
-    tz_tile = np.repeat(tz[:,np.newaxis],NT,1)
-    
-    # Transforming left side collocation points from global to local coordinates
-    xp1 = x_tile*tx_tile + z_tile*tz_tile
-    zp = x_tile*(-tz_tile) + z_tile*tx_tile
-    
-    # Transforming right side panel points into local coordinate system
-    dummy = (xi[1:]-xi[:-1])*tx + (zi[1:]-zi[:-1])*tz
-    xp2 = xp1 - np.repeat(dummy[:,np.newaxis],NT,1)
-    
-    return(xp1,xp2,zp)
+from general_functions import panel_vectors, transformation
 
 # This method constructs the influence coefficent matrices
 def influence_matrices(Body,Edge,Wake,i):
@@ -129,7 +99,7 @@ def kutta(Body,Edge,Wake,RHO,i,DEL_T,SWITCH_KUTTA):
                 Body.mu = np.dot(Body.phi_dinv,rhs)
                 
             
-            pressure(Body,RHO,i,DEL_T)
+            Body.pressure(RHO, i, DEL_T)
             if SWITCH_KUTTA == 0:
                 break
             delta_cp[0] = np.absolute(Body.cp[-1]-Body.cp[0])
@@ -148,49 +118,3 @@ def kutta(Body,Edge,Wake,RHO,i,DEL_T,SWITCH_KUTTA):
         Body.gamma[0] = -Body.mu[0]
         Body.gamma[1:-1] = Body.mu[:-1]-Body.mu[1:]
         Body.gamma[-1] = Body.mu[-1]
-
-def pressure(Body,RHO,i,DEL_T):
-# Uses Body.(N, x, z, V0, vx, vz, sigma, mu, mu_past), panel_vectors()
-# Gets Body.cp and Body.p
-# Others: dmu_dl, dmu_dt, qpx_tot, qpz_tot
-    
-    if i > 0:
-        
-        (tx,tz,nx,nz,lpanel) = panel_vectors(Body.AF.x,Body.AF.z)
-        
-        # Tangential panel velocity dmu/dl, first-order differencing
-        dmu_dl = np.empty(Body.N)
-        dmu_dl[0] = (Body.mu[0]-Body.mu[1]) / (lpanel[0]/2 + lpanel[1]/2)
-        dmu_dl[1:-1] = (Body.mu[:-2]-Body.mu[2:]) / (lpanel[:-2]/2 + lpanel[1:-1] + lpanel[2:]/2)
-        dmu_dl[-1] = (Body.mu[-2]-Body.mu[-1]) / (lpanel[-2]/2 + lpanel[-1]/2)
-        
-        # Potential change dmu/dt, second-order differencing after first time step
-        if i == 1:
-            dmu_dt = (Body.mu - Body.mu_past[0,:])/DEL_T
-        else:
-            dmu_dt = (3*Body.mu - 4*Body.mu_past[0,:] + Body.mu_past[1,:])/(2*DEL_T)
-        
-        # Unsteady pressure calculation (from Matlab code)
-        qpx_tot = dmu_dl*tx + Body.sigma*nx
-        qpz_tot = dmu_dl*tz + Body.sigma*nz
-        
-        Body.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(Body.V0+Body.vx) + qpz_tot*Body.vz)
-        Body.cp = Body.p / (0.5*RHO*Body.V0**2)
-       
-# Calculation of drag and lift forces affecting overall airfoil      
-def force(Body,i):
-# Uses Body.(x, z, p, N), panel_vectors()
-# Gets Body.(drag, lift)
-# Others: tx, tz, nx, nz, lpanel
-    
-    if i == 0:
-        pass
-
-    else:
-        (tx,tz,nx,nz,lpanel) = panel_vectors(Body.x,Body.z)
-                              
-        Body.drag[i-1] = np.dot(Body.p[i-1,:]*lpanel, np.reshape(tx,(Body.N,1)))\
-                      + np.dot(Body.p[i-1,:]*lpanel, np.reshape(-tz,(Body.N,1)))
-
-        Body.lift[i-1] = np.dot(Body.p[i-1,:]*lpanel, np.reshape(-nz,(Body.N,1)))\
-                      + np.dot(Body.p[i-1,:]*lpanel, np.reshape(nx,(Body.N,1)))

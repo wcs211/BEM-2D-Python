@@ -1,13 +1,18 @@
 import time
+from collections import namedtuple
 import numpy as np
 from terminal_output import print_output as po
 from setup_parameters import PARAMETERS as P
-from body_class import Body, GeoVDVParameters, MotionParameters, SwimmerParameters
+from body_class import Body
 from edge_class import Edge
 from wake_class import Wake
-from kinematics import neutral_axis, panel_positions, surface_kinematics, edge_shed, wake_shed, wake_rollup
+from kinematics import edge_shed, wake_shed, wake_rollup
 from inf_force import influence_matrices, kutta
 import graphics as graph
+
+GeoVDVParameters = namedtuple('GeoVDVParameters', 'N C K EPSILON')
+MotionParameters = namedtuple('MotionParameters', 'V0 THETA_MAX H_C F PHI')
+SwimmerParameters = namedtuple('SimParameters', 'CE S SW_GEOMETRY SW_KUTTA')
 
 def main():
 
@@ -49,14 +54,14 @@ def main():
 #                FSI1.setInterfaceDisplacemet(displ, relaxationFactor, 
 #                                             residual, outerCorr, couplingScheme)
             
-                (Body1.AF.x_neut[:],Body1.AF.z_neut[:]) = neutral_axis(Body1.MP,Body1.BF.x_col[:Body1.N/2],DSTEP,TSTEP,t[i])
-                panel_positions(Body1,P['S'],DSTEP,t[i])
-                surface_kinematics(Body1,DSTEP,TSTEP,t[i],i,DEL_T)
-                edge_shed(Body1,Edge1,i,DEL_T)
-                wake_shed(Edge1,Wake1,i,DEL_T)
+                (Body1.AF.x_neut[:], Body1.AF.z_neut[:]) = Body1.neutral_axis(Body1.BF.x_col[:Body1.N/2], DSTEP, TSTEP, t[i])
+                Body1.panel_positions(P['S'], DSTEP, t[i])
+                Body1.surface_kinematics(DSTEP, TSTEP, t[i], i, DEL_T)
+                edge_shed(Body1, Edge1, i, DEL_T)
+                wake_shed(Edge1, Wake1, i, DEL_T)
                 
-                influence_matrices(Body1,Edge1,Wake1,i)
-                kutta(Body1,Edge1,Wake1,P['RHO'],i,DEL_T,P['SW_KUTTA'])
+                influence_matrices(Body1, Edge1, Wake1, i)
+                kutta(Body1, Edge1, Wake1, P['RHO'], i, DEL_T, P['SW_KUTTA'])
                 
 #                FSI1.setInterfaceForce(outerCorr, nodes, nodesNew, theta, heave, 
 #                                       x_b, z_b, xp, zp, xc, zc, P_b, ViscDrag, vn, delFs, 
