@@ -2,15 +2,22 @@ import numpy as np
 from general_functions import point_vectors, panel_vectors, archive
 import parameter_classes as PC
 
-class Swimmer(object):
-    
-    def __init__(self, SwimmerParameters, GeoParameters, MotionParameters):
-        self.CE = SwimmerParameters.CE
-        self.SW_GEOMETRY = SwimmerParameters.SW_GEOMETRY
-        self.SW_KUTTA = SwimmerParameters.SW_KUTTA
+class Edge(object):    
+    def __init__(self, CE):        
+        self.N = 1
+        self.CE = CE
+        self.mu = np.zeros(self.N)
+        self.x = np.zeros(self.N+1)
+        self.z = np.zeros(self.N+1)
+        self.gamma = np.zeros(self.N+1)
         
-        if self.SW_GEOMETRY == 'VDV':
-            self.Body = Body.from_van_de_vooren(GeoParameters, MotionParameters)
+class Wake(object):    
+    def __init__(self, N):        
+        self.N = N
+        self.x = np.zeros(N+1)
+        self.z = np.zeros(N+1)
+        self.mu = np.zeros(N)
+        self.gamma = np.zeros(N+1)
 
 class Body(object):
     

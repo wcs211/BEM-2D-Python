@@ -8,8 +8,9 @@ Created on Thu Apr 30 13:59:14 2015
 import numpy as np
 
 class SwimmerParameters(object):
-    def __init__(self, CE, SW_GEOMETRY, SW_KUTTA):
+    def __init__(self, CE, DELTA_CORE, SW_GEOMETRY, SW_KUTTA):
         self.CE = CE
+        self.DELTA_CORE = DELTA_CORE
         self.SW_GEOMETRY = SW_GEOMETRY
         self.SW_KUTTA = SW_KUTTA
 
