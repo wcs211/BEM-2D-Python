@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Apr 30 13:59:14 2015
-
-@author: biofluids_1
-"""
 
 import numpy as np
 

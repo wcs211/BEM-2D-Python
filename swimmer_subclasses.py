@@ -1,18 +1,42 @@
+# -*- coding: utf-8 -*-
+"""Module for the Body, Edge, and Wake classes."""
+
 import numpy as np
 from general_functions import point_vectors, panel_vectors, archive
 import parameter_classes as PC
 
-class Edge(object):    
-    def __init__(self, CE):        
+class Edge(object):
+    """An edge doublet panel located where separation occurs on a body.
+    
+    Attributes:
+        N: Number of edge panels (just one).
+        CE: Constant that determines the length of the edge panel.
+        x: X-coordinates of the edge panel endpoints.
+        z: Z-coordinates of the edge panel endpoints.
+        mu: Doublet strength of the edge panel.
+        gamma: Circulation at the edge panel endpoints.
+    """
+    def __init__(self, CE):
+        """Inits Edge with all necessary parameters."""
         self.N = 1
         self.CE = CE
-        self.mu = np.zeros(self.N)
         self.x = np.zeros(self.N+1)
         self.z = np.zeros(self.N+1)
+        self.mu = np.zeros(self.N)
         self.gamma = np.zeros(self.N+1)
         
-class Wake(object):    
-    def __init__(self, N):        
+class Wake(object):
+    """A chain of wake doublet panels.
+    
+    Attributes:
+        N: Number of wake panels.
+        x: X-coordinates of the wake panel endpoints.
+        z: Z-coordinates of the wake panel endpoints.
+        mu: Doublet strengths of the wake panels.
+        gamma: Circulations at the wake panel endpoints.
+    """
+    def __init__(self, N):
+        """Inits Wake with all necessary parameters."""
         self.N = N
         self.x = np.zeros(N+1)
         self.z = np.zeros(N+1)
@@ -20,11 +44,30 @@ class Wake(object):
         self.gamma = np.zeros(N+1)
 
 class Body(object):
+    """An arrangement of source/doublet panels in the shape of a swimming body.
     
+    Attributes:
+        N: Number of body panels.
+        S: Parameter for shifting collocation points into the body.
+        BF: A collection of various body-frame coordinates.
+        AF: A collection of various absolute-frame coordinates.
+        MP: A collection of parameters describing the motion of the swimmer.
+        V0: The freestream velocity (included in MP as well).
+        vx: X-component of body-frame surface velocities.
+        vz: Z-component of body-frame surface velocities.
+        sigma: Source strengths of the body panels.
+        phi_s: Matrix of body source panel influences on the body.
+        phi_db: Matrix of body doublet panel influences on the body.
+        phi_dw: Matrix of edge and wake panel influences on the body.
+        mu: Doublet strengths of the body panels.
+        gamma: Circulations at the body panel endpoints.
+        p: Surface pressures of the body panels.
+        cp: Surface pressure coefficients of the body panels.
+        mu_past: mu arrays from previous time steps for backwards differencing.
+    """
     def __init__(self, N, S, BodyFrameCoordinates, MotionParameters):
-        
+        """Inits Body with all necessary parameters."""
         self.N = N
-        
         self.S = S
         
         # Body-frame panel coordinates:
@@ -35,7 +78,7 @@ class Body(object):
         self.AF = PC.BodyAFC(N)
         # Prescribed motion
         self.MP = MotionParameters
-        self.V0 = MotionParameters.V0 # gets used frequently
+        self.V0 = MotionParameters.V0
         
         self.vx = np.zeros(N)
         self.vz = np.zeros(N)
@@ -54,11 +97,19 @@ class Body(object):
     @classmethod
     # VandeVooren airfoil geometry mapping
     def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
-        """
-        Creates Body based on Van de Vooren airfoil geometry.
-        MotionParameters are unused here, just getting passed through for Body creation.
-        """
-    
+        """Creates a Body object based on a Van de Vooren airfoil geometry.
+        
+        MotionParameters are unused here, just getting passed through for the
+        creation of the Body.
+        
+        Args:
+            GeoVDVParameters: A collection of parameters for constructing a
+                Van de Vooren geometry. (N, S, C, K, EPSILON)
+            MotionParameters: Motion parameters of the swimmer.
+            
+        Returns:
+            A Body object with the Van de Vooren airfoil geometry.
+        """    
         N = GeoVDVParameters.N
         S = GeoVDVParameters.S
         C = GeoVDVParameters.C

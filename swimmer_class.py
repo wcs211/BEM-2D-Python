@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Module for the Swimmer class and its methods.
-
-Created on Thu Apr 30 13:41:13 2015
-
-@author: biofluids_1
-"""
+"""Module for the Swimmer class and its methods."""
 
 import numpy as np
 from general_functions import panel_vectors, transformation
@@ -27,13 +21,13 @@ class Swimmer(object):
         SW_GEOMETRY: Switch for Body geometry type (currently VDV only).
         SW_KUTTA: Switch for Kutta condition (explicit or unsteady).
         V0: The freestream velocity.
-    """    
+    """
     def __init__(self, SwimmerParameters, GeoParameters, MotionParameters, N_WAKE):
         """Inits Swimmer with all necessary parameters.
         
         This is also where Body, Edge, and Wake are created.
         GeoParameters and MotionParameters get passed along into Body creation.
-        """        
+        """
         self.V0 = MotionParameters.V0
         self.CE = SwimmerParameters.CE
         self.DELTA_CORE = SwimmerParameters.DELTA_CORE

@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Apr 27 14:36:05 2015
-
-@author: biofluids_1
-"""
-
 import numpy as np
 
 # Constants that determine other parameters and don't actually need lookup
