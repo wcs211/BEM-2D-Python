@@ -19,30 +19,29 @@ def main():
     po().prog_title('1.0.0')
     start_time = time.time()
     
-    # Recurring simulation constants
     COUNTER = P['COUNTER']
     DEL_T = P['DEL_T']
     DSTEP = P['DSTEP']
     TSTEP = P['TSTEP']
-    t = [DEL_T*i for i in xrange(COUNTER)]
+    T = [DEL_T*i for i in xrange(COUNTER)]
     
-    PGeo = GeoVDVParameters(P['N_BODY'], P['C'], P['K'], P['EPSILON'])
-    PMotion = MotionParameters(P['V0'], P['THETA_MAX'], P['H_C'], P['F'], P['PHI'])
-    PSwimmer = SwimmerParameters(P['CE'], P['S'], P['SW_GEOMETRY'], P['SW_KUTTA'])
+    GeoP = GeoVDVParameters(P['N_BODY'], P['C'], P['K'], P['EPSILON'])
+    MotP = MotionParameters(P['V0'], P['THETA_MAX'], P['H_C'], P['F'], P['PHI'])
+    SwiP = SwimmerParameters(P['CE'], P['S'], P['SW_GEOMETRY'], P['SW_KUTTA'])
     
-    Body1 = Body.from_van_de_vooren(PGeo, PMotion)
+    Body1 = Body.from_van_de_vooren(GeoP, MotP)
     Edge1 = Edge(P['V0'],P['CE'],COUNTER)
     Wake1 = Wake(P['V0'],COUNTER-2)
 #    FSI1 = FSI(Npanels,Nelements)
 #    PyFEA1 = PyFEA(Nelements, fracDeltaT, endTime, E, I, A, l, rho, Fload, U_n, Udot_n)
 #    Solid1 = solid(Nnodes,xp_0,zp_0,tmax)
     
-    po().calc_input(P['THETA_MAX']/np.pi*180.,P['RE'],P['THETA_MAX']/np.pi*180.,DEL_T)
+    po().calc_input(MotP.THETA_MAX/np.pi*180.,P['RE'],MotP.THETA_MAX/np.pi*180.,DEL_T)
     
     # Data points per cycle == 1/(F*DEL_T)
     for i in xrange(COUNTER):
         if i == 0:
-            po().initialize_output(t[i])
+            po().initialize_output(T[i])
     
         else: #i > 0:
         
@@ -54,14 +53,14 @@ def main():
 #                FSI1.setInterfaceDisplacemet(displ, relaxationFactor, 
 #                                             residual, outerCorr, couplingScheme)
             
-                (Body1.AF.x_neut[:], Body1.AF.z_neut[:]) = Body1.neutral_axis(Body1.BF.x_col[:Body1.N/2], DSTEP, TSTEP, t[i])
-                Body1.panel_positions(P['S'], DSTEP, t[i])
-                Body1.surface_kinematics(DSTEP, TSTEP, t[i], i, DEL_T)
-                edge_shed(Body1, Edge1, i, DEL_T)
-                wake_shed(Edge1, Wake1, i, DEL_T)
+                (Body1.AF.x_neut[:], Body1.AF.z_neut[:]) = Body1.neutral_axis(Body1.BF.x_col[:Body1.N/2], DSTEP, TSTEP, T[i])
+                Body1.panel_positions(P['S'], DSTEP, T[i])
+                Body1.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
+                edge_shed(Body1, Edge1, DEL_T, i)
+                wake_shed(Edge1, Wake1, DEL_T, i)
                 
                 influence_matrices(Body1, Edge1, Wake1, i)
-                kutta(Body1, Edge1, Wake1, P['RHO'], i, DEL_T, P['SW_KUTTA'])
+                kutta(Body1, Edge1, Wake1, P['RHO'], P['SW_KUTTA'], DEL_T, i)
                 
 #                FSI1.setInterfaceForce(outerCorr, nodes, nodesNew, theta, heave, 
 #                                       x_b, z_b, xp, zp, xc, zc, P_b, ViscDrag, vn, delFs, 
@@ -72,13 +71,13 @@ def main():
 #                FSI1.calcFSIResidual(DU, nodes, tempNodes, outerCorr)
 #                
 #                if (FSI1.fsiResidualNorm <= FSI1.outerCorrTolerance or FSI1.outerCorr >= FSI1.nOuterCorr):
-                wake_rollup(Body1,Edge1,Wake1,P['DELTA_CORE'],i,DEL_T)
+                wake_rollup(Body1, Edge1, Wake1, P['DELTA_CORE'], DEL_T, i)
                 
                 #force(Body1,i)
                 #po().solution_output(d_visc,cf,cl,ct,cpow,gamma)
                  
                 if np.fmod(i,10) == 0:
-                    po().timestep_header(i+1,t[i])
+                    po().timestep_header(i+1,T[i])
                     po().solution_output(0,0,0,0,0,0)
                     po().solution_complete_output(i/float(COUNTER-1)*100.)
                 

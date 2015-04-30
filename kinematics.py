@@ -1,7 +1,7 @@
 import numpy as np
 from general_functions import panel_vectors, transformation
     
-def edge_shed(Body,Edge,i,DEL_T):
+def edge_shed(Body, Edge, DEL_T, i):
 # Uses Body.(x, z, x_neut, z_neut, V0) and Edge.CE
 # Gets Edge.(x, z)
 # Others: none
@@ -17,7 +17,7 @@ def edge_shed(Body,Edge,i,DEL_T):
         Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
     
 # Wake position calculations
-def wake_shed(Edge,Wake,i,DEL_T):
+def wake_shed(Edge, Wake, DEL_T, i):
 # Uses Edge.(x, z, mu) and Wake.(x, z, V0, mu)
 # Gets Wake.(x, z, mu, gamma)
 # Others: none
@@ -48,7 +48,7 @@ def wake_shed(Edge,Wake,i,DEL_T):
         Wake.gamma[1:-1] = Wake.mu[:-1]-Wake.mu[1:]
         Wake.gamma[-1] = Wake.mu[-1]
 
-def wake_rollup(Body,Edge,Wake,DELTA_CORE,i,DEL_T):
+def wake_rollup(Body, Edge, Wake, DELTA_CORE, DEL_T, i):
 # Uses Transformation
 # Uses Body.(x, z, gamma, N, sigma)
 # Uses Edge.(x, z, gamma, N)

@@ -92,8 +92,24 @@ class Body(object):
         
         return Body(N, BFC, MotionParameters)
         
+    # Neutral axis is the axis which coincides with the chord line and divides the symmetric airfoil into two
+    def neutral_axis(self, x, DSTEP, TSTEP, T):
+    # Uses Body.(THETA_MAX, F, PHI)
+    # Returns x_neut, z_neut (just pitching for now)
+        
+        THETA_MAX = self.MP.THETA_MAX
+        F = self.MP.F
+        PHI = self.MP.PHI
+        
+        # Pitching motion of the airfoil(x and z points of the neutral axis due to pitching motion)
+        x_neut = (x+DSTEP)*np.cos(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI))
+        z_neut = (x+DSTEP)*np.sin(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI))
+    
+        # Overall neutral axis position
+        return(x_neut, z_neut)
+        
     # Updates the absolute-frame coordinates of the body
-    def panel_positions(self, S, DSTEP, t):
+    def panel_positions(self, S, DSTEP, T):
     # Uses neutral_axis()
     # Uses Body.(xb, zb, zb_col, V0)
     # Gets Body.(x, z, x_col, z_col, x_mid, z_mid)
@@ -103,14 +119,14 @@ class Body(object):
         V0 = self.V0
         
         # Body surface panel endpoint calculations
-        (x_neut, z_neut) = self.neutral_axis(bfx, 0, 0, t)
+        (x_neut, z_neut) = self.neutral_axis(bfx, 0, 0, T)
         
         # Infinitesimal differences on the neutral axis to calculate the tangential and normal vectors
-        (xdp_s, zdp_s) = self.neutral_axis(bfx, DSTEP, 0, t)
-        (xdm_s, zdm_s) = self.neutral_axis(bfx, -DSTEP, 0, t)
+        (xdp_s, zdp_s) = self.neutral_axis(bfx, DSTEP, 0, T)
+        (xdm_s, zdm_s) = self.neutral_axis(bfx, -DSTEP, 0, T)
         
         # Absolute-frame panel endpoint positions for time t
-        afx = x_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[2]*bfz + V0*t
+        afx = x_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[2]*bfz + V0*T
         afz = z_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[3]*bfz
         
         # Absolute-frame panel midpoint positions
@@ -135,26 +151,10 @@ class Body(object):
         self.AF.x_mid[0,:] = x_mid
         self.AF.z_mid[0,:] = z_mid
         
-    # Neutral axis is the axis which coincides with the chord line and divides the symmetric airfoil into two
-    def neutral_axis(self, x, DSTEP, TSTEP, t):
-    # Uses Body.(THETA_MAX, F, PHI)
-    # Returns x_neut, z_neut (just pitching for now)
-        
-        THETA_MAX = self.MP.THETA_MAX
-        F = self.MP.F
-        PHI = self.MP.PHI
-        
-        # Pitching motion of the airfoil(x and z points of the neutral axis due to pitching motion)
-        x_neut = (x+DSTEP)*np.cos(THETA_MAX*np.sin(2*np.pi*F*(t+TSTEP) + PHI))
-        z_neut = (x+DSTEP)*np.sin(THETA_MAX*np.sin(2*np.pi*F*(t+TSTEP) + PHI))
-    
-        # Overall neutral axis position
-        return(x_neut, z_neut)
-        
     # This method calculates the actual surface positions of the airfoil for each time step
     # Using the neutral axis and appropriate normal vectors of each point on the neutral axis
     # This class also calculates the velocity of the panel midpoints for each time step
-    def surface_kinematics(self, DSTEP, TSTEP, t, i, DEL_T):
+    def surface_kinematics(self, DSTEP, TSTEP, DEL_T, T, i):
     # Uses neutral_axis(), point_vectors()
     # Uses Body.(xb_col, zb_col, x_mid, z_mid, V0)
     # Gets Body.(vx, vz)
@@ -167,16 +167,16 @@ class Body(object):
             
             # Panel midpoint velocity calculations
             # Calculating the surface positions at tplus(tp) and tminus(tm) for every timestep
-            (xtpneut, ztpneut) = self.neutral_axis(x_col, 0, TSTEP, t)
-            (xtpdp, ztpdp) = self.neutral_axis(x_col, DSTEP, TSTEP, t)
-            (xtpdm, ztpdm) = self.neutral_axis(x_col, -DSTEP, TSTEP, t)
-            (xtmneut, ztmneut) = self.neutral_axis(x_col, 0, -TSTEP, t)
-            (xtmdp, ztmdp) = self.neutral_axis(x_col, DSTEP, -TSTEP, t)
-            (xtmdm, ztmdm) = self.neutral_axis(x_col, -DSTEP, -TSTEP, t)
+            (xtpneut, ztpneut) = self.neutral_axis(x_col, 0, TSTEP, T)
+            (xtpdp, ztpdp) = self.neutral_axis(x_col, DSTEP, TSTEP, T)
+            (xtpdm, ztpdm) = self.neutral_axis(x_col, -DSTEP, TSTEP, T)
+            (xtmneut, ztmneut) = self.neutral_axis(x_col, 0, -TSTEP, T)
+            (xtmdp, ztmdp) = self.neutral_axis(x_col, DSTEP, -TSTEP, T)
+            (xtmdm, ztmdm) = self.neutral_axis(x_col, -DSTEP, -TSTEP, T)
             
             # Displaced airfoil's panel midpoints for times tplus(tp) and tminus(tm)      
-            xctp = xtpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[2]*z_col + self.V0*t
-            xctm = xtmneut + point_vectors(xtmdp, xtmdm, ztmdp, ztmdm)[2]*z_col + self.V0*t
+            xctp = xtpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[2]*z_col + self.V0*T
+            xctm = xtmneut + point_vectors(xtmdp, xtmdm, ztmdp, ztmdm)[2]*z_col + self.V0*T
                 
             zctp = ztpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[3]*z_col
             zctm = ztmneut + point_vectors(xtmdp, xtmdm, ztmdp, ztmdm)[3]*z_col
@@ -196,7 +196,7 @@ class Body(object):
             self.vz = (3*self.AF.z_mid[0,:]-4*self.AF.z_mid[1,:]+self.AF.z_mid[2,:])/(2*DEL_T)
     
     # Calculate pressure distribution on the body
-    def pressure(self, RHO, i, DEL_T):
+    def pressure(self, RHO, DEL_T, i):
     # Uses Body.(N, x, z, V0, vx, vz, sigma, mu, mu_past), panel_vectors()
     # Gets Body.cp and Body.p
     # Others: dmu_dl, dmu_dt, qpx_tot, qpz_tot

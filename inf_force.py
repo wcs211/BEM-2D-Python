@@ -2,7 +2,7 @@ import numpy as np
 from general_functions import panel_vectors, transformation
 
 # This method constructs the influence coefficent matrices
-def influence_matrices(Body,Edge,Wake,i):
+def influence_matrices(Body, Edge, Wake, i):
 # Uses transformation()
 # Uses Body.(N, x, z, x_col, z_col, V0, vx, vz)
 # Uses Edge.(x, z)
@@ -42,7 +42,7 @@ def influence_matrices(Body,Edge,Wake,i):
         Body.phi_dw = np.transpose(-(np.arctan2(zp,xp2) \
                                    -np.arctan2(zp,xp1))/(2*np.pi))
         
-def kutta(Body,Edge,Wake,RHO,i,DEL_T,SWITCH_KUTTA):
+def kutta(Body, Edge, Wake, RHO, SWITCH_KUTTA, DEL_T, i):
 # Uses Body.(N, phi_dw, phi_s, sigma, phi_db), Wake.mu, pressure()
 # Gets Edge.(mu, gamma), Body.(phi_dinv, mu, mu_past, gamma)
 # Others: n_iter, c, mu_guess, delta_cp, rhs, slope
@@ -99,7 +99,7 @@ def kutta(Body,Edge,Wake,RHO,i,DEL_T,SWITCH_KUTTA):
                 Body.mu = np.dot(Body.phi_dinv,rhs)
                 
             
-            Body.pressure(RHO, i, DEL_T)
+            Body.pressure(RHO, DEL_T, i)
             if SWITCH_KUTTA == 0:
                 break
             delta_cp[0] = np.absolute(Body.cp[-1]-Body.cp[0])
