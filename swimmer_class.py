@@ -247,12 +247,12 @@ class Swimmer(object):
             Body.phi_dw = np.transpose(-(np.arctan2(zp,xp2) \
                                        -np.arctan2(zp,xp1))/(2*np.pi))
             
-    def kutta(self, RHO, SWITCH_KUTTA, DEL_T, i):
+    def kutta(self, RHO, DEL_T, i):
         """Applies Kutta condition to the swimmer's trailing edge.
         
         Args:
             RHO: Fluid density.
-            SWITCH_KUTTA: Switch for either explicit (0) or unsteady (1) Kutta
+            SW_KUTTA: Switch for either explicit (0) or unsteady (1) Kutta
                 condition.
             DEL_T: Time step size.
             i: Time step number.
@@ -260,6 +260,7 @@ class Swimmer(object):
             Edge: Edge panel of separation.
             Wake: Wake panels.
         """
+        SW_KUTTA = self.SW_KUTTA
         Body = self.Body
         Edge = self.Edge
         Wake = self.Wake
@@ -317,7 +318,7 @@ class Swimmer(object):
                     
                 
                 Body.pressure(RHO, DEL_T, i)
-                if SWITCH_KUTTA == 0:
+                if SW_KUTTA == 0:
                     break
                 delta_cp[0] = np.absolute(Body.cp[-1]-Body.cp[0])
                 if delta_cp[0] < 0.0001:

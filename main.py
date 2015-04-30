@@ -16,6 +16,8 @@ def main():
     DSTEP = P['DSTEP']
     TSTEP = P['TSTEP']
     T = [DEL_T*i for i in xrange(COUNTER)]
+    RHO = P['RHO']
+    RE = P['RE']
 
     SwiP = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_GEOMETRY'], P['SW_KUTTA'])
     GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
@@ -27,7 +29,7 @@ def main():
 #    PyFEA1 = PyFEA(Nelements, fracDeltaT, endTime, E, I, A, l, rho, Fload, U_n, Udot_n)
 #    Solid1 = solid(Nnodes,xp_0,zp_0,tmax)
     
-    po().calc_input(MotP.THETA_MAX/np.pi*180.,P['RE'],MotP.THETA_MAX/np.pi*180.,DEL_T)
+    po().calc_input(MotP.THETA_MAX/np.pi*180.,RE,MotP.THETA_MAX/np.pi*180.,DEL_T)
     
     # Data points per cycle == 1/(F*DEL_T)
     for i in xrange(COUNTER):
@@ -51,7 +53,7 @@ def main():
                 Swimmer1.wake_shed(DEL_T, i)
                 
                 Swimmer1.influence_matrices(i)
-                Swimmer1.kutta(P['RHO'], P['SW_KUTTA'], DEL_T, i)
+                Swimmer1.kutta(RHO, DEL_T, i)
                 
 #                FSI1.setInterfaceForce(outerCorr, nodes, nodesNew, theta, heave, 
 #                                       x_b, z_b, xp, zp, xc, zc, P_b, ViscDrag, vn, delFs, 
@@ -78,7 +80,7 @@ def main():
     print "Simulation time:", np.round(total_time, 3), "seconds"
 
     graph.body_wake_plot(Swimmer1)
-    graph.cp_plot(Swimmer1.Body)
+#    graph.cp_plot(Swimmer1.Body)
 
 if __name__ == '__main__':
     main()
