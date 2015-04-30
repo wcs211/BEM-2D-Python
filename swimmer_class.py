@@ -1,21 +1,44 @@
 # -*- coding: utf-8 -*-
 """
+Module for the Swimmer class and its methods.
+
 Created on Thu Apr 30 13:41:13 2015
 
 @author: biofluids_1
 """
+
 import numpy as np
 from general_functions import panel_vectors, transformation
 from swimmer_subclasses import Body, Edge, Wake
 
 class Swimmer(object):
+    """A single swimmer, consisting of Body, Edge, and Wake objects.
     
+    Currently the swimmer is made of a single Body, Edge, and Wake. Separation
+    occurs at the trailing edge only, hence the single Edge and single Wake
+    behind it. In the future this class will likely need to possess multiple
+    Edges where separation occurs, so the methods would have to be
+    changed accordingly.
+    
+    Attributes:
+        CE: Constant that determines the length of Edge panels.
+        DELTA_CORE: Constant used in wake_rollup to avoid singularities near
+            wake panels.
+        SW_GEOMETRY: Switch for Body geometry type (currently VDV only).
+        SW_KUTTA: Switch for Kutta condition (explicit or unsteady).
+        V0: The freestream velocity.
+    """    
     def __init__(self, SwimmerParameters, GeoParameters, MotionParameters, N_WAKE):
+        """Inits Swimmer with all necessary parameters.
+        
+        This is also where Body, Edge, and Wake are created.
+        GeoParameters and MotionParameters get passed along into Body creation.
+        """        
+        self.V0 = MotionParameters.V0
         self.CE = SwimmerParameters.CE
         self.DELTA_CORE = SwimmerParameters.DELTA_CORE
         self.SW_GEOMETRY = SwimmerParameters.SW_GEOMETRY
         self.SW_KUTTA = SwimmerParameters.SW_KUTTA
-        self.V0 = MotionParameters.V0
         
         if self.SW_GEOMETRY == 'VDV':
             self.Body = Body.from_van_de_vooren(GeoParameters, MotionParameters)
@@ -24,29 +47,38 @@ class Swimmer(object):
         self.Wake = Wake(N_WAKE)
     
     def edge_shed(self, DEL_T, i):
-    # Uses Body.(x, z, x_neut, z_neut, V0) and Edge.CE
-    # Gets Edge.(x, z)
-    # Others: none
-
+        """Updates the position of the Edge panel.
+        
+        The edge panel's length is based on Edge.CE.
+        
+        Args:
+            DEL_T: Time step size.
+            i: Time step number.
+            Body: Body of the swimmer.
+            Edge: Edge panel of separation.
+        """
         Body = self.Body
         Edge = self.Edge
         
         if i == 0:
             pass
         
-        # The trailing edge panel whose length can be varied to optimize the solution
         else:
             Edge.x[0] = Body.AF.x[0]
             Edge.z[0] = Body.AF.z[0]
             Edge.x[1] = Body.AF.x[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[0][0]*Body.V0*DEL_T
             Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
         
-    # Wake position calculations
     def wake_shed(self, DEL_T, i):
-    # Uses Edge.(x, z, mu) and Wake.(x, z, V0, mu)
-    # Gets Wake.(x, z, mu, gamma)
-    # Others: none
-    
+        """Updates the positions of the Wake panels.
+        
+        Args:
+            DEL_T: Time step size.
+            i: Time step number.
+            Edge: Edge panel of separation.
+            Wake: Wake panels.
+            V0: Freestream velocity.
+        """
         Edge = self.Edge
         Wake = self.Wake
         V0 = self.V0
@@ -78,19 +110,23 @@ class Swimmer(object):
             Wake.gamma[-1] = Wake.mu[-1]
 
     def wake_rollup(self, DEL_T, i):
-    # Uses Transformation
-    # Uses Body.(x, z, gamma, N, sigma)
-    # Uses Edge.(x, z, gamma, N)
-    # Uses Wake.(x, z, gamma)
-    # Gets Wake.(x, z)
-    # Others: NT, NI, xp1, xp2, zp, nx, nz, beta, dummy1, dummy2, dummy3, dummy4, xp, zp, r_b, r_e, r_w, vx, vz
-    
+        """Performs wake rollup on a swimmer's wake panels.
+        
+        Args:
+            DEL_T: Time step size.
+            i: Time step number.
+            Body: Body of the swimmer.
+            Edge: Edge panel of separation.
+            Wake: Wake panels.
+            DELTA_CORE: Constant used to avoid singularities when getting too close
+                to other panels.
+        """
         Body = self.Body
         Edge = self.Edge
         Wake = self.Wake
         DELTA_CORE = self.DELTA_CORE
         
-        # Wake panels (not including the trailing edge panel) initialize when i==2
+        # Wake panels initialize when i==2
         if i < 2:
             pass
         
@@ -172,15 +208,15 @@ class Swimmer(object):
             Wake.x[1:i] += vx*DEL_T
             Wake.z[1:i] += vz*DEL_T
             
-    # This method constructs the influence coefficent matrices
     def influence_matrices(self, i):
-    # Uses transformation()
-    # Uses Body.(N, x, z, x_col, z_col, V0, vx, vz)
-    # Uses Edge.(x, z)
-    # Uses Wake.(x, z)
-    # Gets Body.(phi_s, sigma, phi_db, phi_dw)
-    # Others: xp1, xp2, zp, nx, nz, tx, tz, xp1_e, xp2_e, zp_e
-    
+        """Constructs the influence coefficient matrices.
+        
+        Args:
+            i: Time step number.
+            Body: Body of the swimmer.
+            Edge: Edge panel of separation.
+            Wake: Wake panels.
+        """
         Body = self.Body
         Edge = self.Edge
         Wake = self.Wake
@@ -196,7 +232,7 @@ class Swimmer(object):
             
             # Body source strength calculations
             (nx,nz) = panel_vectors(Body.AF.x,Body.AF.z)[2:4]
-            Body.sigma = nx*(Body.V0 + Body.vx) + nz*Body.vz   # normal vector pointing outward(overall sigma pointing outward)
+            Body.sigma = nx*(Body.V0 + Body.vx) + nz*Body.vz   # normal vector pointing outward (overall sigma pointing outward)
             
             # Body doublet singularities influencing body itself
             # Transpose similar to phi_s
@@ -218,10 +254,18 @@ class Swimmer(object):
                                        -np.arctan2(zp,xp1))/(2*np.pi))
             
     def kutta(self, RHO, SWITCH_KUTTA, DEL_T, i):
-    # Uses Body.(N, phi_dw, phi_s, sigma, phi_db), Wake.mu, pressure()
-    # Gets Edge.(mu, gamma), Body.(phi_dinv, mu, mu_past, gamma)
-    # Others: n_iter, c, mu_guess, delta_cp, rhs, slope
-    
+        """Applies Kutta condition to the swimmer's trailing edge.
+        
+        Args:
+            RHO: Fluid density.
+            SWITCH_KUTTA: Switch for either explicit (0) or unsteady (1) Kutta
+                condition.
+            DEL_T: Time step size.
+            i: Time step number.
+            Body: Body of the swimmer.
+            Edge: Edge panel of separation.
+            Wake: Wake panels.
+        """
         Body = self.Body
         Edge = self.Edge
         Wake = self.Wake
