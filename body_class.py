@@ -1,15 +1,11 @@
-from collections import namedtuple
 import numpy as np
 from general_functions import point_vectors, panel_vectors, archive
-
-BodyFrameCoordinates = namedtuple('BodyFrameCoordinates', 'x z x_col z_col')
-AbsFrameCoordinates = namedtuple('AbsFrameCoordinates', 'x z x_col z_col x_mid z_mid x_neut z_neut')
+import parameter_classes as PC
 
 class Swimmer(object):
     
     def __init__(self, SwimmerParameters, GeoParameters, MotionParameters):
         self.CE = SwimmerParameters.CE
-        self.S = SwimmerParameters.S
         self.SW_GEOMETRY = SwimmerParameters.SW_GEOMETRY
         self.SW_KUTTA = SwimmerParameters.SW_KUTTA
         
@@ -18,17 +14,18 @@ class Swimmer(object):
 
 class Body(object):
     
-    def __init__(self, N, BodyFrameCoordinates, MotionParameters):
+    def __init__(self, N, S, BodyFrameCoordinates, MotionParameters):
         
         self.N = N
+        
+        self.S = S
         
         # Body-frame panel coordinates:
         # x, z, x_col, z_col
         self.BF = BodyFrameCoordinates
         # Initialize absolute-frame panel coordinates:
         # x, z, x_col, z_col, x_mid, z_mid, x_neut, z_neut
-        self.AF = AbsFrameCoordinates(np.empty(N+1), np.empty(N+1), np.empty(N), np.empty(N),\
-                                       np.zeros((3,N)), np.zeros((3,N)), np.empty(N/2), np.empty(N/2))
+        self.AF = PC.BodyAFC(N)
         # Prescribed motion
         self.MP = MotionParameters
         self.V0 = MotionParameters.V0 # gets used frequently
@@ -56,6 +53,7 @@ class Body(object):
         """
     
         N = GeoVDVParameters.N
+        S = GeoVDVParameters.S
         C = GeoVDVParameters.C
         K = GeoVDVParameters.K
         EPSILON = GeoVDVParameters.EPSILON
@@ -88,9 +86,9 @@ class Body(object):
         x_col = ((x[1:] + x[:-1])/2)
         z_col = ((z[1:] + z[:-1])/2)
         
-        BFC = BodyFrameCoordinates(x, z, x_col, z_col)
+        BodyFrameCoordinates = PC.BodyBFC(x, z, x_col, z_col)
         
-        return Body(N, BFC, MotionParameters)
+        return Body(N, S, BodyFrameCoordinates, MotionParameters)
         
     # Neutral axis is the axis which coincides with the chord line and divides the symmetric airfoil into two
     def neutral_axis(self, x, DSTEP, TSTEP, T):
@@ -109,13 +107,15 @@ class Body(object):
         return(x_neut, z_neut)
         
     # Updates the absolute-frame coordinates of the body
-    def panel_positions(self, S, DSTEP, T):
+    def panel_positions(self, DSTEP, T):
     # Uses neutral_axis()
     # Uses Body.(xb, zb, zb_col, V0)
     # Gets Body.(x, z, x_col, z_col, x_mid, z_mid)
     # Others: x_neut, z_neut, xdp_s, zdp_s, xdm_s, zdm_s
     
-        (bfx, bfz, bfx_col, bfz_col) = self.BF
+        bfx = self.BF.x
+        bfz = self.BF.z
+        bfz_col = self.BF.z_col
         V0 = self.V0
         
         # Body surface panel endpoint calculations
@@ -137,19 +137,22 @@ class Body(object):
         # They should be shifted inside or outside of the boundary depending on the dirichlet or neumann condition
         # Shifting surface collocation points some percent of the height from the neutral axis
         # Normal vectors point outward but positive S is inward, so the shift must be subtracted from the panel midpoints
-        afx_col = x_mid - S*panel_vectors(afx, afz)[2]*np.absolute(bfz_col)
-        afz_col = z_mid - S*panel_vectors(afx, afz)[3]*np.absolute(bfz_col)
+        afx_col = x_mid - self.S*panel_vectors(afx, afz)[2]*np.absolute(bfz_col)
+        afz_col = z_mid - self.S*panel_vectors(afx, afz)[3]*np.absolute(bfz_col)
         
         # Archive past values of x_mid and z_mid for differencing wrt time later
         archive(self.AF.x_mid)
         archive(self.AF.z_mid)
         
-        self.AF.x[:] = afx
-        self.AF.z[:] = afz
-        self.AF.x_col[:] = afx_col
-        self.AF.z_col[:] = afz_col
+        self.AF.x = afx
+        self.AF.z = afz
+        self.AF.x_col = afx_col
+        self.AF.z_col = afz_col
         self.AF.x_mid[0,:] = x_mid
         self.AF.z_mid[0,:] = z_mid
+        # Location of leading edge (currently pitching motion only)
+        self.AF.x_le = V0*T
+        self.AF.z_le = 0.
         
     # This method calculates the actual surface positions of the airfoil for each time step
     # Using the neutral axis and appropriate normal vectors of each point on the neutral axis

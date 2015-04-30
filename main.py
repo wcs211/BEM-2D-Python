@@ -1,18 +1,14 @@
 import time
-from collections import namedtuple
 import numpy as np
 from terminal_output import print_output as po
 from setup_parameters import PARAMETERS as P
 from body_class import Body
 from edge_class import Edge
 from wake_class import Wake
+import parameter_classes as PC
 from kinematics import edge_shed, wake_shed, wake_rollup
 from inf_force import influence_matrices, kutta
 import graphics as graph
-
-GeoVDVParameters = namedtuple('GeoVDVParameters', 'N C K EPSILON')
-MotionParameters = namedtuple('MotionParameters', 'V0 THETA_MAX H_C F PHI')
-SwimmerParameters = namedtuple('SimParameters', 'CE S SW_GEOMETRY SW_KUTTA')
 
 def main():
 
@@ -24,10 +20,10 @@ def main():
     DSTEP = P['DSTEP']
     TSTEP = P['TSTEP']
     T = [DEL_T*i for i in xrange(COUNTER)]
-    
-    GeoP = GeoVDVParameters(P['N_BODY'], P['C'], P['K'], P['EPSILON'])
-    MotP = MotionParameters(P['V0'], P['THETA_MAX'], P['H_C'], P['F'], P['PHI'])
-    SwiP = SwimmerParameters(P['CE'], P['S'], P['SW_GEOMETRY'], P['SW_KUTTA'])
+
+    SwiP = PC.SwimmerParameters(P['CE'], P['SW_GEOMETRY'], P['SW_KUTTA'])
+    GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
+    MotP = PC.MotionParameters(P['V0'], P['THETA_MAX'], P['H_C'], P['F'], P['PHI'])
     
     Body1 = Body.from_van_de_vooren(GeoP, MotP)
     Edge1 = Edge(P['V0'],P['CE'],COUNTER)
@@ -54,7 +50,7 @@ def main():
 #                                             residual, outerCorr, couplingScheme)
             
                 (Body1.AF.x_neut[:], Body1.AF.z_neut[:]) = Body1.neutral_axis(Body1.BF.x_col[:Body1.N/2], DSTEP, TSTEP, T[i])
-                Body1.panel_positions(P['S'], DSTEP, T[i])
+                Body1.panel_positions(DSTEP, T[i])
                 Body1.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
                 edge_shed(Body1, Edge1, DEL_T, i)
                 wake_shed(Edge1, Wake1, DEL_T, i)
