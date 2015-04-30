@@ -22,10 +22,10 @@ class Body(object):
         
         self.N = N
         
-        # Body-frame panel coordinates
+        # Body-frame panel coordinates:
         # x, z, x_col, z_col
         self.BF = BodyFrameCoordinates
-        # Initialize absolute-frame panel coordinates
+        # Initialize absolute-frame panel coordinates:
         # x, z, x_col, z_col, x_mid, z_mid, x_neut, z_neut
         self.AF = AbsFrameCoordinates(np.empty(N+1), np.empty(N+1), np.empty(N), np.empty(N),\
                                        np.zeros((3,N)), np.zeros((3,N)), np.empty(N/2), np.empty(N/2))
@@ -52,7 +52,7 @@ class Body(object):
     def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
         """
         Creates Body based on Van de Vooren airfoil geometry.
-        Motion parameters are unused here, just getting passed through.
+        MotionParameters are unused here, just getting passed through for Body creation.
         """
     
         N = GeoVDVParameters.N
