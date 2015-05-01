@@ -11,8 +11,7 @@ class Edge(object):
     Attributes:
         N: Number of edge panels (just one).
         CE: Constant that determines the length of the edge panel.
-        x: X-coordinates of the edge panel endpoints.
-        z: Z-coordinates of the edge panel endpoints.
+        x, z: X- and Z-coordinates of the edge panel endpoints.
         mu: Doublet strength of the edge panel.
         gamma: Circulation at the edge panel endpoints.
     """
@@ -30,8 +29,7 @@ class Wake(object):
     
     Attributes:
         N: Number of wake panels.
-        x: X-coordinates of the wake panel endpoints.
-        z: Z-coordinates of the wake panel endpoints.
+        x, z: X- and Z-coordinates of the wake panel endpoints.
         mu: Doublet strengths of the wake panels.
         gamma: Circulations at the wake panel endpoints.
     """
@@ -52,9 +50,8 @@ class Body(object):
         BF: A collection of various body-frame coordinates.
         AF: A collection of various absolute-frame coordinates.
         MP: A collection of parameters describing the motion of the swimmer.
-        V0: The freestream velocity (included in MP as well).
-        vx: X-component of body-frame surface velocities.
-        vz: Z-component of body-frame surface velocities.
+        V0: The free-stream velocity (included in MP as well).
+        vx, vz: X- and Z-components of body-frame surface velocities.
         sigma: Source strengths of the body panels.
         phi_s: Matrix of body source panel influences on the body.
         phi_db: Matrix of body doublet panel influences on the body.
@@ -95,7 +92,6 @@ class Body(object):
         self.mu_past = np.zeros((2,N))
     
     @classmethod
-    # VandeVooren airfoil geometry mapping
     def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
         """Creates a Body object based on a Van de Vooren airfoil geometry.
         
@@ -148,43 +144,60 @@ class Body(object):
         
         return Body(N, S, BodyFrameCoordinates, MotionParameters)
         
-    # Neutral axis is the axis which coincides with the chord line and divides the symmetric airfoil into two
-    def neutral_axis(self, x, DSTEP, TSTEP, T):
-    # Uses Body.(THETA_MAX, F, PHI)
-    # Returns x_neut, z_neut (just pitching for now)
+    def neutral_axis(self, x, T, DSTEP=0, TSTEP=0):
+        """Finds a body's neutral axis for a given time.
         
+        The neutral axis is the axis which coincides with the chord line and
+        divides the symmetric airfoil into two. CURRENTLY PITCHING MOTION ONLY.
+        
+        The axis that it finds is in an absolute frame of reference.
+        
+        Args:
+            x: An array of body-frame x-coordinates to use as reference points.
+            DSTEP, TSTEP: Small incremental distance/time offsets
+                (intended for differencing).
+            T: Time of the current step.
+            THETA_MAX: Maximum pitching angle of the body.
+            F: Frequency of the body's pitching motion.
+            PHI: Phase offset of the body's pitching motion.
+            V0: Free-stream velocity.
+            
+        Returns:
+            x_neut and z_neut: X- and Z-coordinates of the neutral axis points.
+        """
         THETA_MAX = self.MP.THETA_MAX
         F = self.MP.F
         PHI = self.MP.PHI
+        V0 = self.MP.V0
         
-        # Pitching motion of the airfoil(x and z points of the neutral axis due to pitching motion)
-        x_neut = (x+DSTEP)*np.cos(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI))
+        x_neut = (x+DSTEP)*np.cos(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)) + V0*T
         z_neut = (x+DSTEP)*np.sin(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI))
     
-        # Overall neutral axis position
         return(x_neut, z_neut)
         
-    # Updates the absolute-frame coordinates of the body
     def panel_positions(self, DSTEP, T):
-    # Uses neutral_axis()
-    # Uses Body.(xb, zb, zb_col, V0)
-    # Gets Body.(x, z, x_col, z_col, x_mid, z_mid)
-    # Others: x_neut, z_neut, xdp_s, zdp_s, xdm_s, zdm_s
-    
+        """Updates all the absolute-frame coordinates of the body.
+        
+        Args:
+            DSTEP: Small incremental distance to pass into neutral_axis().
+            T: Time of current step.
+            bfx, bfz: Body-frame x- and z-coordinates.
+            bfz_col: Body-frame collocation z-coordinates (unshifted)
+            V0: Free-stream velocity.
+        """
         bfx = self.BF.x
         bfz = self.BF.z
         bfz_col = self.BF.z_col
         V0 = self.V0
         
-        # Body surface panel endpoint calculations
-        (x_neut, z_neut) = self.neutral_axis(bfx, 0, 0, T)
+        (x_neut, z_neut) = self.neutral_axis(bfx, T)
         
         # Infinitesimal differences on the neutral axis to calculate the tangential and normal vectors
-        (xdp_s, zdp_s) = self.neutral_axis(bfx, DSTEP, 0, T)
-        (xdm_s, zdm_s) = self.neutral_axis(bfx, -DSTEP, 0, T)
+        (xdp_s, zdp_s) = self.neutral_axis(bfx, T, DSTEP)
+        (xdm_s, zdm_s) = self.neutral_axis(bfx, T, -DSTEP)
         
         # Absolute-frame panel endpoint positions for time t
-        afx = x_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[2]*bfz + V0*T
+        afx = x_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[2]*bfz
         afz = z_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[3]*bfz
         
         # Absolute-frame panel midpoint positions
@@ -208,36 +221,39 @@ class Body(object):
         self.AF.z_col = afz_col
         self.AF.x_mid[0,:] = x_mid
         self.AF.z_mid[0,:] = z_mid
+        self.AF.x_neut = x_neut
+        self.AF.z_neut = z_neut
         # Location of leading edge (currently pitching motion only)
         self.AF.x_le = V0*T
         self.AF.z_le = 0.
         
-    # This method calculates the actual surface positions of the airfoil for each time step
-    # Using the neutral axis and appropriate normal vectors of each point on the neutral axis
-    # This class also calculates the velocity of the panel midpoints for each time step
     def surface_kinematics(self, DSTEP, TSTEP, DEL_T, T, i):
-    # Uses neutral_axis(), point_vectors()
-    # Uses Body.(xb_col, zb_col, x_mid, z_mid, V0)
-    # Gets Body.(vx, vz)
-    # Others: xtpneut, ztpneut, xtpdp, ztpdp, xtpdm, ztpdm, xtmneut, ztmneut, xtmdp, ztmdp, xtmdm, ztmdm, xctp, xctm, zctp, zctm
-            
+        """Calculates the body-frame surface velocities of body panels.
+        
+        Args:
+            DSTEP, TSTEP: Incremental distance/time passed into neutral_axis().
+            DEL_T: Time step length.
+            T: Time of current step.
+            i: Time step number.
+            x_col, z_col: Unshifted body-frame collocation point coordinates.
+        """
         if i == 1:
             
             x_col = self.BF.x_col
             z_col = self.BF.z_col
             
             # Panel midpoint velocity calculations
-            # Calculating the surface positions at tplus(tp) and tminus(tm) for every timestep
-            (xtpneut, ztpneut) = self.neutral_axis(x_col, 0, TSTEP, T)
-            (xtpdp, ztpdp) = self.neutral_axis(x_col, DSTEP, TSTEP, T)
-            (xtpdm, ztpdm) = self.neutral_axis(x_col, -DSTEP, TSTEP, T)
-            (xtmneut, ztmneut) = self.neutral_axis(x_col, 0, -TSTEP, T)
-            (xtmdp, ztmdp) = self.neutral_axis(x_col, DSTEP, -TSTEP, T)
-            (xtmdm, ztmdm) = self.neutral_axis(x_col, -DSTEP, -TSTEP, T)
+            # Calculating the surface positions at tplus(tp) and tminus(tm)
+            (xtpneut, ztpneut) = self.neutral_axis(x_col, T, 0, TSTEP)
+            (xtpdp, ztpdp) = self.neutral_axis(x_col, T, DSTEP, TSTEP)
+            (xtpdm, ztpdm) = self.neutral_axis(x_col, T, -DSTEP, TSTEP)
+            (xtmneut, ztmneut) = self.neutral_axis(x_col, T, 0, -TSTEP)
+            (xtmdp, ztmdp) = self.neutral_axis(x_col, T, DSTEP, -TSTEP)
+            (xtmdm, ztmdm) = self.neutral_axis(x_col, T, -DSTEP, -TSTEP)
             
             # Displaced airfoil's panel midpoints for times tplus(tp) and tminus(tm)      
-            xctp = xtpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[2]*z_col + self.V0*T
-            xctm = xtmneut + point_vectors(xtmdp, xtmdm, ztmdp, ztmdm)[2]*z_col + self.V0*T
+            xctp = xtpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[2]*z_col
+            xctm = xtmneut + point_vectors(xtmdp, xtmdm, ztmdp, ztmdm)[2]*z_col
                 
             zctp = ztpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[3]*z_col
             zctm = ztmneut + point_vectors(xtmdp, xtmdm, ztmdp, ztmdm)[3]*z_col
@@ -256,12 +272,14 @@ class Body(object):
             self.vx = (3*self.AF.x_mid[0,:]-4*self.AF.x_mid[1,:]+self.AF.x_mid[2,:])/(2*DEL_T) - self.V0
             self.vz = (3*self.AF.z_mid[0,:]-4*self.AF.z_mid[1,:]+self.AF.z_mid[2,:])/(2*DEL_T)
     
-    # Calculate pressure distribution on the body
     def pressure(self, RHO, DEL_T, i):
-    # Uses Body.(N, x, z, V0, vx, vz, sigma, mu, mu_past), panel_vectors()
-    # Gets Body.cp and Body.p
-    # Others: dmu_dl, dmu_dt, qpx_tot, qpz_tot
+        """Calculates the pressure distribution along the body's surface.
         
+        Args:
+            RHO: Fluid density.
+            DEL_T: Time step length.
+            i: Time step number.
+        """
         if i > 0:
             
             (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
@@ -285,12 +303,12 @@ class Body(object):
             self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
             self.cp = self.p / (0.5*RHO*self.V0**2)
            
-    # Calculation of drag and lift forces affecting overall airfoil      
     def force(self, i):
-    # Uses Body.(x, z, p, N), panel_vectors()
-    # Gets Body.(drag, lift)
-    # Others: tx, tz, nx, nz, lpanel
+        """Calculates drag and lift forces acting on the body.
         
+        Args:
+            i: Time step number.
+        """
         if i == 0:
             pass
         else:

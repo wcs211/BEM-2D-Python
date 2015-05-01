@@ -46,7 +46,6 @@ def main():
 #                FSI1.setInterfaceDisplacemet(displ, relaxationFactor, 
 #                                             residual, outerCorr, couplingScheme)
             
-                (Swimmer1.Body.AF.x_neut[:], Swimmer1.Body.AF.z_neut[:]) = Swimmer1.Body.neutral_axis(Swimmer1.Body.BF.x_col[:Swimmer1.Body.N/2], DSTEP, TSTEP, T[i])
                 Swimmer1.Body.panel_positions(DSTEP, T[i])
                 Swimmer1.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
                 Swimmer1.edge_shed(DEL_T, i)

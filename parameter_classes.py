@@ -40,7 +40,7 @@ class BodyAFC(object):
         self.z_col = np.empty(N)
         self.x_mid = np.zeros((3,N))
         self.z_mid = np.zeros((3,N))
-        self.x_neut = np.empty(N/2)
-        self.z_neut = np.empty(N/2)
+        self.x_neut = np.empty(N)
+        self.z_neut = np.empty(N)
         self.x_le = 0.
         self.z_le = 0.
