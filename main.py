@@ -21,15 +21,18 @@ def main():
 
     SwiP = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
     GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
-    MotP = PC.MotionParameters(0., 0., P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+    MotP1 = PC.MotionParameters(0., 2., P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+    MotP2 = PC.MotionParameters(0., -2., P['V0'], P['THETA_MAX'], P['F'], P['PHI']+np.pi)
     
-    Swimmer1 = Swimmer(SwiP, GeoP, MotP, COUNTER-2)
+    Swimmer1 = Swimmer(SwiP, GeoP, MotP1, COUNTER-2)
+    Swimmer2 = Swimmer(SwiP, GeoP, MotP2, COUNTER-2)
+    Swimmers = [Swimmer1, Swimmer2]
     
 #    FSI1 = FSI(Npanels,Nelements)
 #    PyFEA1 = PyFEA(Nelements, fracDeltaT, endTime, E, I, A, l, rho, Fload, U_n, Udot_n)
 #    Solid1 = solid(Nnodes,xp_0,zp_0,tmax)
     
-    po().calc_input(MotP.THETA_MAX/np.pi*180.,RE,MotP.THETA_MAX/np.pi*180.,DEL_T)
+    po().calc_input(MotP1.THETA_MAX/np.pi*180.,RE,MotP1.THETA_MAX/np.pi*180.,DEL_T)
     
     # Data points per cycle == 1/(F*DEL_T)
     for i in xrange(COUNTER):
@@ -45,14 +48,14 @@ def main():
                 
 #                FSI1.setInterfaceDisplacemet(displ, relaxationFactor, 
 #                                             residual, outerCorr, couplingScheme)
-            
-                Swimmer1.Body.panel_positions(DSTEP, T[i])
-                Swimmer1.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
-                Swimmer1.edge_shed(DEL_T, i)
-                Swimmer1.wake_shed(DEL_T, i)
-                
-                Swimmer1.influence_matrices(i)
-                Swimmer1.kutta(RHO, DEL_T, i)
+                for Swim in Swimmers:
+                    Swim.Body.panel_positions(DSTEP, T[i])
+                    Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
+                    Swim.edge_shed(DEL_T, i)
+                    Swim.wake_shed(DEL_T, i)
+                    
+                    Swim.influence_matrices(i)
+                    Swim.kutta(RHO, DEL_T, i)
                 
 #                FSI1.setInterfaceForce(outerCorr, nodes, nodesNew, theta, heave, 
 #                                       x_b, z_b, xp, zp, xc, zc, P_b, ViscDrag, vn, delFs, 
@@ -63,7 +66,7 @@ def main():
 #                FSI1.calcFSIResidual(DU, nodes, tempNodes, outerCorr)
 #                
 #                if (FSI1.fsiResidualNorm <= FSI1.outerCorrTolerance or FSI1.outerCorr >= FSI1.nOuterCorr):
-                Swimmer1.wake_rollup(DEL_T, i)
+                    Swim.wake_rollup(DEL_T, i)
                 
                 #force(Body1,i)
                 #po().solution_output(d_visc,cf,cl,ct,cpow,gamma)
@@ -78,7 +81,7 @@ def main():
     total_time = time.time()-start_time
     print "Simulation time:", np.round(total_time, 3), "seconds"
 
-    graph.body_wake_plot(Swimmer1)
+    graph.body_wake_plot(Swimmers)
 #    graph.cp_plot(Swimmer1.Body)
 
 if __name__ == '__main__':

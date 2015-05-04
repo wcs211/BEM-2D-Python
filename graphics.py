@@ -16,7 +16,7 @@ def basic_xy(x,y,color='b'):
     plt.plot(x, y, color)
     n_fig += 1
 
-def body_wake_plot(Swimmer):
+def body_wake_plot(Swimmers):
     
     global n_fig
     figure = plt.figure(n_fig)
@@ -25,24 +25,25 @@ def body_wake_plot(Swimmer):
     plt.gca().set_aspect('equal')
     maxpercentile = 95 # For truncating outliers
     
-    # Make color map based on vorticity
-    color = copy.deepcopy(Swimmer.Wake.gamma[1:-1])
-    # Take a look at positive and negative circulations separately
-    if np.min(color) < 0: # Check if negative circulations exist (in case of short simulations)
-        # Truncate any negative outliers
-        color[color < np.percentile(color[color < 0], 100-maxpercentile)] = np.percentile(color[color < 0], 100-maxpercentile)
-        # Normalize negative circulations to [-1,0)
-        color[color < 0] = -color[color < 0]/np.min(color)
-    if np.max(color) > 0: # Check if positive circulations exist (in case of short simulations)
-        # Truncate any positive outliers
-        color[color > np.percentile(color[color > 0], maxpercentile)] = np.percentile(color[color > 0], maxpercentile)
-        # Normalize positive circulations to (0,1]
-        color[color > 0] = color[color > 0]/np.max(color)
-    
-    # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
-    plt.scatter(Swimmer.Wake.x[1:-1], Swimmer.Wake.z[1:-1], s=30, c=color, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
-    plt.plot(Swimmer.Body.AF.x, Swimmer.Body.AF.z, 'k')
-    plt.plot(Swimmer.Edge.x, Swimmer.Edge.z, 'g')
+    for Swim in Swimmers:
+        # Make color map based on vorticity
+        color = copy.deepcopy(Swim.Wake.gamma[1:-1])
+        # Take a look at positive and negative circulations separately
+        if np.min(color) < 0: # Check if negative circulations exist (in case of short simulations)
+            # Truncate any negative outliers
+            color[color < np.percentile(color[color < 0], 100-maxpercentile)] = np.percentile(color[color < 0], 100-maxpercentile)
+            # Normalize negative circulations to [-1,0)
+            color[color < 0] = -color[color < 0]/np.min(color)
+        if np.max(color) > 0: # Check if positive circulations exist (in case of short simulations)
+            # Truncate any positive outliers
+            color[color > np.percentile(color[color > 0], maxpercentile)] = np.percentile(color[color > 0], maxpercentile)
+            # Normalize positive circulations to (0,1]
+            color[color > 0] = color[color > 0]/np.max(color)
+        
+        # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
+        plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=color, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
+        plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
+        plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
     
     n_fig += 1
     
