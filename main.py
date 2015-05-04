@@ -1,10 +1,10 @@
 import time
 import numpy as np
-from setup_parameters import PARAMETERS as P
+from input_parameters import PARAMETERS as P
 from swimmer_class import Swimmer
 import parameter_classes as PC
 from terminal_output import print_output as po
-import graphics as graph
+import functions_graphics as graph
 
 def main():
 
@@ -53,6 +53,7 @@ def main():
                     Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
                     Swim.edge_shed(DEL_T, i)
                     Swim.wake_shed(DEL_T, i)
+                    # TODO: for loop should end here
                     
                     Swim.influence_matrices(i)
                     Swim.kutta(RHO, DEL_T, i)

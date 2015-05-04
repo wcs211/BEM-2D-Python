@@ -2,7 +2,7 @@
 """Module for the Swimmer class and its methods."""
 
 import numpy as np
-from general_functions import panel_vectors, transformation
+from functions_general import panel_vectors, transformation
 from swimmer_subclasses import Body, Edge, Wake
 
 class Swimmer(object):

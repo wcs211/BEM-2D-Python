@@ -2,7 +2,7 @@
 """Module for the Body, Edge, and Wake classes."""
 
 import numpy as np
-from general_functions import point_vectors, panel_vectors, archive
+from functions_general import point_vectors, panel_vectors, archive
 import parameter_classes as PC
 
 class Edge(object):
