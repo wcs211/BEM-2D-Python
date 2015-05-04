@@ -21,7 +21,7 @@ def main():
 
     SwiP = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
     GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
-    MotP = PC.MotionParameters(P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+    MotP = PC.MotionParameters(0., 0., P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
     
     Swimmer1 = Swimmer(SwiP, GeoP, MotP, COUNTER-2)
     

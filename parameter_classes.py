@@ -38,12 +38,15 @@ class MotionParameters(object):
     """A collection of parameters related to a swimmer's path of motion.
     
     Attributes:
+        X0, Z0: Initial position of the leading edge (absolute frame).
         V0: Free-stream velocity.
         THETA_MAX: Maximum pitching angle of the body.
         F: Frequency of the body's pitching motion.
         PHI: Phase offset of the body's pitching motion.
     """
-    def __init__(self, V0, THETA_MAX, F, PHI):
+    def __init__(self, X0, Z0, V0, THETA_MAX, F, PHI):
+        self.X0 = X0
+        self.Z0 = Z0
         self.V0 = V0
         self.THETA_MAX = THETA_MAX
         self.F = F

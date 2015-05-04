@@ -157,6 +157,7 @@ class Body(object):
             DSTEP, TSTEP: Small incremental distance/time offsets
                 (intended for differencing).
             T: Time of the current step.
+            X0, Z0: Initial position of the leading edge (absolute frame).
             THETA_MAX: Maximum pitching angle of the body.
             F: Frequency of the body's pitching motion.
             PHI: Phase offset of the body's pitching motion.
@@ -165,13 +166,15 @@ class Body(object):
         Returns:
             x_neut and z_neut: X- and Z-coordinates of the neutral axis points.
         """
+        X0 = self.MP.X0
+        Z0 = self.MP.Z0
         THETA_MAX = self.MP.THETA_MAX
         F = self.MP.F
         PHI = self.MP.PHI
         V0 = self.MP.V0
         
-        x_neut = (x+DSTEP)*np.cos(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)) + V0*T
-        z_neut = (x+DSTEP)*np.sin(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI))
+        x_neut = X0 + (x+DSTEP)*np.cos(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)) + V0*T
+        z_neut = Z0 + (x+DSTEP)*np.sin(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI))
     
         return(x_neut, z_neut)
         
