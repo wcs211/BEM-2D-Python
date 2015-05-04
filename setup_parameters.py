@@ -18,7 +18,6 @@ P = PARAMETERS = {
 , 'EPSILON':        0.075
 , 'V0':             -1.0
 , 'THETA_MAX':      5.73*np.pi/180
-, 'H_C':            0
 , 'F':              RF/(2*np.pi)
 #, 'F':              0.5
 , 'PHI':            0

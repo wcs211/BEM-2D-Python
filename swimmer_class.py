@@ -31,10 +31,9 @@ class Swimmer(object):
         self.V0 = MotionParameters.V0
         self.CE = SwimmerParameters.CE
         self.DELTA_CORE = SwimmerParameters.DELTA_CORE
-        self.SW_GEOMETRY = SwimmerParameters.SW_GEOMETRY
         self.SW_KUTTA = SwimmerParameters.SW_KUTTA
         
-        if self.SW_GEOMETRY == 'VDV':
+        if GeoParameters.SW_GEOMETRY == 'VDV':
             self.Body = Body.from_van_de_vooren(GeoParameters, MotionParameters)
             
         self.Edge = Edge(self.CE)
