@@ -20,9 +20,13 @@ def point_vectors(xdp,xdm,zdp,zdm):
 def archive(array, axis=0):
     """
     Shifts array values along an axis (row-wise by default).
-    Used for arrays that keep past values for differencing with respect to time.
-    """
     
+    Used for arrays that keep past values for differencing with respect to time.
+    
+    Args:
+        array: The array that will be manipulated.
+        axis: The axis to shift values along (0==row-wise, 1==column-wise).
+    """
     if axis == 0:
         array[1:,:] = array[:-1,:]
     elif axis == 1:

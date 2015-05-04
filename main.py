@@ -26,7 +26,7 @@ def main():
     
     Swimmer1 = Swimmer(SwiP, GeoP, MotP1, COUNTER-2)
     Swimmer2 = Swimmer(SwiP, GeoP, MotP2, COUNTER-2)
-    Swimmers = [Swimmer1, Swimmer2]
+    Swimmers = [Swimmer1]
     
 #    FSI1 = FSI(Npanels,Nelements)
 #    PyFEA1 = PyFEA(Nelements, fracDeltaT, endTime, E, I, A, l, rho, Fload, U_n, Udot_n)

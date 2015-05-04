@@ -233,6 +233,9 @@ class Body(object):
     def surface_kinematics(self, DSTEP, TSTEP, DEL_T, T, i):
         """Calculates the body-frame surface velocities of body panels.
         
+        Also finds the body panel source strengths based on these surface
+        velocities.
+        
         Args:
             DSTEP, TSTEP: Incremental distance/time passed into neutral_axis().
             DEL_T: Time step length.
@@ -274,6 +277,10 @@ class Body(object):
             # Second-order backwards differencing of body collocation point positions
             self.vx = (3*self.AF.x_mid[0,:]-4*self.AF.x_mid[1,:]+self.AF.x_mid[2,:])/(2*DEL_T) - self.V0
             self.vz = (3*self.AF.z_mid[0,:]-4*self.AF.z_mid[1,:]+self.AF.z_mid[2,:])/(2*DEL_T)
+            
+        # Body source strengths with normal vector pointing outward (overall sigma pointing outward)
+        (nx,nz) = panel_vectors(self.AF.x,self.AF.z)[2:4]
+        self.sigma = nx*(self.V0 + self.vx) + nz*self.vz
     
     def pressure(self, RHO, DEL_T, i):
         """Calculates the pressure distribution along the body's surface.

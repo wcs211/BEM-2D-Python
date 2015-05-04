@@ -125,10 +125,6 @@ class Swimmer(object):
             Body.phi_s = np.transpose((xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) \
                                       + 2*zp*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1)))/(4*np.pi))
             
-            # Body source strength calculations
-            (nx,nz) = panel_vectors(Body.AF.x,Body.AF.z)[2:4]
-            Body.sigma = nx*(Body.V0 + Body.vx) + nz*Body.vz   # normal vector pointing outward (overall sigma pointing outward)
-            
             # Body doublet singularities influencing body itself
             # Transpose similar to phi_s
             Body.phi_db = np.transpose(-(np.arctan2(zp,xp2)\
