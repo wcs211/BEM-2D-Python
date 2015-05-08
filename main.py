@@ -3,6 +3,7 @@ import numpy as np
 from input_parameters import PARAMETERS as P
 from swimmer_class import Swimmer
 import parameter_classes as PC
+from functions_influence import quilt, wake_rollup
 from terminal_output import print_output as po
 import functions_graphics as graph
 
@@ -21,12 +22,12 @@ def main():
 
     SwiP = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
     GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
-    MotP1 = PC.MotionParameters(0., 2., P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
-    MotP2 = PC.MotionParameters(0., -2., P['V0'], P['THETA_MAX'], P['F'], P['PHI']+np.pi)
+    MotP1 = PC.MotionParameters(0., 0.3, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+    MotP2 = PC.MotionParameters(0., -0.3, P['V0'], P['THETA_MAX'], P['F'], P['PHI']+np.pi)
     
     Swimmer1 = Swimmer(SwiP, GeoP, MotP1, COUNTER-2)
     Swimmer2 = Swimmer(SwiP, GeoP, MotP2, COUNTER-2)
-    Swimmers = [Swimmer1]
+    Swimmers = [Swimmer1, Swimmer2]
     
 #    FSI1 = FSI(Npanels,Nelements)
 #    PyFEA1 = PyFEA(Nelements, fracDeltaT, endTime, E, I, A, l, rho, Fload, U_n, Udot_n)
@@ -53,10 +54,8 @@ def main():
                     Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
                     Swim.edge_shed(DEL_T, i)
                     Swim.wake_shed(DEL_T, i)
-                    # TODO: for loop should end here
                     
-                    Swim.influence_matrices(i)
-                    Swim.kutta(RHO, DEL_T, i)
+                quilt(Swimmers, RHO, DEL_T, i)
                 
 #                FSI1.setInterfaceForce(outerCorr, nodes, nodesNew, theta, heave, 
 #                                       x_b, z_b, xp, zp, xc, zc, P_b, ViscDrag, vn, delFs, 
@@ -67,7 +66,7 @@ def main():
 #                FSI1.calcFSIResidual(DU, nodes, tempNodes, outerCorr)
 #                
 #                if (FSI1.fsiResidualNorm <= FSI1.outerCorrTolerance or FSI1.outerCorr >= FSI1.nOuterCorr):
-                    Swim.wake_rollup(DEL_T, i)
+                wake_rollup(Swimmers, DEL_T, i)
                 
                 #force(Body1,i)
                 #po().solution_output(d_visc,cf,cl,ct,cpow,gamma)

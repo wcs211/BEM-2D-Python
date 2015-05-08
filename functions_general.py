@@ -33,7 +33,7 @@ def archive(array, axis=0):
         array[:,1:] = array[:,:-1]
         
 # Velocity and velocity potential equations are defined in panel coordinates so a transformation should be done
-# Each row of xpleft/xpright/zp is an influence, and each column is a target
+# Each row of xp1/xp2/zp is an influence, and each column is a target
 # NI is N influences, NT is N targets
 # xi/zi is x/z of influences, xt/zt is x/z of target points
 def transformation(xt,zt,xi,zi):
