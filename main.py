@@ -20,14 +20,21 @@ def main():
     RHO = P['RHO']
     RE = P['RE']
 
+    SPLIT = 0.4
     SwiP = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
     GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
-    MotP1 = PC.MotionParameters(0., 0.3, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
-    MotP2 = PC.MotionParameters(0., -0.3, P['V0'], P['THETA_MAX'], P['F'], P['PHI']+np.pi)
+    MotP1 = PC.MotionParameters(0., 0*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI']+np.pi)
+    MotP2 = PC.MotionParameters(0., 1*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI']+np.pi)
+    MotP3 = PC.MotionParameters(0., 2*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+    MotP4 = PC.MotionParameters(0., 3*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+    MotP5 = PC.MotionParameters(0., 4*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
     
-    Swimmer1 = Swimmer(SwiP, GeoP, MotP1, COUNTER-2)
-    Swimmer2 = Swimmer(SwiP, GeoP, MotP2, COUNTER-2)
-    Swimmers = [Swimmer1, Swimmer2]
+    S1 = Swimmer(SwiP, GeoP, MotP1, COUNTER-2)
+    S2 = Swimmer(SwiP, GeoP, MotP2, COUNTER-2)
+    S3 = Swimmer(SwiP, GeoP, MotP3, COUNTER-2)
+    S4 = Swimmer(SwiP, GeoP, MotP4, COUNTER-2)
+    S5 = Swimmer(SwiP, GeoP, MotP5, COUNTER-2)
+    Swimmers = [S1, S2, S3, S4]
     
 #    FSI1 = FSI(Npanels,Nelements)
 #    PyFEA1 = PyFEA(Nelements, fracDeltaT, endTime, E, I, A, l, rho, Fload, U_n, Udot_n)
