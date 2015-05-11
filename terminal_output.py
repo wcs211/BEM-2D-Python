@@ -51,10 +51,12 @@ class print_output(object):
             fsi_residual_norm,max_fsi_residual_norm )
         
     def fsi_converged(self):
+        print '+-----------------------------------------------------------------------------+'
         print '| SOLUTION CONVERGED!                                                         |'
         print '+-----------------------------------------------------------------------------+'
         
     def fsi_not_converged(self):
+        print '+-----------------------------------------------------------------------------+'
         print '| WARNING! MAX INNER-LOOP ITERATIONS REACHED                                  |'
         print '+-----------------------------------------------------------------------------+'
         

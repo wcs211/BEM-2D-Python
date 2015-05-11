@@ -6,6 +6,9 @@ import parameter_classes as PC
 from functions_influence import quilt, wake_rollup
 from terminal_output import print_output as po
 import functions_graphics as graph
+from SolidClass import solid
+from PyFEA import PyFEA
+from FSIClass import FSI
 
 def main():
 
@@ -23,6 +26,7 @@ def main():
     SPLIT = 0.4
     SwiP = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
     GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
+#    GeoP = PC.GeoFPParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
     MotP1 = PC.MotionParameters(0., 0*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
     MotP2 = PC.MotionParameters(0., 1*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
     MotP3 = PC.MotionParameters(0., 2*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
@@ -36,24 +40,31 @@ def main():
     S5 = Swimmer(SwiP, GeoP, MotP5, COUNTER-1)
     Swimmers = [S1]
     
-#    FSI1 = FSI(Npanels,Nelements)
-#    PyFEA1 = PyFEA(Nelements, fracDeltaT, endTime, E, I, A, l, rho, Fload, U_n, Udot_n)
-#    Solid1 = solid(Nnodes,xp_0,zp_0,tmax)
+    Solid1 = solid(S1.Body, P['N_ELEMENTS_S'], 0.001)
+    FSI1 = FSI(S1.Body, Solid1)
+    PyFEA1 = PyFEA(Solid1, P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
     
     po().calc_input(MotP1.THETA_MAX/np.pi*180.,RE,MotP1.THETA_MAX/np.pi*180.,DEL_T)
+    
+    Solid1.initMesh()  
+    Solid1.initThinPlate(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
     
     # Data points per cycle == 1/(F*DEL_T)
     for i in xrange(COUNTER):
         if i == 0:
             po().initialize_output(T[i])
         
-#       readFsiControls(fixedPtRelax, nOuterCorrMax)
-#       FSI1.__init__(Npanels,Nelements)
-        
-        while True:
+        if np.fmod(i,P['VERBOSITY']) == 0:
+            po().timestep_header(i,T[i])
+            po().fsi_header()
             
-#           FSI1.setInterfaceDisplacemet(displ, relaxationFactor, 
-#                                             residual, outerCorr, couplingScheme)
+#        FSI1.readFsiControls(P['FIXED_PT_RELAX'], P['N_OUTERCORR_MAX'])
+#        FSI1.__init__(S1.Body, Solid1)
+        outerCorr = 0
+        while True:
+            outerCorr += 1
+#            FSI1.setInterfaceDisplacemet(outerCorr, P['COUPLING_SCHEME'])
+
             for Swim in Swimmers:
                 Swim.Body.panel_positions(DSTEP, T[i])
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
@@ -62,24 +73,29 @@ def main():
                 
             quilt(Swimmers, RHO, DEL_T, i)
             
-#           FSI1.setInterfaceForce(outerCorr, nodes, nodesNew, theta, heave, 
-#                                  x_b, z_b, xp, zp, xc, zc, P_b, ViscDrag, vn, delFs, 
-#                                  interpMtd, meanline_c0, tBeamStruct, fixedCounter, c,
-#                                  U_nPlus, Udot_nPlus, i_t)
-#           PyFEA1.solve(mType, method, theta, fixedNodes, alpha, beta, gamma)
-#           (DU, tempNodes) = FSI1.getDisplacements(theta, heavePos, xp, zp, nodalDelxp, nodalDelzp, tBeam, nodes_0, U_nPlus, interpMtd, meanline_p0, fixedNodes, flexionRatio)
-#           FSI1.calcFSIResidual(DU, nodes, tempNodes, outerCorr)
-#                
-#           if (FSI1.fsiResidualNorm <= FSI1.outerCorrTolerance or FSI1.outerCorr >= FSI1.nOuterCorr):
-            wake_rollup(Swimmers, DEL_T, i)
+#            FSI1.setInterfaceForce(Solid1, S1.Body, PyFEA1, T[i], TSTEP, outerCorr, 
+#                          P['SWITCH_VISC_DRAG'], 0, P['SWITCH_INTERP_MTD'], P['C'], i)
+#            PyFEA1.solve(S1.Body, Solid1, outerCorr, T[i], TSTEP, P['M_TYPE'], P['INT_METHOD'], P['ALPHA'], P['BETA'], P['GAMMA'])
+#            FSI1.getDisplacements(Solid1, S1.Body, PyFEA1, T[i], TSTEP, P['SWITCH_INTERP_MTD'], P['FLEX_RATIO'])
+#            FSI1.calcFSIResidual(Solid1, outerCorr)
             
-            #force(Body1,i)
-            #po().solution_output(d_visc,cf,cl,ct,cpow,gamma)
+#            if np.fmod(i,P['VERBOSITY']) == 0:
+#                po().fsi_iter_out(outerCorr,FSI1.fsiRelaxationFactor,FSI1.maxDU,FSI1.maxMagFsiResidual,FSI1.fsiResidualNorm,FSI1.maxFsiResidualNorm) 
+#                
+#           if (FSI1.fsiResidualNorm <= P['OUTER_CORR_TOL'] or outerCorr >= P['N_OUTERCORR_MAX']):
+#                if (FSI1.fsiResidualNorm <= P['OUTER_CORR_TOL']):
+#                    po().fsi_converged()
+#                else:
+#                    po().fsi_not_converged()
+#                if np.fmod(i,P['VERBOSITY']) == 0:
+#                    po().solution_output(0,0,0,0,0,0)
+#                    po().solution_complete_output(i/float(COUNTER-1)*100.) 
+            wake_rollup(Swimmers, DEL_T, i)
              
-            if np.fmod(i,10) == 0:
-                po().timestep_header(i+1, T[i])
-                po().solution_output(0,0,0,0,0,0)
-                po().solution_complete_output(i/float(COUNTER-1)*100.)
+#            if np.fmod(i,10) == 0:
+#                po().timestep_header(i+1, T[i])
+#                po().solution_output(0,0,0,0,0,0)
+#                po().solution_complete_output(i/float(COUNTER-1)*100.)
             
             break # TODO: remove this once FSI is ready
     
