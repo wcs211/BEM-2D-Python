@@ -11,7 +11,12 @@ P = PARAMETERS = {
 #, 'DEL_T':          0.01
 , 'DSTEP':          10**-5
 , 'TSTEP':          10**-5
+, 'VERBOSITY':      1
 
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Fluid Body Constants                                                        #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'N_BODY':         100
 , 'C':              1.
 , 'K':              2.-(12.4/180)
@@ -21,6 +26,7 @@ P = PARAMETERS = {
 , 'F':              RF/(2*np.pi)
 #, 'F':              0.5
 , 'PHI':            0
+, 'T_MAX':          0.01
 
 , 'CE':             0.4
 , 'S':              0.1
@@ -28,6 +34,48 @@ P = PARAMETERS = {
 
 , 'SW_GEOMETRY':    'VDV'
 , 'SW_KUTTA':       1
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Skin Friction Solver Constants                                              #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Structural Solver Constants                                                 #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+, 'INT_METHOD':         'HHT'
+, 'M_TYPE':             'consistent'
+, 'ALPHA':              0.1
+, 'BETA':               0.25*(1+0.1)**2
+, 'GAMMA':              0.5+0.1
+, 'N_ELEMENTS_S':       100
+, 'MATERIAL':           'Aluminum'
+, 'E':                  75.0e9
+, 'RHO_S':              2710
+, 'FRAC_DELT':          0.1
+, 'FLEX_RATIO':         0.3
+, 'T_CONST':            0.95
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# FSI Coupling Constants                                                      #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+, 'N_OUTERCORR_MAX':    50
+, 'OUTER_CORR_TOL':     1e-5
+, 'FIXED_PT_RELAX':     0.001
+, 'COUPLING_SCHEME':    'Aitken'
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Solver Switches                                                             #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+, 'SWITCH_KUTTA':       1
+, 'SWITCH_FREE_SWIM':   0
+, 'SWITCH_VISC_DRAG':   0
+, 'SWITCH_INTERP_MTD':  1
+, 'SWITCH_CNST_THK_BM': 0
+
+
 
 }
 
