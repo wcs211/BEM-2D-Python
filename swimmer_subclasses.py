@@ -243,7 +243,7 @@ class Body(object):
             i: Time step number.
             x_col, z_col: Unshifted body-frame collocation point coordinates.
         """
-        if i == 1:
+        if i == 0:
             
             x_col = self.BF.x_col
             z_col = self.BF.z_col
@@ -268,7 +268,7 @@ class Body(object):
             self.vx = (xctp - xctm)/(2*TSTEP)
             self.vz = (zctp - zctm)/(2*TSTEP)
             
-        elif i == 2:
+        elif i == 1:
             # First-order backwards differencing of body collocation point positions
             self.vx = (self.AF.x_mid[0,:]-self.AF.x_mid[1,:])/DEL_T - self.V0
             self.vz = (self.AF.z_mid[0,:]-self.AF.z_mid[1,:])/DEL_T
@@ -290,28 +290,27 @@ class Body(object):
             DEL_T: Time step length.
             i: Time step number.
         """
-        if i > 0:
-            
-            (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
-            
-            # Tangential panel velocity dmu/dl, first-order differencing
-            dmu_dl = np.empty(self.N)
-            dmu_dl[0] = (self.mu[0]-self.mu[1]) / (lpanel[0]/2 + lpanel[1]/2)
-            dmu_dl[1:-1] = (self.mu[:-2]-self.mu[2:]) / (lpanel[:-2]/2 + lpanel[1:-1] + lpanel[2:]/2)
-            dmu_dl[-1] = (self.mu[-2]-self.mu[-1]) / (lpanel[-2]/2 + lpanel[-1]/2)
-            
-            # Potential change dmu/dt, second-order differencing after first time step
-            if i == 1:
-                dmu_dt = (self.mu - self.mu_past[0,:])/DEL_T
-            else:
-                dmu_dt = (3*self.mu - 4*self.mu_past[0,:] + self.mu_past[1,:])/(2*DEL_T)
-            
-            # Unsteady pressure calculation (from Matlab code)
-            qpx_tot = dmu_dl*tx + self.sigma*nx
-            qpz_tot = dmu_dl*tz + self.sigma*nz
-            
-            self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
-            self.cp = self.p / (0.5*RHO*self.V0**2)
+        
+        (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
+        
+        # Tangential panel velocity dmu/dl, first-order differencing
+        dmu_dl = np.empty(self.N)
+        dmu_dl[0] = (self.mu[0]-self.mu[1]) / (lpanel[0]/2 + lpanel[1]/2)
+        dmu_dl[1:-1] = (self.mu[:-2]-self.mu[2:]) / (lpanel[:-2]/2 + lpanel[1:-1] + lpanel[2:]/2)
+        dmu_dl[-1] = (self.mu[-2]-self.mu[-1]) / (lpanel[-2]/2 + lpanel[-1]/2)
+        
+        # Potential change dmu/dt, second-order differencing after first time step
+        if i == 1:
+            dmu_dt = (self.mu - self.mu_past[0,:])/DEL_T
+        else:
+            dmu_dt = (3*self.mu - 4*self.mu_past[0,:] + self.mu_past[1,:])/(2*DEL_T)
+        
+        # Unsteady pressure calculation (from Matlab code)
+        qpx_tot = dmu_dl*tx + self.sigma*nx
+        qpz_tot = dmu_dl*tz + self.sigma*nz
+        
+        self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
+        self.cp = self.p / (0.5*RHO*self.V0**2)
            
     def force(self, i):
         """Calculates drag and lift forces acting on the body.
@@ -319,13 +318,10 @@ class Body(object):
         Args:
             i: Time step number.
         """
-        if i == 0:
-            pass
-        else:
-            (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x, self.AF.z)
-                                  
-            Body.drag[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(tx,(self.N,1)))\
-                          + np.dot(self.p[i-1,:]*lpanel, np.reshape(-tz,(self.N,1)))
-    
-            self.lift[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(-nz,(self.N,1)))\
-                          + np.dot(self.p[i-1,:]*lpanel, np.reshape(nx,(self.N,1)))
+        (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x, self.AF.z)
+                              
+        Body.drag[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(tx,(self.N,1)))\
+                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(-tz,(self.N,1)))
+
+        self.lift[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(-nz,(self.N,1)))\
+                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(nx,(self.N,1)))

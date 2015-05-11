@@ -54,14 +54,10 @@ class Swimmer(object):
         Body = self.Body
         Edge = self.Edge
         
-        if i == 0:
-            pass
-        
-        else:
-            Edge.x[0] = Body.AF.x[0]
-            Edge.z[0] = Body.AF.z[0]
-            Edge.x[1] = Body.AF.x[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[0][0]*Body.V0*DEL_T
-            Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
+        Edge.x[0] = Body.AF.x[0]
+        Edge.z[0] = Body.AF.z[0]
+        Edge.x[1] = Body.AF.x[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[0][0]*Body.V0*DEL_T
+        Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
         
     def wake_shed(self, DEL_T, i):
         """Updates the positions of the Wake panels.
@@ -77,12 +73,8 @@ class Swimmer(object):
         Wake = self.Wake
         V0 = self.V0
         
-        # First timestep is before t==0 (geometry initialization timestep)
-        if i == 0:
-            pass
-        
         # Initialize wake coordinates when i==1
-        elif i == 1:
+        if i == 1:
             
             Wake.x[0] = Edge.x[-1]
             Wake.z[0] = Edge.z[-1]
@@ -116,33 +108,32 @@ class Swimmer(object):
         Edge = self.Edge
         Wake = self.Wake
         
-        if i > 0:
-            # Tangential and normal body panels and panel length calculations
-            (xp1,xp2,zp) = transformation(Body.AF.x_col,Body.AF.z_col,Body.AF.x,Body.AF.z)
+        # Tangential and normal body panels and panel length calculations
+        (xp1,xp2,zp) = transformation(Body.AF.x_col,Body.AF.z_col,Body.AF.x,Body.AF.z)
+    
+        # Body source singularities influencing the body
+        # Transpose so that row elements represent the effect on the (row number)th panel
+        Body.phi_s = np.transpose((xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) \
+                                  + 2*zp*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1)))/(4*np.pi))
         
-            # Body source singularities influencing the body
-            # Transpose so that row elements represent the effect on the (row number)th panel
-            Body.phi_s = np.transpose((xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) \
-                                      + 2*zp*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1)))/(4*np.pi))
-            
-            # Body doublet singularities influencing body itself
-            # Transpose similar to phi_s
-            Body.phi_db = np.transpose(-(np.arctan2(zp,xp2)\
-                                      - np.arctan2(zp,xp1))/(2*np.pi))
-            
-            # Edge doublet influencing the body
-            (xp1,xp2,zp) = transformation(Body.AF.x_col,Body.AF.z_col,Edge.x,Edge.z)
-            
-            if i > 1: # No wake panels until i==2
-                # Wake doublets influencing the body
-                (xp1_w,xp2_w,zp_w) = transformation(Body.AF.x_col,Body.AF.z_col,Wake.x[:i],Wake.z[:i])
-                # Join edge and wake doublet influences into a single matrix
-                xp1 = np.insert(xp1, Edge.N, xp1_w, axis=0)
-                xp2 = np.insert(xp2, Edge.N, xp2_w, axis=0)
-                zp = np.insert(zp, Edge.N, zp_w, axis=0)
+        # Body doublet singularities influencing body itself
+        # Transpose similar to phi_s
+        Body.phi_db = np.transpose(-(np.arctan2(zp,xp2)\
+                                  - np.arctan2(zp,xp1))/(2*np.pi))
         
-            Body.phi_dw = np.transpose(-(np.arctan2(zp,xp2) \
-                                       -np.arctan2(zp,xp1))/(2*np.pi))
+        # Edge doublet influencing the body
+        (xp1,xp2,zp) = transformation(Body.AF.x_col,Body.AF.z_col,Edge.x,Edge.z)
+        
+        if i > 0: # No wake panels until i==1
+            # Wake doublets influencing the body
+            (xp1_w,xp2_w,zp_w) = transformation(Body.AF.x_col,Body.AF.z_col,Wake.x[:i+1],Wake.z[:i+1])
+            # Join edge and wake doublet influences into a single matrix
+            xp1 = np.insert(xp1, Edge.N, xp1_w, axis=0)
+            xp2 = np.insert(xp2, Edge.N, xp2_w, axis=0)
+            zp = np.insert(zp, Edge.N, zp_w, axis=0)
+    
+        Body.phi_dw = np.transpose(-(np.arctan2(zp,xp2) \
+                                   -np.arctan2(zp,xp1))/(2*np.pi))
             
     def kutta(self, RHO, DEL_T, i):
         """Applies Kutta condition to the swimmer's trailing edge.
@@ -162,77 +153,74 @@ class Swimmer(object):
         Edge = self.Edge
         Wake = self.Wake
         
-        if i == 0:
-            pass
-        else:
-            n_iter = 0
-            mu_guess = np.empty(2) # [0] is current guess, [1] is previous
-            delta_cp = np.empty(2) # [0] is current delta_cp, [1] is previous
+        n_iter = 0
+        mu_guess = np.empty(2) # [0] is current guess, [1] is previous
+        delta_cp = np.empty(2) # [0] is current delta_cp, [1] is previous
+        
+        while True:
+            n_iter += 1
             
-            while True:
-                n_iter += 1
-                
-                if n_iter == 1:
-                    # Begin with explicit Kutta condition as first guess
-                    # Construct the augmented body matrix by combining body and trailing edge panel arrays
-                    c = np.zeros((Body.N,Body.N))
-                    c[:,0] = -Body.phi_dw[:,0] # c contains the explicit Kutta condition (first and last columns)
-                    c[:,-1] = Body.phi_dw[:,0]
-                    Body.phi_dinv = np.linalg.inv(Body.phi_db + c)
-                    # Get rhs
-                    if i == 1:
-                        rhs = -np.dot(Body.phi_s,Body.sigma)
-                    else:
-                        rhs = -np.dot(Body.phi_s,Body.sigma) - np.dot(Body.phi_dw[:,1:],Wake.mu[:i-1])
-                    # Solve for body doublet strengths using explicit Kutta
-                    Body.mu = np.dot(Body.phi_dinv,rhs)
-                    # First mu_guess (from explicit Kutta)
-                    mu_guess[0] = Body.mu[-1]-Body.mu[0]
-                    
+            if n_iter == 1:
+                # Begin with explicit Kutta condition as first guess
+                # Construct the augmented body matrix by combining body and trailing edge panel arrays
+                c = np.zeros((Body.N,Body.N))
+                c[:,0] = -Body.phi_dw[:,0] # c contains the explicit Kutta condition (first and last columns)
+                c[:,-1] = Body.phi_dw[:,0]
+                Body.phi_dinv = np.linalg.inv(Body.phi_db + c)
+                # Get rhs
+                if i == 1:
+                    rhs = -np.dot(Body.phi_s,Body.sigma)
                 else:
-                    if n_iter == 2: # Make a second initial guess
-                        # Update phi_dinv so it no longer includes explicit Kutta condition
-                        Body.phi_dinv = np.linalg.inv(Body.phi_db)
-                        
-                        mu_guess[1] = mu_guess[0]
-                        delta_cp[1] = delta_cp[0]
-                        mu_guess[0] = 0.8*mu_guess[1] # Multiply first (explicit) guess by arbitrary constant to get second guess
-                        
-                    else: # Newton method to get delta_cp == 0
-                        # Get slope, which is change in delta_cp divided by change in mu_guess
-                        slope = (delta_cp[0]-delta_cp[1])/(mu_guess[0]-mu_guess[1])
-                        mu_guess[1] = mu_guess[0]
-                        delta_cp[1] = delta_cp[0]
-                        mu_guess[0] = mu_guess[1] - delta_cp[0]/slope
-                    
-                    # Form right-hand side including mu_guess as an influence
-                    if i == 1:
-                        rhs = -np.dot(Body.phi_s,Body.sigma) - np.squeeze(np.dot(Body.phi_dw,mu_guess[0]))
-                    else:              
-                        rhs = -np.dot(Body.phi_s,Body.sigma) - np.dot(Body.phi_dw,np.insert(Wake.mu[:i-1],0,mu_guess[0]))
-                    
-                    Body.mu = np.dot(Body.phi_dinv,rhs)
-                    
+                    rhs = -np.dot(Body.phi_s,Body.sigma) - np.dot(Body.phi_dw[:,1:],Wake.mu[:i])
+                # Solve for body doublet strengths using explicit Kutta
+                Body.mu = np.dot(Body.phi_dinv,rhs)
+                # First mu_guess (from explicit Kutta)
+                mu_guess[0] = Body.mu[-1]-Body.mu[0]
                 
-                Body.pressure(RHO, DEL_T, i)
-                if SW_KUTTA == 0:
-                    break
-                delta_cp[0] = np.absolute(Body.cp[-1]-Body.cp[0])
-                if delta_cp[0] < 0.0001:
-                    break
-                        
-            # mu_past used in differencing for pressure
-            Body.mu_past[1,:] = Body.mu_past[0,:]
-            Body.mu_past[0,:] = Body.mu
+            else:
+                if n_iter == 2: # Make a second initial guess
+                    # Update phi_dinv so it no longer includes explicit Kutta condition
+                    Body.phi_dinv = np.linalg.inv(Body.phi_db)
+                    
+                    mu_guess[1] = mu_guess[0]
+                    delta_cp[1] = delta_cp[0]
+                    mu_guess[0] = 0.8*mu_guess[1] # Multiply first (explicit) guess by arbitrary constant to get second guess
+                    
+                else: # Newton method to get delta_cp == 0
+                    # Get slope, which is change in delta_cp divided by change in mu_guess
+                    slope = (delta_cp[0]-delta_cp[1])/(mu_guess[0]-mu_guess[1])
+                    mu_guess[1] = mu_guess[0]
+                    delta_cp[1] = delta_cp[0]
+                    mu_guess[0] = mu_guess[1] - delta_cp[0]/slope
+                
+                # Form right-hand side including mu_guess as an influence
+                if i == 1:
+                    rhs = -np.dot(Body.phi_s,Body.sigma) - np.squeeze(np.dot(Body.phi_dw,mu_guess[0]))
+                else:              
+                    rhs = -np.dot(Body.phi_s,Body.sigma) - np.dot(Body.phi_dw,np.insert(Wake.mu[:i],0,mu_guess[0]))
+                
+                Body.mu = np.dot(Body.phi_dinv,rhs)
+                
             
-            Edge.mu = mu_guess[0]
-            Edge.gamma[0] = -Edge.mu
-            Edge.gamma[1] = Edge.mu
-            
-            # Get gamma of body panels for use in wake rollup
-            Body.gamma[0] = -Body.mu[0]
-            Body.gamma[1:-1] = Body.mu[:-1]-Body.mu[1:]
-            Body.gamma[-1] = Body.mu[-1]
+            Body.pressure(RHO, DEL_T, i)
+            if SW_KUTTA == 0:
+                break
+            delta_cp[0] = np.absolute(Body.cp[-1]-Body.cp[0])
+            if delta_cp[0] < 0.0001:
+                break
+                    
+        # mu_past used in differencing for pressure
+        Body.mu_past[1,:] = Body.mu_past[0,:]
+        Body.mu_past[0,:] = Body.mu
+        
+        Edge.mu = mu_guess[0]
+        Edge.gamma[0] = -Edge.mu
+        Edge.gamma[1] = Edge.mu
+        
+        # Get gamma of body panels for use in wake rollup
+        Body.gamma[0] = -Body.mu[0]
+        Body.gamma[1:-1] = Body.mu[:-1]-Body.mu[1:]
+        Body.gamma[-1] = Body.mu[-1]
             
     def wake_rollup(self, DEL_T, i):
         """Performs wake rollup on a swimmer's wake panels.
@@ -252,18 +240,18 @@ class Swimmer(object):
         DELTA_CORE = self.DELTA_CORE
         
         # Wake panels initialize when i==2
-        if i < 2:
+        if i == 0:
             pass
         
         else:
             
-            NT = i-1 # Number of targets (wake panel points that are rolling up)
+            NT = i # Number of targets (wake panel points that are rolling up)
             
             vx = np.zeros(NT)
             vz = np.zeros(NT)
             
             # Coordinate transformation for body panels influencing wake
-            (xp1,xp2,zp) = transformation(Wake.x[1:i],Wake.z[1:i],Body.AF.x,Body.AF.z)
+            (xp1,xp2,zp) = transformation(Wake.x[1:i+1],Wake.z[1:i+1],Body.AF.x,Body.AF.z)
             
             # Angle of normal vector with respect to global z-axis
             (nx,nz) = panel_vectors(Body.AF.x,Body.AF.z)[2:4]
@@ -283,8 +271,8 @@ class Swimmer(object):
             
             # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
             NI = Body.N+1
-            xp = np.repeat(Wake.x[1:i,np.newaxis].T,NI,0) - np.repeat(Body.AF.x[:,np.newaxis],NT,1)
-            zp = np.repeat(Wake.z[1:i,np.newaxis].T,NI,0) - np.repeat(Body.AF.z[:,np.newaxis],NT,1)
+            xp = np.repeat(Wake.x[1:i+1,np.newaxis].T,NI,0) - np.repeat(Body.AF.x[:,np.newaxis],NT,1)
+            zp = np.repeat(Wake.z[1:i+1,np.newaxis].T,NI,0) - np.repeat(Body.AF.z[:,np.newaxis],NT,1)
             
             # Find distance r_b between each influence/target
             r_b = np.sqrt(xp**2+zp**2)
@@ -299,8 +287,8 @@ class Swimmer(object):
             
             # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
             NI = Edge.N+1
-            xp = np.repeat(Wake.x[1:i,np.newaxis].T,NI,0) - np.repeat(Edge.x[:,np.newaxis],NT,1)
-            zp = np.repeat(Wake.z[1:i,np.newaxis].T,NI,0) - np.repeat(Edge.z[:,np.newaxis],NT,1)
+            xp = np.repeat(Wake.x[1:i+1,np.newaxis].T,NI,0) - np.repeat(Edge.x[:,np.newaxis],NT,1)
+            zp = np.repeat(Wake.z[1:i+1,np.newaxis].T,NI,0) - np.repeat(Edge.z[:,np.newaxis],NT,1)
             
             # Find distance r_e between each influence/target
             r_e = np.sqrt(xp**2+zp**2)
@@ -314,9 +302,9 @@ class Swimmer(object):
             vz += np.dot(dummy2,Edge.gamma)
             
             # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
-            NI = i
-            xp = np.repeat(Wake.x[1:i,np.newaxis].T,NI,0) - np.repeat(Wake.x[:i,np.newaxis],NT,1)
-            zp = np.repeat(Wake.z[1:i,np.newaxis].T,NI,0) - np.repeat(Wake.z[:i,np.newaxis],NT,1)
+            NI = i+1
+            xp = np.repeat(Wake.x[1:i+1,np.newaxis].T,NI,0) - np.repeat(Wake.x[:i+1,np.newaxis],NT,1)
+            zp = np.repeat(Wake.z[1:i+1,np.newaxis].T,NI,0) - np.repeat(Wake.z[:i+1,np.newaxis],NT,1)
             
             # Find distance r_w between each influence/target
             r_w = np.sqrt(xp**2+zp**2)
@@ -326,9 +314,9 @@ class Swimmer(object):
             dummy2 = np.transpose(-xp/(2*np.pi*(r_w**2+DELTA_CORE**2)))
             
             # Finish eqns 10.9 and 10.10 by multiplying with Wake.gamma, add to induced velocity
-            vx += np.dot(dummy1,Wake.gamma[:i])
-            vz += np.dot(dummy2,Wake.gamma[:i])
+            vx += np.dot(dummy1,Wake.gamma[:i+1])
+            vz += np.dot(dummy2,Wake.gamma[:i+1])
             
             # Modify wake with the total induced velocity
-            Wake.x[1:i] += vx*DEL_T
-            Wake.z[1:i] += vz*DEL_T
+            Wake.x[1:i+1] += vx*DEL_T
+            Wake.z[1:i+1] += vz*DEL_T
