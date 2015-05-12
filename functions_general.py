@@ -27,10 +27,13 @@ def archive(array, axis=0):
         array: The array that will be manipulated.
         axis: The axis to shift values along (0==row-wise, 1==column-wise).
     """
-    if axis == 0:
-        array[1:,:] = array[:-1,:]
-    elif axis == 1:
-        array[:,1:] = array[:,:-1]
+    if len(np.shape(array)) == 1:
+        array[1:] = array[:-1]
+    elif len(np.shape(array)) == 2:
+        if axis == 0:
+            array[1:,:] = array[:-1,:]
+        else:
+            array[:,1:] = array[:,:-1]
 
 # Velocity and velocity potential equations are defined in panel coordinates so a transformation should be done
 # Each row of xp1/xp2/zp is an influence, and each column is a target

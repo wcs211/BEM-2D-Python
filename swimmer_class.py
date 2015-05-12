@@ -89,9 +89,9 @@ class Swimmer(object):
             Wake.z[1:] = Wake.z[0]
 
         else:
-            Wake.x[1:] = Wake.x[:-1]
-            Wake.z[1:] = Wake.z[:-1]
-            Wake.mu[1:] = Wake.mu[:-1]
+            archive(Wake.x)
+            archive(Wake.z)
+            archive(Wake.mu)
 
             Wake.x[0] = Edge.x[-1]
             Wake.z[0] = Edge.z[-1]

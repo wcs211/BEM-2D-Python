@@ -108,7 +108,7 @@ def main():
     print "Simulation time:", np.round(total_time, 3), "seconds"
 
     graph.body_wake_plot(Swimmers)
-#    graph.cp_plot(Swimmer1.Body)
+#    graph.cp_plot(S1.Body)
 
 if __name__ == '__main__':
     main()
