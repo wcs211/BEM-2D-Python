@@ -6,6 +6,7 @@ import parameter_classes as PC
 from functions_influence import quilt, wake_rollup
 from terminal_output import print_output as po
 import functions_graphics as graph
+from functions_general import archive
 from SolidClass import solid
 from PyFEA import PyFEA
 from FSIClass import FSI
@@ -14,7 +15,7 @@ def main():
 
     po().prog_title('1.0.0')
     start_time = time.time()
-    
+
     COUNTER = P['COUNTER']
     DEL_T = P['DEL_T']
     DSTEP = P['DSTEP']
@@ -32,32 +33,32 @@ def main():
     MotP3 = PC.MotionParameters(0., 2*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
     MotP4 = PC.MotionParameters(0., 3*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
     MotP5 = PC.MotionParameters(0., 4*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
-    
+
     S1 = Swimmer(SwiP, GeoP, MotP1, COUNTER-1)
     S2 = Swimmer(SwiP, GeoP, MotP2, COUNTER-1)
     S3 = Swimmer(SwiP, GeoP, MotP3, COUNTER-1)
     S4 = Swimmer(SwiP, GeoP, MotP4, COUNTER-1)
     S5 = Swimmer(SwiP, GeoP, MotP5, COUNTER-1)
     Swimmers = [S1]
-    
+
     Solid1 = solid(S1.Body, P['N_ELEMENTS_S'], 0.001)
     FSI1 = FSI(S1.Body, Solid1)
     PyFEA1 = PyFEA(Solid1, P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
-    
+
     po().calc_input(MotP1.THETA_MAX/np.pi*180.,RE,MotP1.THETA_MAX/np.pi*180.,DEL_T)
-    
-    Solid1.initMesh()  
+
+    Solid1.initMesh()
     Solid1.initThinPlate(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
-    
+
     # Data points per cycle == 1/(F*DEL_T)
     for i in xrange(COUNTER):
         if i == 0:
             po().initialize_output(T[i])
-        
+
         if np.fmod(i,P['VERBOSITY']) == 0:
             po().timestep_header(i,T[i])
             po().fsi_header()
-            
+
 #        FSI1.readFsiControls(P['FIXED_PT_RELAX'], P['N_OUTERCORR_MAX'])
 #        FSI1.__init__(S1.Body, Solid1)
         outerCorr = 0
@@ -70,18 +71,18 @@ def main():
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
-                
+
             quilt(Swimmers, RHO, DEL_T, i)
-            
-#            FSI1.setInterfaceForce(Solid1, S1.Body, PyFEA1, T[i], TSTEP, outerCorr, 
+
+#            FSI1.setInterfaceForce(Solid1, S1.Body, PyFEA1, T[i], TSTEP, outerCorr,
 #                          P['SWITCH_VISC_DRAG'], 0, P['SWITCH_INTERP_MTD'], P['C'], i)
 #            PyFEA1.solve(S1.Body, Solid1, outerCorr, T[i], TSTEP, P['M_TYPE'], P['INT_METHOD'], P['ALPHA'], P['BETA'], P['GAMMA'])
 #            FSI1.getDisplacements(Solid1, S1.Body, PyFEA1, T[i], TSTEP, P['SWITCH_INTERP_MTD'], P['FLEX_RATIO'])
 #            FSI1.calcFSIResidual(Solid1, outerCorr)
-            
+
 #            if np.fmod(i,P['VERBOSITY']) == 0:
-#                po().fsi_iter_out(outerCorr,FSI1.fsiRelaxationFactor,FSI1.maxDU,FSI1.maxMagFsiResidual,FSI1.fsiResidualNorm,FSI1.maxFsiResidualNorm) 
-#                
+#                po().fsi_iter_out(outerCorr,FSI1.fsiRelaxationFactor,FSI1.maxDU,FSI1.maxMagFsiResidual,FSI1.fsiResidualNorm,FSI1.maxFsiResidualNorm)
+#
 #           if (FSI1.fsiResidualNorm <= P['OUTER_CORR_TOL'] or outerCorr >= P['N_OUTERCORR_MAX']):
 #                if (FSI1.fsiResidualNorm <= P['OUTER_CORR_TOL']):
 #                    po().fsi_converged()
@@ -89,16 +90,20 @@ def main():
 #                    po().fsi_not_converged()
 #                if np.fmod(i,P['VERBOSITY']) == 0:
 #                    po().solution_output(0,0,0,0,0,0)
-#                    po().solution_complete_output(i/float(COUNTER-1)*100.) 
+#                    po().solution_complete_output(i/float(COUNTER-1)*100.)
             wake_rollup(Swimmers, DEL_T, i)
-             
+
+            for Swim in Swimmers:
+                archive(Swim.Body.AF.x_mid)
+                archive(Swim.Body.AF.z_mid)
+
 #            if np.fmod(i,10) == 0:
 #                po().timestep_header(i+1, T[i])
 #                po().solution_output(0,0,0,0,0,0)
 #                po().solution_complete_output(i/float(COUNTER-1)*100.)
-            
+
             break # TODO: remove this once FSI is ready
-    
+
     total_time = time.time()-start_time
     print "Simulation time:", np.round(total_time, 3), "seconds"
 
