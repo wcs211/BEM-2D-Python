@@ -152,22 +152,20 @@ class Body(object):
         C = GeoFPParameters.C
         D = GeoFPParameters.D
 
-
-
         # Stepping through each spanwise position to calculate the positions of the
         # fin neutral plane at the given time step.
         start = 0
         stop  = np.pi
         step  = (N+2)/2
         theta = np.linspace(start,stop,step)
-        xb = (C*np.cos(theta).T + C)/(2.*C)
+        xb = (C*np.cos(theta).T + C)/(2.)
 #        print xb
 
         start = np.pi
         stop  = 0
         step  = (N+2)/2
         theta = np.linspace(start,stop,step)
-        xt = (C*np.cos(theta).T + C)/(2.*C)
+        xt = (C*np.cos(theta).T + C)/(2.)
 #        print xt
 #        xb = np.linspace(c,0,(N+2)/2).T
 #        xt = np.linspace(0,c,(N+2)/2).T
@@ -220,6 +218,58 @@ class Body(object):
         zb_col = ((zb[1:] + zb[:-1])/2)
 
         BodyFrameCoordinates = PC.BodyBFC(xb, zb, xb_col, zb_col)
+
+        return Body(N, S, BodyFrameCoordinates, MotionParameters)
+
+    @classmethod
+    #Tear-drop geometry
+    def tear_drop(cls, GeoTDParameters, MotionParameters):
+        N = GeoTDParameters.N
+        S = GeoTDParameters.S
+        C = GeoTDParameters.C
+        D = GeoTDParameters.D
+
+        # Stepping through each spanwise position to calculate the positions of
+        # the fin neutral plane at the given time step.
+        xb = np.linspace(np.pi, 0., (N+2.)/2)
+        xt = np.linspace(0., np.pi, (N+2.)/2)
+
+        # Slopes and intersects for the line segments
+        m = -D/2/(C - D/2)
+        b = D/2 + D**2/4/(C - D/2)
+
+        # Tear drop shape equation.
+        x_c = 0.5 * (1 - np.cos(xb))
+        xb = x_c * C
+        xb1 = xb[xb <= D/2]
+        xb2 = xb[xb > D/2]
+
+        zb2 = -m * xb2 - b
+        zb1 = -np.sqrt((D/2)**2 - (xb1 - D/2)**2)
+        zb = np.hstack((zb2, zb1))
+
+        # Tear drop shape equation.
+        x_c = 0.5 * (1 - np.cos(xt))
+        xt = x_c * C
+        xt1 = xt[xt <= D/2]
+        xt2 = xt[xt > D/2]
+
+        zt1 = np.sqrt((D/2)**2 - (xt1 - D/2)**2)
+        zt2 = m * xt2 + b
+        zt = np.hstack((zt1, zt2))
+
+        zb[0] = 0
+        zt[0] = 0
+        zb[-1] = 0
+
+        # Merge top and bottom surfaces together
+        x = np.hstack((xb , xt[1:]))
+        z = np.hstack((zb , zt[1:]))
+
+        x_col = ((x[1:] + x[:-1])/2)
+        z_col = ((z[1:] + z[:-1])/2)
+
+        BodyFrameCoordinates = PC.BodyBFC(x, z, x_col, z_col)
 
         return Body(N, S, BodyFrameCoordinates, MotionParameters)
 

@@ -38,7 +38,7 @@ class print_output(object):
         
     def timestep_header(self,i_t,t):
         print '==============================================================================='
-        print ' TIME-STEP NUMBER = %i, FLOW TIME = %f' % (i_t-1,t)
+        print ' TIME-STEP NUMBER = %i, FLOW TIME = %f' % (i_t,t)
         print '-------------------------------------------------------------------------------'
         
     def fsi_header(self):

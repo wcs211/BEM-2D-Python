@@ -64,3 +64,13 @@ def transformation(xt,zt,xi,zi):
     xp2 = xp1 - np.repeat(dummy[:,np.newaxis],NT,1)
 
     return(xp1,xp2,zp)
+
+def absoluteToBody(Body, Solid, t, TSTEP):
+    """Transforms absolute reference frame to body reference frame"""
+    theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
+
+    Body.BF.x = (Body.AF.x - Body.AF.x_le) * np.cos(-1*theta) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*theta)
+    Body.BF.z = (Body.AF.z - Body.AF.z_le) * np.cos(-1*theta) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*theta)
+
+    Solid.nodesNew[:,0] = (Solid.nodes[:,0] - Body.AF.x_le) * np.cos(-1*theta) - (Solid.nodes[:,1] - Body.AF.z_le) * np.sin(-1*theta)
+    Solid.nodesNew[:,1] = (Solid.nodes[:,1] - Body.AF.z_le) * np.cos(-1*theta) + (Solid.nodes[:,0] - Body.AF.x_le) * np.sin(-1*theta)

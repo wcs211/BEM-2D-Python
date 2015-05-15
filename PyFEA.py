@@ -33,6 +33,8 @@ class PyFEA(object):
         self.U_nPlus = np.zeros((3*Solid.Nnodes,1))
         self.Udot_nPlus = np.zeros((3*Solid.Nnodes,1))
         self.UdotDot_nPlus = np.zeros((3*Solid.Nnodes,1))
+        self.initU = np.zeros((3*Solid.Nnodes,1))
+        self.initUdot = np.zeros((3*Solid.Nnodes,1))
         
     def elementStiffnessMatrix(self, E, I, A, l):
         """
@@ -119,7 +121,7 @@ class PyFEA(object):
                             [ 0,  0,  0, -S,  C,  0],
                             [ 0,  0,  0,  0,  0,  1]    ]                       
                        )             
-        l_e[:,3*element-2-1:5+3*element-2] = temp
+        l_e[:,3*element-2-1:5+3*element-2] = np.copy(temp)
         return l_e
         
     def HHT(self, alpha, beta, gamma, Fext_n, Fext_nPlus, fixedNodes):
@@ -226,7 +228,7 @@ class PyFEA(object):
         mType -- Type of Mass Matrix. must be 'consistent' or 'lumped'
         """
         # Determine current pitching angle
-        theta = Body.THETA_MAX * np.sin(2 * np.pi * Body.F * (t + TSTEP) + Body.PHI)  
+        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
         
         # Reset mass and stiffness matrix to include all nodes
         self.M.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
@@ -258,19 +260,18 @@ class PyFEA(object):
         self.K = np.delete(self.K, np.s_[0:temp],0)
         self.K = np.delete(self.K, np.s_[0:temp],1)
         self.Fload = np.delete(self.Fload, np.s_[0:temp])
-        if (outerCorr <= 1):
-            self.U_n = np.delete(self.U_n, np.s_[0:temp])
-            self.Udot_n = np.delete(self.Udot_n, np.s_[0:temp])
-            self.UdotDot_n = np.delete(self.Udot_n, np.s_[0:temp])
+        self.U_n = np.delete(self.U_n, np.s_[0:temp])
+        self.Udot_n = np.delete(self.Udot_n, np.s_[0:temp])
+        self.UdotDot_n = np.delete(self.Udot_n, np.s_[0:temp])
         
         # Solve for the initial acceleration matrix
-        Fext_n = self.Fload
+        Fext_n = np.copy(self.Fload)
         self.UdotDot_n = np.linalg.solve(self.M, Fext_n)
         
         # March through time until the total simulated time has elapsed
         j = np.size(np.s_[self.deltaT:self.endTime:self.deltaT])
         for i in xrange(j):
-            Fext_nPlus = Fext_n
+            Fext_nPlus = np.copy(Fext_n)
             if (method == 'HHT'):
                 self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter)
             elif (method == 'NEWMARK'):
@@ -285,6 +286,6 @@ class PyFEA(object):
                 print '    NEWMARK'
                 print '    TRAPEZOIDAL'
             if (i != j):
-                self.U_n = self.U_nPlus
-                self.Udot_n = self.Udot_nPlus
-                self.UdotDot_n = self.UdotDot_nPlus
+                self.U_n = np.copy(self.U_nPlus)
+                self.Udot_n = np.copy(self.Udot_nPlus)
+                self.UdotDot_n = np.copy(self.UdotDot_nPlus)

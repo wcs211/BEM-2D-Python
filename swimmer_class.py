@@ -39,6 +39,9 @@ class Swimmer(object):
         if GeoParameters.SW_GEOMETRY == 'FP':
             self.Body = Body.flat_plate(GeoParameters, MotionParameters)
 
+        if GeoParameters.SW_GEOMETRY == 'TD':
+            self.Body = Body.tear_drop(GeoParameters, MotionParameters)
+
         self.Edge = Edge(self.CE)
         self.Wake = Wake(N_WAKE)
 

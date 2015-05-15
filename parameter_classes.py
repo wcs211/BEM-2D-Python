@@ -42,10 +42,27 @@ class GeoFPParameters(object):
         N: Number of body panels.
         S: Collocation point shifting coefficient.
         C: Body chord length.
-        K, EPSILON: Van de Vooren airfoil parameters.
+        D: Diameter of leading and trailing edge circles.
     """
     def __init__(self, N, S, C, D):
         self.SW_GEOMETRY = 'FP'
+        self.N = N
+        self.S = S
+        self.C = C
+        self.D = D
+        
+class GeoTDParameters(object):
+    """A collection of parameters related to a body geometry.
+    
+    Attributes:
+        SW_GEOMETRY: String describing the geometry type (used as a switch).
+        N: Number of body panels.
+        S: Collocation point shifting coefficient.
+        C: Body chord length.
+        D: Diameter of leading edge circle.
+    """
+    def __init__(self, N, S, C, D):
+        self.SW_GEOMETRY = 'TD'
         self.N = N
         self.S = S
         self.C = C
