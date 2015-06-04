@@ -392,7 +392,7 @@ class Body(object):
             # Velocity calculations on the surface panel midpoints
             self.vx = (xctp - xctm)/(2*TSTEP)
             self.vz = (zctp - zctm)/(2*TSTEP)
-
+#        else:
         elif i == 1:
             # First-order backwards differencing of body collocation point positions
             self.vx = (self.AF.x_mid[0,:]-self.AF.x_mid[1,:])/DEL_T - self.V0

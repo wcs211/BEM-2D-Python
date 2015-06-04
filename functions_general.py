@@ -71,6 +71,8 @@ def absoluteToBody(Body, Solid, t, TSTEP):
 
     Body.BF.x = (Body.AF.x - Body.AF.x_le) * np.cos(-1*theta) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*theta)
     Body.BF.z = (Body.AF.z - Body.AF.z_le) * np.cos(-1*theta) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*theta)
+    Body.BF.x_col = ((Body.BF.x[1:] + Body.BF.x[:-1])/2)
+    Body.BF.z_col = ((Body.BF.z[1:] + Body.BF.z[:-1])/2)
 
     Solid.nodesNew[:,0] = (Solid.nodes[:,0] - Body.AF.x_le) * np.cos(-1*theta) - (Solid.nodes[:,1] - Body.AF.z_le) * np.sin(-1*theta)
     Solid.nodesNew[:,1] = (Solid.nodes[:,1] - Body.AF.z_le) * np.cos(-1*theta) + (Solid.nodes[:,0] - Body.AF.x_le) * np.sin(-1*theta)

@@ -141,11 +141,9 @@ class PyFEA(object):
         """
         
         # Form the 'A' matrix
-        A = np.zeros(self.Nelements - 3 * fixedNodes)
         A = (self.M + beta * self.deltaT**2 * (1 - alpha) * self.K) / (beta * self.deltaT**2)
         
         # Form the 'B' matrix
-        B = np.zeros((self.Nelements - 3 * fixedNodes, 1))
         B = (1 - alpha) * Fext_nPlus + 1 / (beta * self.deltaT**2) * \
             np.dot(self.M, self.U_n + self.deltaT * self.Udot_n + self.deltaT**2 * \
             (0.5 - beta) * self.UdotDot_n) + \
@@ -175,11 +173,9 @@ class PyFEA(object):
         """
         
         # Form the 'A' matrix
-        A = np.zeros(self.Nelements - 3 * fixedNodes)
         A = (self.M + beta * self.deltaT**2 * self.K) / (beta * self.deltaT**2)
         
         # Form the 'B' matrix
-        B = np.zeros((self.Nelements - 3 * fixedNodes, 1))
         B = Fext_nPlus + 1 / (beta * self.deltaT**2) * self.M * (self.U_n + \
             self.deltaT * self.Udot_n + \
             self.deltaT**2 * (0.5 - beta) * self.UdotDot_n)
@@ -203,11 +199,9 @@ class PyFEA(object):
         """
         
         # Form the 'A' matrix
-        A = np.zeros(self.Nelements - 3 * fixedNodes)
         A = (self.K + (2 / self.deltaT)**2 * self.M)
         
         # Form the 'B' matrix
-        B = np.zeros((self.Nelements - 3 * fixedNodes, 1))
         B = (Fext_nPlus + self.M * ((2 / self.deltaT)**2 * self.U_n + \
             (4 / self.deltaT) * self.Udot_n + self.UdotDot_n))
             
@@ -231,10 +225,15 @@ class PyFEA(object):
         theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
         
         # Reset mass and stiffness matrix to include all nodes
-        self.M.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
-        self.K.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
+        np.resize(self.M, (3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
+        np.resize(self.K, (3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))        
         np.resize(self.UdotDot_n, (3 * (Solid.Nnodes), 1))
+#        self.M.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
+#        self.K.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
 #        self.UdotDot_n.resize((3 * (Solid.Nnodes), 1))  
+        self.M = 0
+        self.K = 0
+        self.UdotDot_n = 0
         
         # Assemble global mass and stiffness matricies
         for i in xrange(self.Nelements):
@@ -254,22 +253,25 @@ class PyFEA(object):
             
         # Set the zero displacement constraints
         temp = 3 * Solid.fixedCounter
+        self.M = np.delete(self.M, np.arange(0,temp),0)
+        self.M = np.delete(self.M, np.arange(0,temp),1)
+        self.K = np.delete(self.K, np.arange(0,temp),0)
+        self.K = np.delete(self.K, np.arange(0,temp),1)
+        self.Fload = np.delete(self.Fload, np.arange(0,temp))
+        self.U_n = np.delete(self.U_n, np.arange(0,temp))
+        self.Udot_n = np.delete(self.Udot_n, np.arange(0,temp))
+        self.UdotDot_n = np.delete(self.Udot_n, np.arange(0,temp))
+#        self.U_nPlus = np.delete(self.U_nPlus, np.arange(0,temp))
+#        self.Udot_nPlus = np.delete(self.Udot_nPlus, np.arange(0,temp))
+#        self.UdotDot_nPlus = np.delete(self.Udot_nPlus, np.arange(0,temp))
 
-        self.M = np.delete(self.M, np.s_[0:temp],0)
-        self.M = np.delete(self.M, np.s_[0:temp],1)
-        self.K = np.delete(self.K, np.s_[0:temp],0)
-        self.K = np.delete(self.K, np.s_[0:temp],1)
-        self.Fload = np.delete(self.Fload, np.s_[0:temp])
-        self.U_n = np.delete(self.U_n, np.s_[0:temp])
-        self.Udot_n = np.delete(self.Udot_n, np.s_[0:temp])
-        self.UdotDot_n = np.delete(self.Udot_n, np.s_[0:temp])
-        
         # Solve for the initial acceleration matrix
         Fext_n = np.copy(self.Fload)
         self.UdotDot_n = np.linalg.solve(self.M, Fext_n)
         
         # March through time until the total simulated time has elapsed
-        j = np.size(np.s_[self.deltaT:self.endTime:self.deltaT])
+        j = np.size(np.arange(self.deltaT,self.endTime+self.deltaT,self.deltaT))-1
+#        j = np.size(np.s_[self.deltaT:self.endTime:self.deltaT])
         for i in xrange(j):
             Fext_nPlus = np.copy(Fext_n)
             if (method == 'HHT'):

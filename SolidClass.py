@@ -82,6 +82,10 @@ class solid(object):
                 self.beamCounter += 1
                 self.fixedCounter += 1
             else:
+                m = -0.5*tmax*(c - 0.5*tmax)
+                b = c*0.5*tmax / (c - 0.5*tmax)
+#                b = 0.5*tmax + 0.5*tmax**2 / (c - 0.5*tmax)
+#                self.ttemp[i,0] = 2*(m * self.nodes[i,0] + b)
                 self.ttemp[i,0] = -tmax / (c - 0.5*tmax) * self.nodes[i,0] + tmax / (c - 0.5*tmax) * c
                 self.tBeam[i-1,0] = 0.5 * (self.ttemp[i,0] + self.ttemp[i-1,0])
                 self.tBeamStruct[i-1,0] = np.copy(self.tBeam[i-1,0])
