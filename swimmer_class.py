@@ -20,9 +20,10 @@ class Swimmer(object):
             wake panels.
         SW_GEOMETRY: Switch for Body geometry type (currently VDV only).
         SW_KUTTA: Switch for Kutta condition (explicit or unsteady).
+        SW_WAKE: Switch for wake type (doublet sheets or vortex particles).
         V0: Free-stream velocity.
     """
-    def __init__(self, SwimmerParameters, GeoParameters, MotionParameters, N_WAKE):
+    def __init__(self, SwimmerParameters, GeoParameters, MotionParameters, COUNTER):
         """Inits Swimmer with all necessary parameters.
 
         This is also where Body, Edge, and Wake are created.
@@ -32,6 +33,7 @@ class Swimmer(object):
         self.CE = SwimmerParameters.CE
         self.DELTA_CORE = SwimmerParameters.DELTA_CORE
         self.SW_KUTTA = SwimmerParameters.SW_KUTTA
+        self.SW_WAKE = SwimmerParameters.SW_WAKE
 
         if GeoParameters.SW_GEOMETRY == 'VDV':
             self.Body = Body.from_van_de_vooren(GeoParameters, MotionParameters)
@@ -42,10 +44,10 @@ class Swimmer(object):
         if GeoParameters.SW_GEOMETRY == 'TD':
             self.Body = Body.tear_drop(GeoParameters, MotionParameters)
 
-        self.Edge = Edge(self.CE)
-        self.Wake = Wake(N_WAKE)
+        self.Edge = Edge(self.CE, self.SW_WAKE)
+        self.Wake = Wake(COUNTER, self.SW_WAKE)
 
-    def edge_shed(self, DEL_T, i):
+    def edge_shed(self, SW_WAKE, DEL_T, i):
         """Updates the position of the Edge panel.
 
         This should only be done once each time step for a swimmer.
@@ -61,12 +63,19 @@ class Swimmer(object):
         Body = self.Body
         Edge = self.Edge
 
+        tx = panel_vectors(Body.AF.x_neut, Body.AF.z_neut)[0][0]
+        tz = panel_vectors(Body.AF.x_neut, Body.AF.z_neut)[1][0]
+
         Edge.x[0] = Body.AF.x[0]
         Edge.z[0] = Body.AF.z[0]
-        Edge.x[1] = Body.AF.x[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[0][0]*Body.V0*DEL_T
-        Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
+        Edge.x[1] = Edge.x[0] + Edge.CE*tx*Body.V0*DEL_T
+        Edge.z[1] = Edge.z[0] + Edge.CE*tz*Body.V0*DEL_T
 
-    def wake_shed(self, DEL_T, i):
+        if SW_WAKE == 1:
+            Edge.x[2] = Edge.x[1] + tx*Body.V0*DEL_T
+            Edge.z[2] = Edge.z[1] + tz*Body.V0*DEL_T
+
+    def wake_shed(self, SW_WAKE, DEL_T, i):
         """Updates the positions of the Wake panels.
 
         This should only be done once each time step for a swimmer.
@@ -82,27 +91,52 @@ class Swimmer(object):
         Wake = self.Wake
         V0 = self.V0
 
-        # Initialize wake coordinates when i==1
-        if i == 1:
+        if i == 0:
+            pass
+        elif SW_WAKE == 0:
+            if i == 1:
+                # Initialize wake coordinates
+                Wake.x[0] = Edge.x[-1]
+                Wake.z[0] = Edge.z[-1]
 
-            Wake.x[0] = Edge.x[-1]
-            Wake.z[0] = Edge.z[-1]
+                Wake.x[1:] = Wake.x[0] + np.arange(1,np.size(Wake.x))*(-V0)*DEL_T
+                Wake.z[1:] = Wake.z[0]
 
-            Wake.x[1:] = Wake.x[0] + np.arange(1,np.size(Wake.x))*(-V0)*DEL_T
-            Wake.z[1:] = Wake.z[0]
+            elif i > 1:
+                archive(Wake.x)
+                archive(Wake.z)
+                archive(Wake.mu)
 
-        else:
-            archive(Wake.x)
-            archive(Wake.z)
-            archive(Wake.mu)
+                Wake.x[0] = Edge.x[-1]
+                Wake.z[0] = Edge.z[-1]
+                Wake.mu[0] = Edge.mu
 
-            Wake.x[0] = Edge.x[-1]
-            Wake.z[0] = Edge.z[-1]
-            Wake.mu[0] = Edge.mu
+                Wake.gamma[0] = -Wake.mu[0]
+                Wake.gamma[1:-1] = Wake.mu[:-1]-Wake.mu[1:]
+                Wake.gamma[-1] = Wake.mu[-1]
 
-            Wake.gamma[0] = -Wake.mu[0]
-            Wake.gamma[1:-1] = Wake.mu[:-1]-Wake.mu[1:]
-            Wake.gamma[-1] = Wake.mu[-1]
+        elif SW_WAKE == 1:
+            if i == 1:
+                pass
+            elif i == 2:
+                # Initialize wake coordinates
+                Wake.x[0] = Edge.x[-1] + 0.5*(-V0)*DEL_T
+                Wake.z[0] = Edge.z[-1]
+
+                Wake.x[1:] = Wake.x[0] + np.arange(1,np.size(Wake.x))*(-V0)*DEL_T
+                Wake.z[1:] = Wake.z[0]
+            elif i > 2:
+                archive(Wake.x)
+                archive(Wake.z)
+                archive(Wake.alpha)
+
+                tx = panel_vectors(Edge.x, Edge.z)[0][0]
+                tz = panel_vectors(Edge.x, Edge.z)[1][0]
+
+                Wake.x[0] = Edge.x[-1] + 0.5*tx*V0*DEL_T
+                Wake.z[0] = Edge.z[-1] + 0.5*tz*V0*DEL_T
+
+                Wake.alpha[0] = Edge.mu[1] - Edge.mu[0]
 
 #    def influence_matrices(self, i):
 #        """Constructs the influence coefficient matrices.

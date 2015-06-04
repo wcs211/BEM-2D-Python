@@ -1,7 +1,7 @@
 import numpy as np
 
 # Constants that determine other parameters and don't actually need lookup
-RF = 2*np.pi # Reduced frequency
+RF = np.pi # Reduced frequency
 MU = 0.001003
 
 P = PARAMETERS = {
@@ -11,7 +11,7 @@ P = PARAMETERS = {
 #, 'DEL_T':          1/0.7104278595/200
 , 'DSTEP':          10**-5
 , 'TSTEP':          10**-5
-, 'VERBOSITY':      1
+, 'VERBOSITY':      20
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -22,7 +22,7 @@ P = PARAMETERS = {
 , 'K':              2.-(12.4/180)
 , 'EPSILON':        0.075
 , 'V0':             -1.0
-, 'THETA_MAX':      1.0*np.pi/180
+, 'THETA_MAX':      5.73*np.pi/180
 #, 'THETA_MAX':      5.73*np.pi/180
 , 'F':              RF/(2*np.pi)
 #, 'F':              0.7104278595
@@ -30,11 +30,12 @@ P = PARAMETERS = {
 , 'T_MAX':          0.002
 
 , 'CE':             0.4
-, 'S':              0.01
+, 'S':              0.1
 , 'RHO':            998.2
 
 , 'SW_GEOMETRY':    'FP'
 , 'SW_KUTTA':       0
+, 'SW_WAKE':        0
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Skin Friction Solver Constants                                              #

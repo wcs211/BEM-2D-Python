@@ -15,14 +15,18 @@ class Edge(object):
         mu: Doublet strength of the edge panel.
         gamma: Circulation at the edge panel endpoints.
     """
-    def __init__(self, CE):
+    def __init__(self, CE, SW_WAKE):
         """Inits Edge with all necessary parameters."""
-        self.N = 1
+        if SW_WAKE == 0:
+            self.N = 1
+        elif SW_WAKE == 1:
+            self.N = 2
+        self.mu = np.zeros(self.N)
+        self.gamma = np.zeros(self.N+1)
         self.CE = CE
         self.x = np.zeros(self.N+1)
         self.z = np.zeros(self.N+1)
-        self.mu = np.zeros(self.N)
-        self.gamma = np.zeros(self.N+1)
+
 
 class Wake(object):
     """A chain of wake doublet panels.
@@ -33,13 +37,19 @@ class Wake(object):
         mu: Doublet strengths of the wake panels.
         gamma: Circulations at the wake panel endpoints.
     """
-    def __init__(self, N):
+    def __init__(self, COUNTER, SW_WAKE):
         """Inits Wake with all necessary parameters."""
-        self.N = N
-        self.x = np.zeros(N+1)
-        self.z = np.zeros(N+1)
-        self.mu = np.zeros(N)
-        self.gamma = np.zeros(N+1)
+        if SW_WAKE == 0:
+            self.N = COUNTER-1
+            self.x = np.zeros(self.N+1)
+            self.z = np.zeros(self.N+1)
+            self.mu = np.zeros(self.N)
+            self.gamma = np.zeros(self.N+1)
+        elif SW_WAKE == 1:
+            self.N = COUNTER-2
+            self.x = np.zeros(self.N)
+            self.z = np.zeros(self.N)
+            self.alpha = np.zeros(self.N)
 
 class Body(object):
     """An arrangement of source/doublet panels in the shape of a swimming body.
@@ -358,9 +368,6 @@ class Body(object):
     def surface_kinematics(self, DSTEP, TSTEP, DEL_T, T, i):
         """Calculates the body-frame surface velocities of body panels.
 
-        Also finds the body panel source strengths based on these surface
-        velocities.
-
         Args:
             DSTEP, TSTEP: Incremental distance/time passed into neutral_axis().
             DEL_T: Time step length.
@@ -403,9 +410,17 @@ class Body(object):
             self.vx = (3*self.AF.x_mid[0,:]-4*self.AF.x_mid[1,:]+self.AF.x_mid[2,:])/(2*DEL_T) - self.V0
             self.vz = (3*self.AF.z_mid[0,:]-4*self.AF.z_mid[1,:]+self.AF.z_mid[2,:])/(2*DEL_T)
 
-        # Body source strengths with normal vector pointing outward (overall sigma pointing outward)
+    def calc_sigma(self, SW_WAKE, u_psi):
+        """Finds the body panel source strengths.
+
+        Args:
+            u_psi: Vorticity-induced velocity.
+        """
         (nx,nz) = panel_vectors(self.AF.x,self.AF.z)[2:4]
         self.sigma = nx*(self.V0 + self.vx) + nz*self.vz
+
+        if SW_WAKE == 1:
+            self.sigma -= nx*u_psi[:,0] + nz*u_psi[:,1]
 
     def pressure(self, RHO, DEL_T, i):
         """Calculates the pressure distribution along the body's surface.
@@ -415,7 +430,6 @@ class Body(object):
             DEL_T: Time step length.
             i: Time step number.
         """
-
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
 
         # Tangential panel velocity dmu/dl, first-order differencing
