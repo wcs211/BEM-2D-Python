@@ -39,17 +39,41 @@ class Wake(object):
     """
     def __init__(self, COUNTER, SW_WAKE):
         """Inits Wake with all necessary parameters."""
-        if SW_WAKE == 0:
+        self.SW_WAKE = SW_WAKE
+        if self.SW_WAKE == 0:
             self.N = COUNTER-1
             self.x = np.zeros(self.N+1)
             self.z = np.zeros(self.N+1)
             self.mu = np.zeros(self.N)
             self.gamma = np.zeros(self.N+1)
-        elif SW_WAKE == 1:
+        elif self.SW_WAKE == 1:
             self.N = COUNTER-2
             self.x = np.zeros(self.N)
             self.z = np.zeros(self.N)
             self.alpha = np.zeros(self.N)
+
+    def get_relevant(self, i):
+        """Gets the current number of influential wake panels/particles.
+
+        Also gets the index of the first wake panel endpoint/vortex particle
+        that is subject to induced velocities (rollup).
+
+        All of the wake panels/particles are initialized with zero strength in
+        the first/second time step. The only wake panels/particles that have
+        nonzero strength are those that have been shed so far. The number of
+        relevant wake panels/particles are simply based on time step number.
+
+        Args:
+            i: Time step number.
+
+        Returns:
+            Number of influential (relevant) wake panels/particles.
+            Index of the first element subject to rollup.
+        """
+        if self.SW_WAKE == 0:
+            return (i, 1)
+        elif self.SW_WAKE == 1:
+            return (i-1, 0)
 
 class Body(object):
     """An arrangement of source/doublet panels in the shape of a swimming body.

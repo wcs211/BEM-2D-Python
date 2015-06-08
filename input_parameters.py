@@ -35,7 +35,7 @@ P = PARAMETERS = {
 
 , 'SW_GEOMETRY':    'FP'
 , 'SW_KUTTA':       0
-, 'SW_WAKE':        0
+, 'SW_WAKE':        1
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Skin Friction Solver Constants                                              #
