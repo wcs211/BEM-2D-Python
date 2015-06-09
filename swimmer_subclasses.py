@@ -114,6 +114,8 @@ class Body(object):
         self.vx = np.zeros(N)
         self.vz = np.zeros(N)
 
+        self.u_psi = np.zeros((N,2))
+
         self.sigma = np.zeros(N)
         self.phi_s = np.zeros((N,N))
         self.phi_db = np.zeros((N,N))

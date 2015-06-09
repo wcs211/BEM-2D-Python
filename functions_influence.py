@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Module for flow field functions that include all swimmers."""
 import numpy as np
-from functions_general import panel_vectors, transformation
+from functions_general import panel_vectors, transformation, archive
 
 def quilt(Swimmers, RHO, DEL_T, i):
     """Constructs the influence coefficient matrices and solves using Kutta condition.
@@ -114,9 +114,12 @@ def quilt(Swimmers, RHO, DEL_T, i):
         Swim.Body.mu_past[1,:] = Swim.Body.mu_past[0,:]
         Swim.Body.mu_past[0,:] = Swim.Body.mu
 
-        Swim.Edge.mu = Swim.mu_guess[0]
-        Swim.Edge.gamma[0] = -Swim.Edge.mu
-        Swim.Edge.gamma[1] = Swim.Edge.mu
+        archive(Swim.Edge.mu)
+        Swim.Edge.mu[0] = Swim.mu_guess[0]
+        Swim.Wake.alpha[0] = Swim.Edge.mu[1] - Swim.Edge.mu[0]
+
+        Swim.Edge.gamma[0] = -Swim.Edge.mu[0]
+        Swim.Edge.gamma[1] = Swim.Edge.mu[0]
 
         # Get gamma of body panels for use in wake rollup
         Swim.Body.gamma[0] = -Swim.Body.mu[0]
@@ -211,13 +214,43 @@ def wake_rollup(Swimmers, DEL_T, i):
                 dummy2 = np.transpose(-xp/(2*np.pi*(r_w**2+DELTA_CORE**2)))
 
                 # Finish eqns 10.9 and 10.10 by multiplying with Wake.gamma, add to induced velocity
-                SwimT.Wake.vx += np.dot(dummy1, SwimI.Wake.gamma[:NI])
-                SwimT.Wake.vz += np.dot(dummy2, SwimI.Wake.gamma[:NI])
+                if SwimI.Wake.SW_WAKE == 0:
+                    SwimT.Wake.vx += np.dot(dummy1, SwimI.Wake.gamma[:NI])
+                    SwimT.Wake.vz += np.dot(dummy2, SwimI.Wake.gamma[:NI])
+                elif SwimI.Wake.SW_WAKE == 1:
+                    SwimT.Wake.vx += np.dot(dummy1, SwimI.Wake.alpha[:NI])
+                    SwimT.Wake.vz += np.dot(dummy2, SwimI.Wake.alpha[:NI])
 
         for Swim in Swimmers:
             # Modify wake with the total induced velocity
             Swim.Wake.x[i_0:i_n] += Swim.Wake.vx*DEL_T
             Swim.Wake.z[i_0:i_n] += Swim.Wake.vz*DEL_T
+
+def u_psi(Swimmers, i):
+    """Computes the velocity on body panels induced by wake particles."""
+    if i <= 1:
+        pass
+    else:
+        for SwimT in Swimmers:
+            NT = SwimT.Body.N
+            SwimT.Body.u_psi = np.zeros((SwimT.Body.N,2))
+            for SwimI in Swimmers:
+                DELTA_CORE = SwimI.DELTA_CORE
+                NI = SwimI.Wake.get_relevant(i)[0]
+
+                xp = np.repeat(SwimT.Body.AF.x_col[:,np.newaxis].T, NI, 0) - np.repeat(SwimI.Wake.x[:NI,np.newaxis], NT, 1)
+                zp = np.repeat(SwimT.Body.AF.z_col[:,np.newaxis].T, NI, 0) - np.repeat(SwimI.Wake.z[:NI,np.newaxis], NT, 1)
+
+                # Find distance r_w between each influence/target
+                r_w = np.sqrt(xp**2+zp**2)
+
+                # Katz-Plotkin eqns 10.9 and 10.10 for wake (as point vortices) influence
+                dummy1 = np.transpose(zp/(2*np.pi*(r_w**2+DELTA_CORE**2)))
+                dummy2 = np.transpose(-xp/(2*np.pi*(r_w**2+DELTA_CORE**2)))
+
+                # Finish eqns 10.9 and 10.10 by multiplying with Wake.gamma, add to induced velocity
+                SwimT.Body.u_psi[:,0] += np.dot(dummy1, SwimI.Wake.alpha[:NI])
+                SwimT.Body.u_psi[:,1] += np.dot(dummy2, SwimI.Wake.alpha[:NI])
 
 def oquilt(Swimmers, RHO, DEL_T, i):
     """Constructs the influence coefficient matrices and solves using Kutta condition.

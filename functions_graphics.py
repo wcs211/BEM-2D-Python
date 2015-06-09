@@ -16,7 +16,7 @@ def basic_xy(x,y,color='b'):
     plt.plot(x, y, color)
     n_fig += 1
 
-def body_wake_plot(Swimmers, SW_WAKE):
+def body_wake_plot(Swimmers):
 
     global n_fig
     figure = plt.figure(n_fig)
@@ -28,11 +28,11 @@ def body_wake_plot(Swimmers, SW_WAKE):
     # Gather circulations of all swimmers into a color array
     color = []
     for Swim in Swimmers:
-        if SW_WAKE == 0:
+        if Swim.SW_WAKE == 0:
             Swim.n_color = len(Swim.Wake.gamma[1:-1])
             color = np.append(color, Swim.Wake.gamma[1:-1])
             Swim.i_color = len(color)-Swim.n_color
-        elif SW_WAKE == 1:
+        elif Swim.SW_WAKE == 1:
             Swim.n_color = len(Swim.Wake.alpha[:])
             color = np.append(color, Swim.Wake.alpha[:])
             Swim.i_color = len(color)-Swim.n_color
@@ -54,9 +54,14 @@ def body_wake_plot(Swimmers, SW_WAKE):
         # Extract color map for the individual Swim
         c = color[Swim.i_color:Swim.i_color+Swim.n_color]
         # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
-        plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
+        if Swim.SW_WAKE == 0:
+            plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
+        elif Swim.SW_WAKE == 1:
+            plt.scatter(Swim.Wake.x[:], Swim.Wake.z[:], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
         plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
-        plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
+        plt.plot(Swim.Edge.x[:2], Swim.Edge.z[:2], 'g')
+        if Swim.SW_WAKE == 1:
+            plt.plot(Swim.Edge.x[1:], Swim.Edge.z[1:], 'b.-')
 
     n_fig += 1
 

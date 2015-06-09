@@ -72,6 +72,7 @@ class Swimmer(object):
         Edge.z[1] = Edge.z[0] + Edge.CE*tz*Body.V0*DEL_T
 
         if SW_WAKE == 1:
+            archive(Edge.mu)
             Edge.x[2] = Edge.x[1] + tx*Body.V0*DEL_T
             Edge.z[2] = Edge.z[1] + tz*Body.V0*DEL_T
 
@@ -133,7 +134,5 @@ class Swimmer(object):
                 tx = panel_vectors(Edge.x, Edge.z)[0][0]
                 tz = panel_vectors(Edge.x, Edge.z)[1][0]
 
-                Wake.x[0] = Edge.x[-1] + 0.5*tx*V0*DEL_T
-                Wake.z[0] = Edge.z[-1] + 0.5*tz*V0*DEL_T
-
-                Wake.alpha[0] = Edge.mu[1] - Edge.mu[0]
+                Wake.x[0] = Edge.x[-1] + 0.5*tx*(-V0)*DEL_T
+                Wake.z[0] = Edge.z[-1] + 0.5*tz*(-V0)*DEL_T

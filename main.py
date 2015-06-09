@@ -3,7 +3,7 @@ import numpy as np
 from input_parameters import PARAMETERS as P
 from swimmer_class import Swimmer
 import parameter_classes as PC
-from functions_influence import quilt, wake_rollup
+from functions_influence import quilt, wake_rollup, u_psi
 from terminal_output import print_output as po
 import functions_graphics as graph
 from SolidClass import solid
@@ -137,11 +137,10 @@ def main():
                 for Swim in Swimmers:
                         Swim.Body.panel_positions(DSTEP, T[i])
                         Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
-                        Swim.Body.calc_sigma(Swim.SW_WAKE, np.zeros((Swim.Body.N,2)))#TODO:
+                        Swim.Body.calc_sigma(Swim.SW_WAKE, Swim.Body.u_psi)
                         Swim.edge_shed(Swim.SW_WAKE, DEL_T, i)
                         Swim.wake_shed(Swim.SW_WAKE, DEL_T, i)
                 quilt(Swimmers, RHO, DEL_T, i)
-                wake_rollup(Swimmers, DEL_T, i)
                 archive(S1.Body.AF.x_mid)
                 archive(S1.Body.AF.z_mid)
 #                graph.plot_n_go(S1.Body)
@@ -152,7 +151,7 @@ def main():
                 for Swim in Swimmers:
                     Swim.Body.panel_positions(DSTEP, T[i])
                     Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
-                    Swim.Body.calc_sigma(Swim.SW_WAKE, np.zeros((Swim.Body.N,2)))#TODO:
+                    Swim.Body.calc_sigma(Swim.SW_WAKE, Swim.Body.u_psi)
                     Swim.edge_shed(Swim.SW_WAKE, DEL_T, i)
                     Swim.wake_shed(Swim.SW_WAKE, DEL_T, i)
                 quilt(Swimmers, RHO, DEL_T, i)
@@ -161,6 +160,7 @@ def main():
                     po().solution_output(0,0,0,0,0,0)
                     po().solution_complete_output(i/float(COUNTER-1)*100.)
                 wake_rollup(Swimmers, DEL_T, i)
+                u_psi(Swimmers, i)
                 archive(S1.Body.AF.x_mid)
                 archive(S1.Body.AF.z_mid)
 #                graph.plot_n_go(S1.Body)
@@ -169,7 +169,7 @@ def main():
     total_time = time.time()-start_time
     print "Simulation time:", np.round(total_time, 3), "seconds"
 
-    graph.body_wake_plot(Swimmers, P['SW_WAKE'])
+    graph.body_wake_plot(Swimmers)
 #    graph.cp_plot(S1.Body)
 
 if __name__ == '__main__':
