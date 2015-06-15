@@ -89,5 +89,5 @@ P = PARAMETERS = {
 }
 
 # Constants dependent on declared parameters
-P['DELTA_CORE'] = (0.005*P['THETA_MAX']+0.09)*P['C']
+P['DELTA_CORE'] = (0.005*P['THETA_MAX']+0.09)*P['C']/2.
 P['RE'] = P['RHO']*-P['V0']*P['C']/MU

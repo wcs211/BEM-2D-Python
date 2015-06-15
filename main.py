@@ -13,7 +13,7 @@ from functions_general import panel_vectors, archive, absoluteToBody
 
 def main():
 
-    po().prog_title('1.0.0')
+#    po().prog_title('1.0.0')
     start_time = time.time()
 
     COUNTER = P['COUNTER']
@@ -46,7 +46,7 @@ def main():
 #    FSI1 = FSI(S1.Body, Solid1)
 #    PyFEA1 = PyFEA(Solid1, P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
 
-    po().calc_input(MotP1.THETA_MAX/np.pi*180.,RE,MotP1.THETA_MAX/np.pi*180.,DEL_T)
+#    po().calc_input(MotP1.THETA_MAX/np.pi*180.,RE,MotP1.THETA_MAX/np.pi*180.,DEL_T)
 
 #    Solid1.initMesh()
 #    Solid1.initThinPlate(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
@@ -132,7 +132,7 @@ def main():
                         break
         else:
             if i == 0:
-                po().initialize_output(T[i])
+#                po().initialize_output(T[i])
 
                 for Swim in Swimmers:
                         Swim.Body.panel_positions(DSTEP, T[i])
@@ -156,13 +156,16 @@ def main():
                     Swim.wake_shed(Swim.SW_WAKE, DEL_T, i)
                 quilt(Swimmers, RHO, DEL_T, i)
 
-                if np.fmod(i,P['VERBOSITY']) == 0:
-                    po().solution_output(0,0,0,0,0,0)
-                    po().solution_complete_output(i/float(COUNTER-1)*100.)
+#                if np.fmod(i,P['VERBOSITY']) == 0:
+#                    po().solution_output(0,0,0,0,0,0)
+#                    po().solution_complete_output(i/float(COUNTER-1)*100.)
                 wake_rollup(Swimmers, DEL_T, i)
                 u_psi(Swimmers, i)
                 archive(S1.Body.AF.x_mid)
                 archive(S1.Body.AF.z_mid)
+#                if i==2:
+#                    graph.body_wake_plot(Swimmers)
+
 #                graph.plot_n_go(S1.Body)
 
 

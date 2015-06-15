@@ -116,7 +116,8 @@ def quilt(Swimmers, RHO, DEL_T, i):
 
         archive(Swim.Edge.mu)
         Swim.Edge.mu[0] = Swim.mu_guess[0]
-        Swim.Wake.alpha[0] = Swim.Edge.mu[1] - Swim.Edge.mu[0]
+        if i>1:
+            Swim.Wake.alpha[0] = Swim.Edge.mu[1] - Swim.Edge.mu[0]
 
         Swim.Edge.gamma[0] = -Swim.Edge.mu[0]
         Swim.Edge.gamma[1] = Swim.Edge.mu[0]
@@ -183,9 +184,9 @@ def wake_rollup(Swimmers, DEL_T, i):
                 SwimT.Wake.vz += np.dot(dummy2, SwimI.Body.gamma)
 
 #                # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
-#                NI = SwimI.Edge.N+1
-#                xp = np.repeat(SwimT.Wake.x[1:i+1,np.newaxis].T, NI, 0) - np.repeat(SwimI.Edge.x[:,np.newaxis], NT, 1)
-#                zp = np.repeat(SwimT.Wake.z[1:i+1,np.newaxis].T, NI, 0) - np.repeat(SwimI.Edge.z[:,np.newaxis], NT, 1)
+#                NI = 1
+#                xp = np.repeat(SwimT.Wake.x[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Edge.x[:,np.newaxis], NT, 1)
+#                zp = np.repeat(SwimT.Wake.z[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Edge.z[:,np.newaxis], NT, 1)
 #
 #                # Find distance r_e between each influence/target
 #                r_e = np.sqrt(xp**2+zp**2)
@@ -198,35 +199,90 @@ def wake_rollup(Swimmers, DEL_T, i):
 #                SwimT.Wake.vx += np.dot(dummy1, SwimI.Edge.gamma)
 #                SwimT.Wake.vz += np.dot(dummy2, SwimI.Edge.gamma)
 
-                # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
-                if SwimI.Wake.SW_WAKE == 0:
-                    NI = SwimI.Wake.get_relevant(i)[0]+1
-                elif SwimI.Wake.SW_WAKE == 1:
-                    NI = SwimI.Wake.get_relevant(i)[0]
-                xp = np.repeat(SwimT.Wake.x[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Wake.x[:NI,np.newaxis], NT, 1)
-                zp = np.repeat(SwimT.Wake.z[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Wake.z[:NI,np.newaxis], NT, 1)
-
-                # Find distance r_w between each influence/target
-                r_w = np.sqrt(xp**2+zp**2)
-
-                # Katz-Plotkin eqns 10.9 and 10.10 for wake (as point vortices) influence
-                dummy1 = np.transpose(zp/(2*np.pi*(r_w**2+DELTA_CORE**2)))
-                dummy2 = np.transpose(-xp/(2*np.pi*(r_w**2+DELTA_CORE**2)))
-
-                # Finish eqns 10.9 and 10.10 by multiplying with Wake.gamma, add to induced velocity
-                if SwimI.Wake.SW_WAKE == 0:
-                    SwimT.Wake.vx += np.dot(dummy1, SwimI.Wake.gamma[:NI])
-                    SwimT.Wake.vz += np.dot(dummy2, SwimI.Wake.gamma[:NI])
-                elif SwimI.Wake.SW_WAKE == 1:
-                    SwimT.Wake.vx += np.dot(dummy1, SwimI.Wake.alpha[:NI])
-                    SwimT.Wake.vz += np.dot(dummy2, SwimI.Wake.alpha[:NI])
+#                # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
+#                if SwimI.Wake.SW_WAKE == 0:
+#                    NI = SwimI.Wake.get_relevant(i)[0]+1
+#                elif SwimI.Wake.SW_WAKE == 1:
+#                    NI = SwimI.Wake.get_relevant(i)[0]
+#                xp = np.repeat(SwimT.Wake.x[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Wake.x[:NI,np.newaxis], NT, 1)
+#                zp = np.repeat(SwimT.Wake.z[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Wake.z[:NI,np.newaxis], NT, 1)
+#
+#                # Find distance r_w between each influence/target
+#                r_w = np.sqrt(xp**2+zp**2)
+#
+#                # Katz-Plotkin eqns 10.9 and 10.10 for wake (as point vortices) influence
+#                dummy1 = np.transpose(zp/(2*np.pi*(r_w**2+DELTA_CORE**2)))
+#                dummy2 = np.transpose(-xp/(2*np.pi*(r_w**2+DELTA_CORE**2)))
+#
+#                # Finish eqns 10.9 and 10.10 by multiplying with Wake.gamma, add to induced velocity
+#                if SwimI.Wake.SW_WAKE == 0:
+#                    SwimT.Wake.vx += np.dot(dummy1, SwimI.Wake.gamma[:NI])
+#                    SwimT.Wake.vz += np.dot(dummy2, SwimI.Wake.gamma[:NI])
+#                elif SwimI.Wake.SW_WAKE == 1:
+#                    SwimT.Wake.vx += np.dot(dummy1, SwimI.Wake.alpha[:NI])
+#                    SwimT.Wake.vz += np.dot(dummy2, SwimI.Wake.alpha[:NI])
 
         for Swim in Swimmers:
+            (NT, i_0) = SwimT.Wake.get_relevant(i)
+            i_n = i_0 + NT
             # Modify wake with the total induced velocity
-            Swim.Wake.x[i_0:i_n] += Swim.Wake.vx*DEL_T
-            Swim.Wake.z[i_0:i_n] += Swim.Wake.vz*DEL_T
+            Swim.Wake.u_psi = np.zeros((NT,2))
+            u_psi(Swimmers, i, 'Wake')
+            Swim.Wake.x[i_0:i_n] += (Swim.Wake.vx+Swim.Wake.u_psi[:,0])*DEL_T
+            Swim.Wake.z[i_0:i_n] += (Swim.Wake.vz+Swim.Wake.u_psi[:,1])*DEL_T
 
-def u_psi(Swimmers, i):
+def calc_psi(xt, zt, xi, zi, alpha, DELTA_CORE):
+    """Computes the vector potential induced by a series of vortex particles.
+
+    Args:
+        xt, zt: Coordinates of target points where potential is measured.
+        xi, zi: Coordinates of vortex influences.
+        alpha: Strengths of the vortex influences.
+    Returns:
+        psi: Vector potential at each of the target points.
+    """
+    delta_x = np.repeat(xt[:,np.newaxis], len(xi), 1) - np.repeat(xi[:,np.newaxis].T, len(xt), 0)
+    delta_z = np.repeat(zt[:,np.newaxis], len(zi), 1) - np.repeat(zi[:,np.newaxis].T, len(zt), 0)
+    r = np.sqrt(delta_x**2 + delta_z**2)
+
+    matrix = 1./(4*np.pi*(r+DELTA_CORE))
+    return np.dot(matrix, alpha)
+
+def u_psi(Swimmers, i, target='Body'):
+    """Computes the velocity on body panels induced by wake particles."""
+    DSTEP = 10**-5
+    if i<= 1:
+        pass
+    elif target == 'Body':
+        for SwimT in Swimmers:
+            SwimT.Body.u_psi = np.zeros((SwimT.Body.N,2))
+            for SwimI in Swimmers:
+                NI = SwimI.Wake.get_relevant(i)[0]
+
+                psi_xplus = calc_psi(SwimT.Body.AF.x_col+DSTEP, SwimT.Body.AF.z_col, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+                psi_xminus = calc_psi(SwimT.Body.AF.x_col-DSTEP, SwimT.Body.AF.z_col, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+                psi_zplus = calc_psi(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col+DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+                psi_zminus = calc_psi(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col-DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+
+                SwimT.Body.u_psi[:,0] += (psi_zminus-psi_zplus)/(2*DSTEP)
+                SwimT.Body.u_psi[:,1] += (psi_xplus-psi_xminus)/(2*DSTEP)
+
+    elif target == 'Wake':
+        for SwimT in Swimmers:
+            NT = SwimT.Wake.get_relevant(i)[0]
+            SwimT.Wake.u_psi = np.zeros((NT,2))
+            for SwimI in Swimmers:
+                NI = SwimI.Wake.get_relevant(i)[0]
+
+                psi_xplus = calc_psi(SwimT.Wake.x[:NT]+DSTEP, SwimT.Wake.z[:NT], SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+                psi_xminus = calc_psi(SwimT.Wake.x[:NT]-DSTEP, SwimT.Wake.z[:NT], SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+                psi_zplus = calc_psi(SwimT.Wake.x[:NT], SwimT.Wake.z[:NT]+DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+                psi_zminus = calc_psi(SwimT.Wake.x[:NT], SwimT.Wake.z[:NT]-DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+
+                SwimT.Wake.u_psi[:,0] += (psi_zminus-psi_zplus)/(2*DSTEP)
+                SwimT.Wake.u_psi[:,1] += (psi_xplus-psi_xminus)/(2*DSTEP)
+
+def ou_psi(Swimmers, i):
     """Computes the velocity on body panels induced by wake particles."""
     if i <= 1:
         pass

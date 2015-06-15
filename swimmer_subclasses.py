@@ -446,7 +446,7 @@ class Body(object):
         self.sigma = nx*(self.V0 + self.vx) + nz*self.vz
 
         if SW_WAKE == 1:
-            self.sigma -= nx*u_psi[:,0] + nz*u_psi[:,1]
+            self.sigma -= (nx*u_psi[:,0] + nz*u_psi[:,1])
 
     def pressure(self, RHO, DEL_T, i):
         """Calculates the pressure distribution along the body's surface.
