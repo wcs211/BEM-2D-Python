@@ -27,12 +27,18 @@ class PyFEA(object):
         self.l = np.zeros((Solid.Nelements,1))
         self.RHO_S = RHO_S
         self.Fload = np.zeros((3*Solid.Nnodes,1))
+        
+#       Initial Displacements
+        temp = 3 * Solid.fixedCounter
         self.U_n = np.zeros((3*Solid.Nnodes,1))
         self.Udot_n = np.zeros((3*Solid.Nnodes,1))
-        self.UdotDot_n = np.zeros((3*Solid.Nnodes,1))
-        self.U_nPlus = np.zeros((3*Solid.Nnodes,1))
-        self.Udot_nPlus = np.zeros((3*Solid.Nnodes,1))
-        self.UdotDot_nPlus = np.zeros((3*Solid.Nnodes,1))
+        self.UdotDot_n = np.zeros((3*Solid.Nnodes-temp,1))
+        
+#       Final Displacements
+        self.U_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
+        self.Udot_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
+        self.UdotDot_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
+        
         self.initU = np.zeros((3*Solid.Nnodes,1))
         self.initUdot = np.zeros((3*Solid.Nnodes,1))
         
@@ -49,10 +55,10 @@ class PyFEA(object):
         C1 = (E * A / l)
         C2 = (E * I / l**3)
         k_e = np.array(
-                       [[C1,          0,           0,         -C1,           0,           0],
+                       [[1.*C1,          0,           0,         -1.*C1,           0,           0],
                         [0,       12*C2,      6*l*C2,           0,      -12*C2,      6*l*C2],
                         [0,      6*l*C2,   4*l**2*C2,           0,     -6*l*C2,   2*l**2*C2],
-                        [-C1,         0,           0,          C1,           0,           0],
+                        [-1.*C1,         0,           0,          1.*C1,           0,           0],
                         [0,      -12*C2,     -6*l*C2,           0,       12*C2,     -6*l*C2],
                         [0,      6*l*C2,   2*l**2*C2,           0,     -6*l*C2,   4*l**2*C2]]        
                       )
@@ -71,13 +77,16 @@ class PyFEA(object):
         """
         
         if (mType == 'consistent'):
+#            print RHO_S
+#            print A
+#            print l
             C1 = RHO_S * A * l / 420
             C2 = RHO_S * A * l / 6
             m_e = np.array(
-                           [[2*C2,         0,          0,          C2,         0,          0],
+                           [[2*C2,         0,          0,          1.*C2,         0,          0],
                             [   0,    156*C1,    22*l*C1,           0,     54*C1,   -13*l*C1],
                             [   0,   22*l*C1,  4*l**2*C1,           0,   13*l*C1, -3*l**2*C1],
-                            [  C2,         0,          0,        2*C2,         0,          0],
+                            [  1.*C2,         0,          0,        2*C2,         0,          0],
                             [   0,     54*C1,    13*l*C1,           0,    156*C1,   -22*l*C1],
                             [   0,  -13*l*C1, -3*l**2*C1,           0,  -22*l*C1,  4*l**2*C1]]
                           )
@@ -124,7 +133,7 @@ class PyFEA(object):
         l_e[:,3*element-2-1:5+3*element-2] = np.copy(temp)
         return l_e
         
-    def HHT(self, alpha, beta, gamma, Fext_n, Fext_nPlus, fixedNodes):
+    def HHT(self, alpha, beta, gamma, Fext_n, Fext_nPlus, fixedNodes, U_n, Udot_n, UdotDot_n):
         """
         Solves a dynamic system of equations using the Hilber-Hughes-Taylor 
         (HHT) Method. This is a transient, implicit method with numerical
@@ -140,23 +149,27 @@ class PyFEA(object):
         fixedNodes -- Count of the number of nodes with a no displacement condition
         """
         
-        # Form the 'A' matrix
-        A = (self.M + beta * self.deltaT**2 * (1 - alpha) * self.K) / (beta * self.deltaT**2)
+        temp = 3 * fixedNodes
         
+        # Form the 'A' matrix
+        A = (self.M[temp:,temp:] + beta * self.deltaT**2 * (1 - alpha) * self.K[temp:,temp:]) / (beta * self.deltaT**2)
+               
         # Form the 'B' matrix
-        B = (1 - alpha) * Fext_nPlus + 1 / (beta * self.deltaT**2) * \
-            np.dot(self.M, self.U_n + self.deltaT * self.Udot_n + self.deltaT**2 * \
-            (0.5 - beta) * self.UdotDot_n) + \
-            alpha * Fext_n - alpha * np.dot(self.K, self.U_n)
+        B = (1 - alpha) * Fext_nPlus[temp:,:] + 1 / (beta * self.deltaT**2) * \
+            np.dot(self.M[temp:,temp:], U_n[temp:,:] + self.deltaT * Udot_n[temp:,:] + self.deltaT**2 * \
+            (0.5 - beta) * UdotDot_n) + \
+            alpha * Fext_n[temp:,:] - alpha * np.dot(self.K[temp:,temp:], U_n[temp:,:])
             
         # Solve the system to get the displacements
-        self.U_nPlus = np.linalg.solve(A, B)
+        U_nPlus = np.linalg.solve(A, B)
         
         # Solve for the accelerations
-        self.UdotDot_nPlus = (self.U_nPlus - (self.U_n + self.deltaT * self.Udot_n + self.deltaT**2 * (0.5 - beta) * self.UdotDot_n)) / (beta * self.deltaT**2)
+        UdotDot_nPlus = (U_nPlus - (U_n[temp:,:] + self.deltaT * Udot_n[temp:,:] + self.deltaT**2 * (0.5 - beta) * UdotDot_n)) / (beta * self.deltaT**2)
         
         # Solve for the velocities
-        self.Udot_nPlus = (self.Udot_n + self.deltaT * (1 - gamma) * self.UdotDot_n) + gamma * self.deltaT * self.UdotDot_nPlus
+        Udot_nPlus = (Udot_n[temp:,:] + self.deltaT * (1 - gamma) * UdotDot_n) + gamma * self.deltaT * UdotDot_nPlus
+        
+        return (U_nPlus, Udot_nPlus, UdotDot_nPlus)
         
     def NEWMARK(self, beta, gamma, Fext_n, Fext_nPlus, fixedNodes):
         """
@@ -222,18 +235,23 @@ class PyFEA(object):
         mType -- Type of Mass Matrix. must be 'consistent' or 'lumped'
         """
         # Determine current pitching angle
-        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
+#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
+#        theta = 5*np.pi/180*np.tanh(t)
+        U_n = np.copy(self.U_n)
+        Udot_n = np.copy(self.Udot_n)
+        UdotDot_n = np.copy(self.UdotDot_n)
+        
         
         # Reset mass and stiffness matrix to include all nodes
-        np.resize(self.M, (3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
-        np.resize(self.K, (3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))        
-        np.resize(self.UdotDot_n, (3 * (Solid.Nnodes), 1))
+#        np.resize(self.M, (3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
+#        np.resize(self.K, (3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))        
+#        np.resize(self.UdotDot_n, (3 * (Solid.Nnodes), 1))
 #        self.M.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
 #        self.K.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
 #        self.UdotDot_n.resize((3 * (Solid.Nnodes), 1))  
         self.M = 0
         self.K = 0
-        self.UdotDot_n = 0
+#        UdotDot_n = 0
         
         # Assemble global mass and stiffness matricies
         for i in xrange(self.Nelements):
@@ -245,7 +263,8 @@ class PyFEA(object):
             # Determine element stiffness, mass, and connectivity matricies
             k_e = self.elementStiffnessMatrix(self.E, self.I[i], self.A[i], self.l[i])
             m_e = self.elementMassMatrix(self.RHO_S, self.A[i], self.l[i], mType)
-            l_e = self.elementConnectivityMatrix(i, theta)
+#            l_e = self.elementConnectivityMatrix(i, theta)
+            l_e = self.elementConnectivityMatrix(i, -U_n[3*i-1,0])
             
             # Add element matricies to the global matricies
             self.M = self.M + np.dot(np.dot(np.transpose(l_e), m_e), l_e)
@@ -253,29 +272,39 @@ class PyFEA(object):
             
         # Set the zero displacement constraints
         temp = 3 * Solid.fixedCounter
-        self.M = np.delete(self.M, np.arange(0,temp),0)
-        self.M = np.delete(self.M, np.arange(0,temp),1)
-        self.K = np.delete(self.K, np.arange(0,temp),0)
-        self.K = np.delete(self.K, np.arange(0,temp),1)
-        self.Fload = np.delete(self.Fload, np.arange(0,temp))
-        self.U_n = np.delete(self.U_n, np.arange(0,temp))
-        self.Udot_n = np.delete(self.Udot_n, np.arange(0,temp))
-        self.UdotDot_n = np.delete(self.Udot_n, np.arange(0,temp))
+#        M = np.copy(self.M[temp:,temp:])
+#        K = np.copy(self.K[temp:,temp:])
+#        print self.M[temp:, temp:]
+#        print np.linalg.solve(self.M[temp:, temp:], self.Fload[temp:])
+        
+#        self.M = np.delete(self.M, np.arange(0,temp),0)
+#        self.M = np.delete(self.M, np.arange(0,temp),1)
+#        self.K = np.delete(self.K, np.arange(0,temp),0)
+#        self.K = np.delete(self.K, np.arange(0,temp),1)
+#        self.Fload = np.delete(self.Fload, np.arange(0,temp))
+#        self.U_n = np.delete(self.U_n, np.arange(0,temp))
+#        self.Udot_n = np.delete(self.Udot_n, np.arange(0,temp))
+#        self.UdotDot_n = np.delete(self.Udot_n, np.arange(0,temp))
 #        self.U_nPlus = np.delete(self.U_nPlus, np.arange(0,temp))
 #        self.Udot_nPlus = np.delete(self.Udot_nPlus, np.arange(0,temp))
 #        self.UdotDot_nPlus = np.delete(self.Udot_nPlus, np.arange(0,temp))
 
+#        print self.M
+        
         # Solve for the initial acceleration matrix
         Fext_n = np.copy(self.Fload)
-        self.UdotDot_n = np.linalg.solve(self.M, Fext_n)
+        RHS = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
+#        self.UdotDot_n = np.linalg.solve(self.M, Fext_n)
+#        UdotDot_n = np.linalg.solve(self.M[temp:,temp:], Fext_n[temp:,0])
+        UdotDot_n = np.linalg.solve(self.M[temp:,temp:], RHS)
         
         # March through time until the total simulated time has elapsed
-        j = np.size(np.arange(self.deltaT,self.endTime+self.deltaT,self.deltaT))-1
+        j = np.size(np.arange(self.deltaT,self.endTime+self.deltaT,self.deltaT))
 #        j = np.size(np.s_[self.deltaT:self.endTime:self.deltaT])
         for i in xrange(j):
             Fext_nPlus = np.copy(Fext_n)
             if (method == 'HHT'):
-                self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter)
+                (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
             elif (method == 'NEWMARK'):
                 self.NEWMARK(beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter)
             elif (method == ' TRAPEZOIDAL'):
@@ -288,6 +317,14 @@ class PyFEA(object):
                 print '    NEWMARK'
                 print '    TRAPEZOIDAL'
             if (i != j):
-                self.U_n = np.copy(self.U_nPlus)
-                self.Udot_n = np.copy(self.Udot_nPlus)
-                self.UdotDot_n = np.copy(self.UdotDot_nPlus)
+#                self.U_n[temp:,0] = np.copy(self.U_nPlus)
+#                self.Udot_n[temp:,0] = np.copy(self.Udot_nPlus)
+#                self.UdotDot_n = np.copy(self.UdotDot_nPlus)
+                U_n[temp:,:] = np.copy(U_nPlus)
+                Udot_n[temp:,:] = np.copy(Udot_nPlus)
+                UdotDot_n = np.copy(UdotDot_nPlus)
+
+        self.U_nPlus = np.copy(U_nPlus)
+        self.Udot_nPlus = np.copy(Udot_nPlus)
+        self.UdotDot_nPlus = np.copy(UdotDot_nPlus)
+#        print 'This is the end'

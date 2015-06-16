@@ -44,22 +44,22 @@ class solid(object):
         for i in xrange(self.Nelements):
             if self.nodes[i,0] <= 0.5*tmax:
                 self.tBeam[i,0] = np.copy(tmax)
-                self.tBeamStruct[i,0] = self.tBeam[i,0]
-                self.ttemp[i,0] = np.copy(self.tBeam[i,0])
+                self.tBeamStruct[i,0] = 0.1*np.copy(self.tBeam[i,0])
+                self.ttemp[i,0] = 0.1*np.copy(self.tBeam[i,0])
                 self.beamCounter += 1
                 self.fixedCounter += 1
             elif self.nodes[i,0] >= c-0.5*tmax:
                 self.tBeam[i,0] = 2*np.sqrt((0.5*tmax)**2 -(self.nodes[i,0]-(c-0.5*tmax))**2 )
-                self.tBeamStruct[i,0] = np.copy(self.tBeam[i,0])
+                self.tBeamStruct[i,0] = 0.1*np.copy(self.tBeam[i,0])
                 self.ttemp[i,0] = np.copy(self.tBeam[i,0])
             else:
-                self.ttemp[i,0] = np.copy(tmax)
+                self.ttemp[i,0] = 0.1*np.copy(tmax)
                 self.tBeam[i,0] = np.copy(tmax)
-                self.tBeamStruct[i,0] = np.copy(self.tBeam[i,0])
+                self.tBeamStruct[i,0] = 0.1*np.copy(self.tBeam[i,0])
                 if ( constThickBeam == 1 and  self.nodes[i,2] >= tConst):
                     self.tBeamStruct[i,0] = np.copy(self.tBeamStruct[i-1,0])
                 else:
-                    self.tBeamStruct[i,0] = np.copy(self.tBeam[i,0])
+                    self.tBeamStruct[i,0] = 0.1*np.copy(self.tBeam[i,0])
                 if (self.nodes[i,2] <= flexionRatio):
                     self.fixedCounter += 1
                     

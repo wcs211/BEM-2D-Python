@@ -11,9 +11,11 @@ def basic_xy(x,y,color='b'):
     global n_fig
     figure = plt.figure(n_fig)
     figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
-    plt.gca().set_aspect('equal')
+    plt.gca().set_aspect('equal')  
+    plt.plot(x,y,color)
+    plt.show()
     
-    plt.plot(x, y, color)
+#    time.sleep(5)
     n_fig += 1
 
 def body_wake_plot(Swimmers):
@@ -94,7 +96,7 @@ def lift_vs_period(Body,RHO,t):
     
     n_fig += 1
     
-def plot_n_go(Body):
+def plot_n_go(Edge, Body, Solid):
     global n_fig
     figure = plt.figure(1)
     figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
@@ -106,10 +108,22 @@ def plot_n_go(Body):
     plt.plot(Body.AF.x, Body.AF.z, 'k')
     plt.plot(Body.AF.x_col, Body.AF.z_col, 'r')
     
-    plt.xlim((np.min(Body.AF.x)-0.02, np.min(Body.AF.x)+1.22))
+    plt.plot(Solid.tempNodes[:,0], Solid.tempNodes[:,1], 'k')
+    
+    plt.xlim((np.min(Body.AF.x)-0.02, np.min(Body.AF.x)+0.22))
+    plt.plot(Edge.x, Edge.z, 'g')
     plt.ylim((-0.05, 0.05))
     
     figure.savefig('./movies/%05i.png' % (n_fig), format='png')
     plt.clf()
     
     n_fig += 1  
+    
+def body(x,y,color='b'):
+    figure = plt.figure(2)
+    figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
+    plt.gca().set_aspect('equal')  
+    plt.plot(x,y,color)
+    plt.xlim((np.min(x)-0.02, np.min(x)+0.22))
+    plt.ylim((-0.05, 0.05))
+    plt.show()

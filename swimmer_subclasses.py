@@ -301,9 +301,13 @@ class Body(object):
         F = self.MP.F
         PHI = self.MP.PHI
         V0 = self.MP.V0
+            
+#        theta = THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)
+        theta = 5*np.pi/180*np.tanh(T)
+#        theta = 5*np.pi/180*(0.5*np.tanh(T-5)+0.5)
 
-        x_neut = X0 + (x+DSTEP)*np.cos(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)) + V0*T
-        z_neut = Z0 + (x+DSTEP)*np.sin(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI))
+        x_neut = X0 + (x+DSTEP)*np.cos(theta) + V0*T
+        z_neut = Z0 + (x+DSTEP)*np.sin(theta)
 
         return(x_neut, z_neut)
 
