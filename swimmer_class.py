@@ -63,8 +63,18 @@ class Swimmer(object):
 
         Edge.x[0] = Body.AF.x[0]
         Edge.z[0] = Body.AF.z[0]
-        Edge.x[1] = Body.AF.x[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[0][0]*Body.V0*DEL_T
-        Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
+        
+        x_0 = 0.5 * (Body.AF.x[1] + Body.AF.x[-2])
+        z_0 = 0.5 * (Body.AF.z[1] + Body.AF.z[-2])
+        vect_x = Body.AF.x[0] - x_0
+        vect_z = Body.AF.z[0] - z_0
+        length = np.sqrt(vect_x**2 + vect_z**2)
+        tan_x = -vect_x / length
+        tan_z = -vect_z / length
+        Edge.x[1] = Body.AF.x[0] + Edge.CE*tan_x*Body.V0*DEL_T
+        Edge.z[1] = Body.AF.z[0] + Edge.CE*tan_z*Body.V0*DEL_T
+#        Edge.x[1] = Body.AF.x[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[0][0]*Body.V0*DEL_T
+#        Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
 
     def wake_shed(self, DEL_T, i):
         """Updates the positions of the Wake panels.

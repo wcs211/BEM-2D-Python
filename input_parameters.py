@@ -6,7 +6,7 @@ MU = 0.001003
 
 P = PARAMETERS = {
 
-  'COUNTER':        401
+  'COUNTER':        21
 , 'DEL_T':          np.pi*0.1/RF
 #, 'DEL_T':          1/0.7104278595/200
 , 'DSTEP':          10**-5
