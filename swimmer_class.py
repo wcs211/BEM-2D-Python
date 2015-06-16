@@ -2,7 +2,7 @@
 """Module for the Swimmer class and its methods."""
 
 import numpy as np
-from functions_general import panel_vectors, archive
+from functions_general import archive
 from swimmer_subclasses import Body, Edge, Wake
 
 class Swimmer(object):
@@ -73,8 +73,6 @@ class Swimmer(object):
         tan_z = -vect_z / length
         Edge.x[1] = Body.AF.x[0] + Edge.CE*tan_x*Body.V0*DEL_T
         Edge.z[1] = Body.AF.z[0] + Edge.CE*tan_z*Body.V0*DEL_T
-#        Edge.x[1] = Body.AF.x[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[0][0]*Body.V0*DEL_T
-#        Edge.z[1] = Body.AF.z[0] + Edge.CE*panel_vectors(Body.AF.x_neut,Body.AF.z_neut)[1][0]*Body.V0*DEL_T
 
     def wake_shed(self, DEL_T, i):
         """Updates the positions of the Wake panels.

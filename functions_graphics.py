@@ -54,6 +54,7 @@ def body_wake_plot(Swimmers):
         plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
         plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
         plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
+        plt.show()
     
     n_fig += 1
     

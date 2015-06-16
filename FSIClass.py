@@ -6,12 +6,8 @@ A 2D boundary element method code
 
 """
 import numpy as np
-import scipy as Sci
 from functions_general import panel_vectors
-import functions_graphics as graph
 from scipy.interpolate import spline
-
-
 
 class FSI(object):
     'Toolkit for Boundary Elelment Method Fluid Structure Interaction'
@@ -63,10 +59,6 @@ class FSI(object):
             # Use fixed-point relaxation
             self.fluidNodeDisplOld = np.copy(self.fluidNodeDispl)
             self.nodeDisplOld = np.copy(self.nodeDispl)
-            flNodeDispl = np.copy(self.fluidNodeDispl)
-            fsiRelax = np.copy(self.fsiRelaxationFactor)
-            fsiResid = np.copy(self.fsiResidual)
-            nwflNodeDispl = flNodeDispl + fsiRelax*fsiResid
             self.fluidNodeDispl = self.fluidNodeDispl + self.fsiRelaxationFactor * self.fsiResidual
             self.nodeDispl = self.nodeDispl + self.fsiRelaxationFactor * self.nodeResidual
         elif (outerCorr >= 3 and couplingScheme == 'Aitken'):
@@ -74,12 +66,7 @@ class FSI(object):
             self.fsiRelaxationFactor = self.fsiRelaxationFactor * (np.dot(self.fsiResidualOld.T, (self.fsiResidualOld - self.fsiResidual))) / (np.linalg.norm(self.fsiResidualOld - self.fsiResidual, ord=2))**2
             self.fsiRelaxationFactor = np.linalg.norm(self.fsiRelaxationFactor, ord=2)
             if (self.fsiRelaxationFactor > 1.):
-                self.fsiRelaxationFactor = 1
-            
-            flNodeDispl = np.copy(self.fluidNodeDispl)
-            fsiRelax = np.copy(self.fsiRelaxationFactor)
-            fsiResid = np.copy(self.fsiResidual)
-            nwflNodeDispl = flNodeDispl + fsiRelax*fsiResid
+                self.fsiRelaxationFactor = 1           
             self.fluidNodeDisplOld = np.copy(self.fluidNodeDispl)
             self.nodeDisplOld = np.copy(self.nodeDispl)
             self.fluidNodeDispl = self.fluidNodeDispl + self.fsiRelaxationFactor * self.fsiResidual
@@ -114,10 +101,9 @@ class FSI(object):
         Keyword arguments:
         """
         # Determine current pitching angle and heave position
-        # TODO: Add heaving functionality to kinematics
-#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
-#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
-        theta = 5*np.pi/180*np.tanh(t)
+        # TODO: Add heaving functionality to kinematics 
+        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
+#        theta = 5*np.pi/180*np.tanh(t)
 #        theta = 5*np.pi/180*(0.5*np.tanh(t-5)+0.5)
         heave = 0
         
@@ -174,7 +160,6 @@ class FSI(object):
         relXc = Body.AF.x_mid - np.min(Body.AF.x)
         
         # Interpolate the collapsed forces and moments onto the structural mesh
-        meanline = Solid.meanline_c0
         nodalInput = np.zeros((Solid.Nnodes,6))
         if (SWITCH_INTERP_MTD == 1):
             nodalInput[:,0] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colPF[:,0], left=0, right=0)
@@ -184,8 +169,7 @@ class FSI(object):
             nodalInput[:,0] = spline(Solid.meanline_c0[0.5*Body.N:], colPF[:,0], Solid.nodes[:,2])
             nodalInput[:,1] = spline(Solid.meanline_c0[0.5*Body.N:], colPF[:,1], Solid.nodes[:,2])
             nodalInput[:,5] = spline(Solid.meanline_c0[0.5*Body.N:], colM[:,0], Solid.nodes[:,2])
-        nodeMeanline = Solid.nodes[:,2]
-        preNodalInput = np.copy(nodalInput)
+            
         # Rotate force components into the relative cooridnate system
         (nodalInput[:,0], nodalInput[:,1]) = self.rotatePts(nodalInput[:,0], nodalInput[:,1], -theta)
         
@@ -222,24 +206,6 @@ class FSI(object):
             PyFEA.Udot_n = np.zeros((3*Solid.Nnodes,1))
             PyFEA.U_n[temp:,0] = PyFEA.U_nPlus.T
             PyFEA.Udot_n[temp:,0] = PyFEA.Udot_nPlus.T
-#            PyFEA.initU = np.copy(PyFEA.U_nPlus)
-#            PyFEA.initUdot = np.copy(PyFEA.Udot_nPlus)
-#        if (i_t > 1):
-#            PyFEA.U_n.resize((3*(Solid.Nnodes),1))
-#            PyFEA.Udot_n.resize((3*(Solid.Nnodes),1))
-##            PyFEA.U_n = np.zeros()
-##            PyFEA.Udot_n = np.zeros((3*(Solid.Nnodes),1))
-#            PyFEA.U_n[3*fixedNodes:,0] = PyFEA.initU.T
-#            PyFEA.Udot_n[3*fixedNodes:,0] = PyFEA.initUdot.T
-        
-        # Resize matricies to acount for all nodes after first subiteration
-#        PyFEA.Fload.resize((3*Solid.Nnodes,1))
-        U_n = np.copy(PyFEA.U_n)
-        Udot_n = np.copy(PyFEA.Udot_n)
-        UdotDot_n = np.copy(PyFEA.UdotDot_n)
-        U_nPlus = np.copy(PyFEA.U_nPlus)
-        Udot_nPlus = np.copy(PyFEA.Udot_nPlus)
-        UdotDot_nPlus = np.copy(PyFEA.UdotDot_nPlus)
         
         PyFEA.Fload = np.copy(Fload)
         PyFEA.A = np.copy(A)
@@ -266,33 +232,23 @@ class FSI(object):
         """
         # Determine current pitching angle and heave position
         # TODO: Add heaving functionality to kinematics
-#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
-        theta = 5*np.pi/180 *np.tanh(t)
+        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
+#        theta = 5*np.pi/180 *np.tanh(t)
 #        theta = 5*np.pi/180*(0.5*np.tanh(t-5)+0.5)
         heave = 0      
         
         # Get the absolute x and z displacements
         nodeDisplacements = np.zeros((Solid.Nnodes-Solid.fixedCounter,2))
-#        print PyFEA.U_nPlus[-2]
         nodeDisplacements[:,1] =  np.copy(PyFEA.U_nPlus[1::3].T)
-#        nodeDisplacements[:,0] =  (Solid.nodes_0[Solid.fixedCounter:,1] + \
-#                                  nodeDisplacements[:,1]) * np.sin(-PyFEA.U_nPlus[2::3] + \
-#                                  PyFEA.U_nPlus[::3])
         nodeDisplacements[:,0] =  (Solid.nodes_0[Solid.fixedCounter:,1] + nodeDisplacements[:,1]) * np.sin(-PyFEA.U_nPlus[2::3].T) 
-#        nodeDisplacements[-1,:]
         
         # Calculate the new structural locations
-#        tempNodes = np.zeros((Solid.Nnodes,3))
-#        tempNodes[:,:] = Solid.nodes_0
         tempNodes = np.copy(Solid.nodes_0)
         tempNodes[Solid.fixedCounter:,0] = Solid.nodes_0[Solid.fixedCounter:,0] + nodeDisplacements[:,0] # New x-position
         tempNodes[Solid.fixedCounter:,1] = Solid.nodes_0[Solid.fixedCounter:,1] + nodeDisplacements[:,1] # New z-position
-        #frameNodes = tempNodes
         
         tempNodes[:,0], tempNodes[:,1] = self.rotatePts(tempNodes[:,0], tempNodes[:,1], theta)
         tempNodes[:,1] = tempNodes[:,1] + heave
-        
-#        graph.basic_xy(tempNodes[:,0], tempNodes[:,1])
         
         # Calculating the shift in node positions with the swimming velocity
         nodeDelxp = Body.AF.x_le * np.ones((Solid.Nnodes,1))
@@ -345,38 +301,23 @@ class FSI(object):
                 newzp[i] = np.copy(Body.AF.z[i])
         
 #       Store the absolute displacements and temporary nodes.
-        bodyX = np.copy(Body.AF.x)
-        bodyY = np.copy(Body.AF.z)
-        DUx = newxp - bodyX
-        DUz = newzp - bodyY
         self.DU[:,0] = newxp - Body.AF.x
         self.DU[:,1] = newzp - Body.AF.z
         self.maxDU = np.max(np.sqrt(self.DU[:,0]**2 + self.DU[:,1]**2))
-        maxDU = np.copy(self.maxDU)
         Solid.tempNodes = np.copy(tempNodes)
         
     def calcFSIResidual(self, Solid, outerCorr):
         self.solidNodeDispl = np.copy(self.DU)
         self.fsiResidualOld = np.copy(self.fsiResidual)
         self.nodeResidualOld = np.copy(self.nodeResidual)
-        self.fsiResidual = self.solidNodeDispl - self.fluidNodeDispl  
-        snd = np.copy(self.solidNodeDispl)
-        fnd = np.copy(self.fluidNodeDispl)
-#        print Solid.tempNodes[:,0:2]
-#        print Solid.nodes[:,0:2]
-#        print self.nodeDispl
-        
+        self.fsiResidual = self.solidNodeDispl - self.fluidNodeDispl    
         self.nodeResidual = (Solid.tempNodes[:,0:2]-Solid.nodes[:,0:2]) - self.nodeDispl
-#        graph.basic_xy(Solid.tempNodes[:,0],Solid.tempNodes[:,1])
-        
-#        print self.nodeResidual
         magFsiResidual = np.sqrt(self.fsiResidual[:,0]**2 + self.fsiResidual[:,1]**2)
         self.fsiResidualNorm = np.linalg.norm(self.fsiResidual, ord=2)
         self.maxFsiResidualNorm = np.linalg.norm(self.fsiResidual, ord=np.inf)
         if (outerCorr == 1 ):
             self.initialFsiResidualNorm = np.copy(self.fsiResidualNorm)
             self.maxInitialFsiResidualNorm = np.copy(self.maxFsiResidualNorm)
-
         self.fsiResidualNorm = self.fsiResidualNorm / self.initialFsiResidualNorm
         self.maxFsiResidualNorm = self.maxFsiResidualNorm / self.maxInitialFsiResidualNorm
         self.maxMagFsiResidual = np.max(magFsiResidual)

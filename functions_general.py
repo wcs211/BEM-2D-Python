@@ -1,5 +1,4 @@
 import numpy as np
-import functions_graphics as graph
 
     # x,z components of each panel's tangential and normal vectors
 def panel_vectors(x,z):
@@ -68,16 +67,14 @@ def transformation(xt,zt,xi,zi):
 
 def absoluteToBody(Body, Solid, t, TSTEP):
     """Transforms absolute reference frame to body reference frame"""
-#    theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
-    theta = 5*np.pi/180*np.tanh(t)
+    theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
+#    theta = 5*np.pi/180*np.tanh(t)
 #    theta = 5*np.pi/180*(0.5*np.tanh(t-5)+0.5)
 
     Body.BF.x = ((Body.AF.x - Body.AF.x_le) * np.cos(-1*theta) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*theta))
     Body.BF.z = ((Body.AF.z - Body.AF.z_le) * np.cos(-1*theta) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*theta))
     Body.BF.x_col = ((Body.BF.x[1:] + Body.BF.x[:-1])/2)
     Body.BF.z_col = ((Body.BF.z[1:] + Body.BF.z[:-1])/2)
-    
-#    graph.basic_xy(Body.BF.x.T, Body.BF.z.T)
 
     Solid.nodesNew[:,0] = (Solid.nodes[:,0] - Body.AF.x_le) * np.cos(-1*theta) - (Solid.nodes[:,1] - Body.AF.z_le) * np.sin(-1*theta)
     Solid.nodesNew[:,1] = (Solid.nodes[:,1] - Body.AF.z_le) * np.cos(-1*theta) + (Solid.nodes[:,0] - Body.AF.x_le) * np.sin(-1*theta)

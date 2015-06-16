@@ -6,9 +6,8 @@ MU = 0.001003
 
 P = PARAMETERS = {
 
-  'COUNTER':        21
+  'COUNTER':        201
 , 'DEL_T':          np.pi*0.1/RF
-#, 'DEL_T':          1/0.7104278595/200
 , 'DSTEP':          10**-5
 , 'TSTEP':          10**-5
 , 'VERBOSITY':      1
@@ -24,9 +23,7 @@ P = PARAMETERS = {
 , 'EPSILON':        0.075
 , 'V0':             -1.0
 , 'THETA_MAX':      5*np.pi/180
-#, 'THETA_MAX':      5.73*np.pi/180
 , 'F':              RF/(2*np.pi)
-#, 'F':              0.7104278595
 , 'PHI':            0
 , 'T_MAX':          0.008
 
@@ -35,7 +32,7 @@ P = PARAMETERS = {
 , 'RHO':            998.2
 
 , 'SW_GEOMETRY':    'FP'
-, 'SW_KUTTA':       1
+, 'SW_KUTTA':       0
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Skin Friction Solver Constants                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -51,12 +48,6 @@ P = PARAMETERS = {
 , 'BETA':               0.25*(1+0.2)**2
 , 'GAMMA':              0.5+0.2
 , 'N_ELEMENTS_S':       40
-#, 'MATERIAL':           'Material-1'
-#, 'E':                  1.6e66
-#, 'RHO_S':              100000000
-#, 'MATERIAL':           'Aluminum'
-#, 'E':                  75.0e9
-#, 'RHO_S':              2710
 , 'MATERIAL':           'Polyethylene'
 , 'E':                  3.8e9
 , 'RHO_S':              935

@@ -24,13 +24,6 @@ def main():
     RHO = P['RHO']
     RE = P['RE']
     
-#    if P['SW_RAMP'] == 1:
-#        ramped = ramp(np.arange(0.,DEL_T*(COUNTER+1),DEL_T), 1./(200*DEL_T), 0.) + \
-#                 ramp(np.arange(0.,DEL_T*(COUNTER+1),DEL_T), -1./(200*DEL_T), 200*DEL_T)
-#    else:
-#        ramped = np.ones(np.size(np.arange(0.,DEL_T*(COUNTER+1),DEL_T)))
-            
-
     SPLIT = 0.4
     SwiP = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
 #    GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
@@ -74,8 +67,8 @@ def main():
                 wake_rollup(Swimmers, DEL_T, i)
                 archive(S1.Body.AF.x_mid)
                 archive(S1.Body.AF.z_mid)
-#                theta = S1.Body.MP.THETA_MAX * np.sin(2 * np.pi * S1.Body.MP.F * (T[i] + TSTEP) + S1.Body.MP.PHI)
-                theta = 5*np.pi/180*np.tanh(T[i])
+                theta = S1.Body.MP.THETA_MAX * np.sin(2 * np.pi * S1.Body.MP.F * (T[i] + TSTEP) + S1.Body.MP.PHI)
+#                theta = 5*np.pi/180*np.tanh(T[i])
 #                theta = 5*np.pi/180*(0.5*np.tanh(T[i]-5)+0.5)
                 Solid1.nodes[:,0] = (Solid1.nodesNew[:,0] - Solid1.nodesNew[0,0])*np.cos(theta)
                 Solid1.nodes[:,1] = (Solid1.nodesNew[:,0] - Solid1.nodesNew[0,0])*np.sin(theta)
@@ -99,15 +92,11 @@ def main():
                         else:
                             Swim.Body.AF.x += (FSI1.fluidNodeDispl[:,0] - FSI1.fluidNodeDisplOld[:,0])
                             Swim.Body.AF.z += (FSI1.fluidNodeDispl[:,1] - FSI1.fluidNodeDisplOld[:,1])
-                            new = FSI1.fluidNodeDispl
-                            old = FSI1.fluidNodeDisplOld
-                            AFx = Swim.Body.AF.x + (FSI1.fluidNodeDispl[:,0] - FSI1.fluidNodeDisplOld[:,0])
-                            AFz = Swim.Body.AF.z + (FSI1.fluidNodeDispl[:,1] - FSI1.fluidNodeDisplOld[:,1])
                             
                             Swim.Body.AF.x_mid[0,:] = (Swim.Body.AF.x[:-1] + Swim.Body.AF.x[1:])/2
                             Swim.Body.AF.z_mid[0,:] = (Swim.Body.AF.z[:-1] + Swim.Body.AF.z[1:])/2
-#                            theta = Swim.Body.MP.THETA_MAX * np.sin(2 * np.pi * Swim.Body.MP.F * (T[i] + TSTEP) + Swim.Body.MP.PHI)
-                            theta = 5*np.pi/180*np.tanh(T[i])
+                            theta = Swim.Body.MP.THETA_MAX * np.sin(2 * np.pi * Swim.Body.MP.F * (T[i] + TSTEP) + Swim.Body.MP.PHI)
+#                            theta = 5*np.pi/180*np.tanh(T[i])
 #                            theta = 5*np.pi/180*(0.5*np.tanh(T[i]-5)+0.5)
                             
                             BFx = (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.cos(-1*theta) - (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.sin(-1*theta)
@@ -116,21 +105,11 @@ def main():
                             BFz_col =  ((BFz[1:] + BFz[:-1])/2)
                             Swim.Body.AF.x_col = Swim.Body.AF.x_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[2]*np.absolute(BFz_col)
                             Swim.Body.AF.z_col = Swim.Body.AF.z_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[3]*np.absolute(BFz_col)
-#                            graph.body(Swim.Body.AF.x, Swim.Body.AF.z ) 
-                            
-#                            Swim.Body.BF.x = (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.cos(-1*theta) - (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.sin(-1*theta)
-#                            Swim.Body.BF.z = (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.cos(-1*theta) + (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.sin(-1*theta)
-#                            Swim.Body.BF.x_col = ((Swim.Body.BF.x[1:] + Swim.Body.BF.x[:-1])/2)
-#                            Swim.Body.BF.z_col = ((Swim.Body.BF.z[1:] + Swim.Body.BF.z[:-1])/2)
-#                            Swim.Body.AF.x_col = Swim.Body.AF.x_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[2]*np.absolute(Swim.Body.BF.z_col)
-#                            Swim.Body.AF.z_col = Swim.Body.AF.z_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[3]*np.absolute(Swim.Body.BF.z_col)
     
                         Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
+                        Swim.edge_shed(DEL_T, i)
                         if (outerCorr == 1):
-                            Swim.edge_shed(DEL_T, i)
-                            Swim.wake_shed(DEL_T, i)
-                        else:
-                            Swim.edge_shed(DEL_T, i)
+                            Swim.wake_shed(DEL_T, i)                           
     
                     quilt(Swimmers, RHO, DEL_T, i)
     

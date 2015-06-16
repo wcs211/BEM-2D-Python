@@ -159,16 +159,12 @@ class Body(object):
         step  = (N+2)/2
         theta = np.linspace(start,stop,step)
         xb = (C*np.cos(theta).T + C)/(2.)
-#        print xb
 
         start = np.pi
         stop  = 0
         step  = (N+2)/2
         theta = np.linspace(start,stop,step)
         xt = (C*np.cos(theta).T + C)/(2.)
-#        print xt
-#        xb = np.linspace(c,0,(N+2)/2).T
-#        xt = np.linspace(0,c,(N+2)/2).T
         zb = -0.5*D*np.ones((N+2)/2)
         zt =  0.5*D*np.ones((N+2)/2)
 
@@ -302,8 +298,8 @@ class Body(object):
         PHI = self.MP.PHI
         V0 = self.MP.V0
             
-#        theta = THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)
-        theta = 5*np.pi/180*np.tanh(T)
+        theta = THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)
+#        theta = 5*np.pi/180*np.tanh(T)
 #        theta = 5*np.pi/180*(0.5*np.tanh(T-5)+0.5)
 
         x_neut = X0 + (x+DSTEP)*np.cos(theta) + V0*T
@@ -396,7 +392,7 @@ class Body(object):
             # Velocity calculations on the surface panel midpoints
             self.vx = (xctp - xctm)/(2*TSTEP)
             self.vz = (zctp - zctm)/(2*TSTEP)
-#        else:
+
         elif i == 1:
             # First-order backwards differencing of body collocation point positions
             self.vx = (self.AF.x_mid[0,:]-self.AF.x_mid[1,:])/DEL_T - self.V0

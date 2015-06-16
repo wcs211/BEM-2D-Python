@@ -77,9 +77,6 @@ class PyFEA(object):
         """
         
         if (mType == 'consistent'):
-#            print RHO_S
-#            print A
-#            print l
             C1 = RHO_S * A * l / 420
             C2 = RHO_S * A * l / 6
             m_e = np.array(
@@ -239,19 +236,11 @@ class PyFEA(object):
 #        theta = 5*np.pi/180*np.tanh(t)
         U_n = np.copy(self.U_n)
         Udot_n = np.copy(self.Udot_n)
-        UdotDot_n = np.copy(self.UdotDot_n)
-        
+        UdotDot_n = np.copy(self.UdotDot_n)        
         
         # Reset mass and stiffness matrix to include all nodes
-#        np.resize(self.M, (3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
-#        np.resize(self.K, (3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))        
-#        np.resize(self.UdotDot_n, (3 * (Solid.Nnodes), 1))
-#        self.M.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
-#        self.K.resize((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
-#        self.UdotDot_n.resize((3 * (Solid.Nnodes), 1))  
         self.M = 0
         self.K = 0
-#        UdotDot_n = 0
         
         # Assemble global mass and stiffness matricies
         for i in xrange(self.Nelements):
@@ -263,7 +252,6 @@ class PyFEA(object):
             # Determine element stiffness, mass, and connectivity matricies
             k_e = self.elementStiffnessMatrix(self.E, self.I[i], self.A[i], self.l[i])
             m_e = self.elementMassMatrix(self.RHO_S, self.A[i], self.l[i], mType)
-#            l_e = self.elementConnectivityMatrix(i, theta)
             l_e = self.elementConnectivityMatrix(i, -U_n[3*i-1,0])
             
             # Add element matricies to the global matricies
@@ -272,35 +260,14 @@ class PyFEA(object):
             
         # Set the zero displacement constraints
         temp = 3 * Solid.fixedCounter
-#        M = np.copy(self.M[temp:,temp:])
-#        K = np.copy(self.K[temp:,temp:])
-#        print self.M[temp:, temp:]
-#        print np.linalg.solve(self.M[temp:, temp:], self.Fload[temp:])
-        
-#        self.M = np.delete(self.M, np.arange(0,temp),0)
-#        self.M = np.delete(self.M, np.arange(0,temp),1)
-#        self.K = np.delete(self.K, np.arange(0,temp),0)
-#        self.K = np.delete(self.K, np.arange(0,temp),1)
-#        self.Fload = np.delete(self.Fload, np.arange(0,temp))
-#        self.U_n = np.delete(self.U_n, np.arange(0,temp))
-#        self.Udot_n = np.delete(self.Udot_n, np.arange(0,temp))
-#        self.UdotDot_n = np.delete(self.Udot_n, np.arange(0,temp))
-#        self.U_nPlus = np.delete(self.U_nPlus, np.arange(0,temp))
-#        self.Udot_nPlus = np.delete(self.Udot_nPlus, np.arange(0,temp))
-#        self.UdotDot_nPlus = np.delete(self.Udot_nPlus, np.arange(0,temp))
-
-#        print self.M
         
         # Solve for the initial acceleration matrix
         Fext_n = np.copy(self.Fload)
         RHS = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
-#        self.UdotDot_n = np.linalg.solve(self.M, Fext_n)
-#        UdotDot_n = np.linalg.solve(self.M[temp:,temp:], Fext_n[temp:,0])
         UdotDot_n = np.linalg.solve(self.M[temp:,temp:], RHS)
         
         # March through time until the total simulated time has elapsed
         j = np.size(np.arange(self.deltaT,self.endTime+self.deltaT,self.deltaT))
-#        j = np.size(np.s_[self.deltaT:self.endTime:self.deltaT])
         for i in xrange(j):
             Fext_nPlus = np.copy(Fext_n)
             if (method == 'HHT'):
@@ -317,9 +284,6 @@ class PyFEA(object):
                 print '    NEWMARK'
                 print '    TRAPEZOIDAL'
             if (i != j):
-#                self.U_n[temp:,0] = np.copy(self.U_nPlus)
-#                self.Udot_n[temp:,0] = np.copy(self.Udot_nPlus)
-#                self.UdotDot_n = np.copy(self.UdotDot_nPlus)
                 U_n[temp:,:] = np.copy(U_nPlus)
                 Udot_n[temp:,:] = np.copy(Udot_nPlus)
                 UdotDot_n = np.copy(UdotDot_nPlus)
@@ -327,4 +291,3 @@ class PyFEA(object):
         self.U_nPlus = np.copy(U_nPlus)
         self.Udot_nPlus = np.copy(Udot_nPlus)
         self.UdotDot_nPlus = np.copy(UdotDot_nPlus)
-#        print 'This is the end'
