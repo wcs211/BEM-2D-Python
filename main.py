@@ -9,7 +9,7 @@ import functions_graphics as graph
 from SolidClass import solid
 from PyFEA import PyFEA
 from FSIClass import FSI
-from functions_general import panel_vectors, archive, absoluteToBody, ramp
+from functions_general import panel_vectors, archive, absoluteToBody
 
 def main():
 
