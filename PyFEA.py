@@ -12,8 +12,13 @@ class PyFEA(object):
         """
         Iniitalizes object related variables needed for other class methods.
         
-        Keyword arguments:
-
+        Args:
+            Solid (object): A solid object created from the solid class
+            FRAC_DELT (float): Fraction of the fluid solver time-step to break 
+                the structural solver time-step up into.
+            endTime (float): Total elapsed time for the structural solver.
+            E (float): Young's Modulus of thesolid object.
+            RHO_S (float): Solid object's density.
         """
         
         self.Nelements = Solid.Nelements
@@ -28,13 +33,13 @@ class PyFEA(object):
         self.RHO_S = RHO_S
         self.Fload = np.zeros((3*Solid.Nnodes,1))
         
-#       Initial Displacements
+        # Initial Displacements
         temp = 3 * Solid.fixedCounter
         self.U_n = np.zeros((3*Solid.Nnodes,1))
         self.Udot_n = np.zeros((3*Solid.Nnodes,1))
         self.UdotDot_n = np.zeros((3*Solid.Nnodes-temp,1))
         
-#       Final Displacements
+        # Final Displacements
         self.U_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
         self.Udot_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
         self.UdotDot_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
@@ -44,13 +49,16 @@ class PyFEA(object):
         
     def elementStiffnessMatrix(self, E, I, A, l):
         """
-        Returns the element siffness matrix for bending and axial loads
+        Calculates the element siffness matrix for bending and axial loads.
 
-        Keyword arguments:
-        E -- Young's Modulus
-        I -- Area Moment of Inertia
-        A -- Cross-sectional Area
-        l -- Undeformed Element Length
+        Args:
+            E (float): Young's Modulus of thesolid object.
+            I (float): Element's area moment of inertia.
+            A (float): Element's cross-sectional area.
+            l (float): Length of the element.
+
+        Return:
+            k_e (float): NumPy 2D array of the element stiffness matrix.
         """
         C1 = (E * A / l)
         C2 = (E * I / l**3)
@@ -66,14 +74,20 @@ class PyFEA(object):
         
     def elementMassMatrix(self, RHO_S, A, l, mType):
         """
-        Returns the element mass matrix for bending and axial loads. This can
+        Calculates the element mass matrix for bending and axial loads. This can
         return either a 'consistent' or 'lumped' mass matrix
 
-        Keyword arguments:
-        RHO_S -- Young's Modulus
-        A -- Cross-sectional Area
-        l -- Undeformed Element Length
-        mType -- Type of Mass Matrix. must be 'consistent' or 'lumped'
+        Args:
+            RHO_S (float): Solid object's density.
+            A (float): Element's cross-sectional area.
+            l (float): Length of the element.
+            mType (str): Type of Mass Matrix. must be 'consistent' or 'lumped'.
+
+        Returns:
+            m_e (float): NumPy 2D array of the element mass matrix.
+            
+        Raises:
+            ValueError: If 'mType' is not defined as 'consistent' or 'lumped'.
         """
         
         if (mType == 'consistent'):
@@ -103,18 +117,22 @@ class PyFEA(object):
             # An exception should be thrown and execuition haulted
             print 'ERROR: Invalid mass matrix type "%s"' % mType
             print 'Valid types are:'
-            print '    "Consistent"'
+            print '    "consistent"'
             print '    "lumped"'
             
         return m_e
         
     def elementConnectivityMatrix(self, element, theta):
         """
-        Solves a unsteady finite element system of equations.
+        Calculates the element connectivity matrix. This is used to formulate 
+        the global mass and stiffness matricies.
         
-        Keyword arguments:
-        element -- The current global element number
-        theta -- The initial theta displacement
+        Args:
+            elememnt (int): The current global element number.
+            theta (float): The initial theta displacement.
+            
+        Returns:
+            l_e (float): Element's local to global connectivity matrix.
         """
         element += 1
         l_e = np.zeros((6,3*(self.Nelements+1)))
@@ -129,6 +147,7 @@ class PyFEA(object):
                             [ 0,  0,  0,  0,  0,  1]    ]                       
                        )             
         l_e[:,3*element-2-1:5+3*element-2] = np.copy(temp)
+        
         return l_e
         
     def HHT(self, alpha, beta, gamma, Fext_n, Fext_nPlus, fixedNodes, U_n, Udot_n, UdotDot_n):
@@ -138,13 +157,21 @@ class PyFEA(object):
         dissipation in the high frequency domain. This method has second-order
         accuracy.
         
-        Keyword arguments:
-        alpha -- Integraton constant
-        beta -- Integration constant
-        gamma -- Integration constant
-        Fext_n -- Force exterted at the begining of the time-step
-        Fext_nPlus -- Force exterted at the end of the time-step
-        fixedNodes -- Count of the number of nodes with a no displacement condition
+        Args:
+            alpha (float): Integration constant.
+            beta (float): Integration constant.
+            gamma (float): Integration constant.
+            Fext_n (float): Force exterted at the begining of the time-step.
+            Fext_nPlus (float): Force exterted at the end of the time-step.
+            fixedNodes (int): Number of nodes with a zero dispacement condition.
+            U_n (float): NumPy array of initial displacements.
+            Udot_n (float): NumPy array of initial velocities.
+            UdotDot_n (float): NumPy array of initial accelerations.
+        
+        Returns:
+            U_nPlus (float): NumPy array of final displacements.
+            Udot_nPlus (float): NumPy array of final velocities.
+            UdotDot_nPlus (float): NumPy array of final accelerations.
         """
         
         temp = 3 * fixedNodes
@@ -175,12 +202,20 @@ class PyFEA(object):
         This is a transient, implicit method with numerical dissipation in the 
         high frequency domain. This method has first-order accuracy.
         
-        Keyword arguments:
-        beta -- Integration constant
-        gamma -- Integration constant
-        Fext_n -- Force exterted at the begining of the time-step
-        Fext_nPlus -- Force exterted at the end of the time-step
-        fixedNodes -- Count of the number of nodes with a no displacement condition
+        Args:
+            beta (float): Integration constant.
+            gamma (float): Integration constant.
+            Fext_n (float): Force exterted at the begining of the time-step.
+            Fext_nPlus (float): Force exterted at the end of the time-step.
+            fixedNodes (int): Number of nodes with a zero dispacement condition.
+            U_n (float): NumPy array of initial displacements.
+            Udot_n (float): NumPy array of initial velocities.
+            UdotDot_n (float): NumPy array of initial accelerations.
+        
+        Returns:
+            U_nPlus (float): NumPy array of final displacements.
+            Udot_nPlus (float): NumPy array of final velocities.
+            UdotDot_nPlus (float): NumPy array of final accelerations.
         """
         
         # Form the 'A' matrix
@@ -206,9 +241,17 @@ class PyFEA(object):
         """
         Solves for the system dynamics using the trapezoidal rule.
         
-        Keyword arguments:
-        Fext_nPlus -- Force exterted at the end of the time-step
-        fixedNodes -- Count of the number of nodes with a no displacement condition
+        Args:
+            Fext_nPlus (float): Force exterted at the end of the time-step.
+            fixedNodes (int): Number of nodes with a zero dispacement condition.
+            U_n (float): NumPy array of initial displacements.
+            Udot_n (float): NumPy array of initial velocities.
+            UdotDot_n (float): NumPy array of initial accelerations.
+        
+        Returns:
+            U_nPlus (float): NumPy array of final displacements.
+            Udot_nPlus (float): NumPy array of final velocities.
+            UdotDot_nPlus (float): NumPy array of final accelerations.
         """
         
         # Form the 'A' matrix
@@ -231,10 +274,22 @@ class PyFEA(object):
         
     def solve(self, Body, Solid, outerCorr, t, TSTEP, mType, method, alpha, beta, gamma):
         """
-        Solves a unsteady finite element system of equations.
+        Solves an unsteady finite element system of equations.
         
-        Keyword arguments:
-        mType -- Type of Mass Matrix. must be 'consistent' or 'lumped'
+        Args: 
+            Body (object): A body object created from the swimmer class.
+            Solid (object): A solid object created from the solid class.
+            outerCorr (int): Current FSI subiteration number.
+            t (float): Current simulation time.
+            TSTEP (flaot): Small, incremental distance/time offsets.
+            mType (str): Type of Mass Matrix. must be 'consistent' or 'lumped'.
+            method (str): Time integration method to use.
+            alpha (float): Integration constant.
+            beta (float): Integration constant.
+            gamma (float): Integration constant.
+
+        Raises:
+            ValueError: If 'method' is not defined as 'HHT', 'NEWMARK', or 'TRAPEZOIDAL'.           
         """
         # Determine current pitching angle
 #        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
@@ -274,7 +329,11 @@ class PyFEA(object):
         # March through time until the total simulated time has elapsed
         j = np.size(np.arange(self.deltaT,self.endTime+self.deltaT,self.deltaT))
         for i in xrange(j):
+            # Assume the acting force is constant through the time-step and set
+            # the initial input force as the final input force.
             Fext_nPlus = np.copy(Fext_n)
+            
+            # Determine which integration method to use
             if (method == 'HHT'):
                 (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
             elif (method == 'NEWMARK'):
@@ -282,17 +341,22 @@ class PyFEA(object):
             elif (method == ' TRAPEZOIDAL'):
                 (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.TRAPEZOIDAL(Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
             else:
+                #TODO: Figure out how to throw an exception and hault exec.
                 # Throw exception and hault execuition
                 print 'ERROR! Invalid integration scheme "%s".' % method
                 print 'Valid schemes are:'
                 print '    HHT'
                 print '    NEWMARK'
                 print '    TRAPEZOIDAL'
+                
+            # Store the final displacmeents, velocities, and accelerations as 
+            # the new intial values if the structural simulation has not reached its end time.
             if (i != j):
                 U_n[temp:,:] = np.copy(U_nPlus)
                 Udot_n[temp:,:] = np.copy(Udot_nPlus)
                 UdotDot_n = np.copy(UdotDot_nPlus)
-
+                
+        # Store the final displacements, velocities, and accelerations
         self.U_nPlus = np.copy(U_nPlus)
         self.Udot_nPlus = np.copy(Udot_nPlus)
         self.UdotDot_nPlus = np.copy(UdotDot_nPlus)
