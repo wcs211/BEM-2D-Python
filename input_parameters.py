@@ -32,7 +32,7 @@ P = PARAMETERS = {
 , 'RHO':            998.2
 
 , 'SW_GEOMETRY':    'FP'
-, 'SW_KUTTA':       0
+, 'SW_KUTTA':       1
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Skin Friction Solver Constants                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
