@@ -99,6 +99,7 @@ class PyFEA(object):
                             [   0,         0,          0,           0,         0,          0]]
                           )           
         else:
+            #TODO: Figure out how to throw an exception and hault exec.
             # An exception should be thrown and execuition haulted
             print 'ERROR: Invalid mass matrix type "%s"' % mType
             print 'Valid types are:'
@@ -168,7 +169,7 @@ class PyFEA(object):
         
         return (U_nPlus, Udot_nPlus, UdotDot_nPlus)
         
-    def NEWMARK(self, beta, gamma, Fext_n, Fext_nPlus, fixedNodes):
+    def NEWMARK(self, beta, gamma, Fext_n, Fext_nPlus, fixedNodes, U_n, Udot_n, UdotDot_n):
         """
         Solves a dynamic system of equations using the NEWMARK Method.
         This is a transient, implicit method with numerical dissipation in the 
@@ -186,20 +187,22 @@ class PyFEA(object):
         A = (self.M + beta * self.deltaT**2 * self.K) / (beta * self.deltaT**2)
         
         # Form the 'B' matrix
-        B = Fext_nPlus + 1 / (beta * self.deltaT**2) * self.M * (self.U_n + \
-            self.deltaT * self.Udot_n + \
-            self.deltaT**2 * (0.5 - beta) * self.UdotDot_n)
+        B = Fext_nPlus + 1 / (beta * self.deltaT**2) * self.M * (U_n + \
+            self.deltaT * Udot_n + \
+            self.deltaT**2 * (0.5 - beta) * UdotDot_n)
             
         # Solve the system to get the displacements
-        self.U_nPlus = np.linalg.solve(A, B)
+        U_nPlus = np.linalg.solve(A, B)
         
         # Solve for the accelerations
-        self.UdotDot_nPlus = (self.U_nPlus - (self.U_n + self.deltaT * self.Udot_n + self.deltaT**2 * (0.5 - beta) * self.UdotDot_n)) / (beta * self.deltaT**2)
+        UdotDot_nPlus = (U_nPlus - (U_n + self.deltaT * Udot_n + self.deltaT**2 * (0.5 - beta) * UdotDot_n)) / (beta * self.deltaT**2)
         
         # Solve for the velocities
-        self.Udot_nPlus = (self.Udot_n + self.deltaT * (1 - gamma) * self.UdotDot_n) + gamma * self.deltaT * self.UdotDot_nPlus
+        Udot_nPlus = (Udot_n + self.deltaT * (1 - gamma) * UdotDot_n) + gamma * self.deltaT * UdotDot_nPlus
+
+        return (U_nPlus, Udot_nPlus, UdotDot_nPlus)
         
-    def TRAPEZOIDAL(self, Fext_nPlus, fixedNodes):
+    def TRAPEZOIDAL(self, Fext_nPlus, fixedNodes, U_n, Udot_n, UdotDot_n):
         """
         Solves for the system dynamics using the trapezoidal rule.
         
@@ -212,17 +215,19 @@ class PyFEA(object):
         A = (self.K + (2 / self.deltaT)**2 * self.M)
         
         # Form the 'B' matrix
-        B = (Fext_nPlus + self.M * ((2 / self.deltaT)**2 * self.U_n + \
-            (4 / self.deltaT) * self.Udot_n + self.UdotDot_n))
+        B = (Fext_nPlus + self.M * ((2 / self.deltaT)**2 * U_n + \
+            (4 / self.deltaT) * Udot_n + UdotDot_n))
             
         # Solve the system to get the displacements
-        self.U_nPlus = np.linalg.solve(A, B)
-        
-        # Solve for the accelerations
-        self.UdotDot_nPlus = 2 * (self.Udot_nPlus - self.Udot_n) / self.deltaT - self.UdotDot_n
+        U_nPlus = np.linalg.solve(A, B)
         
         # Solve for the velocities
-        self.Udot_nPlus = 2 * (self.U_nPlus - self.U_n) / self.deltaT - self.Udot_n
+        Udot_nPlus = 2 * (U_nPlus - U_n) / self.deltaT - Udot_n
+        
+        # Solve for the accelerations
+        UdotDot_nPlus = 2 * (Udot_nPlus - Udot_n) / self.deltaT - UdotDot_n
+        
+        return (U_nPlus, Udot_nPlus, UdotDot_nPlus)
         
     def solve(self, Body, Solid, outerCorr, t, TSTEP, mType, method, alpha, beta, gamma):
         """
@@ -273,9 +278,9 @@ class PyFEA(object):
             if (method == 'HHT'):
                 (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
             elif (method == 'NEWMARK'):
-                self.NEWMARK(beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter)
+                (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.NEWMARK(beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
             elif (method == ' TRAPEZOIDAL'):
-                self.TRAPEZOIDAL(Fext_nPlus, Solid.fixedCounter)
+                (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.TRAPEZOIDAL(Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
             else:
                 # Throw exception and hault execuition
                 print 'ERROR! Invalid integration scheme "%s".' % method
