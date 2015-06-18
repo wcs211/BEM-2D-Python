@@ -80,13 +80,13 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Body Motion Parameters                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-P['T'] = T = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
-P['THETA'] = P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'] + P['PHI'])
-P['THETA_MINUS'] = P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'] - P['TSTEP']) + P['PHI'])
-P['THETA_MINUS'] = P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'] + P['TSTEP']) + P['PHI'])
-P['HEAVE'] = 0
-P['HEAVE_MINUS'] = 0
-P['HEAVE_PLUS'] = 0
+P['T'] = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
+P['THETA'] = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i] + P['PHI']) for i in xrange(P['COUNTER'])]
+P['THETA_MINUS'] = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
+P['THETA_PLUS'] = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
+P['HEAVE'] = [0 for i in xrange(P['COUNTER'])]
+P['HEAVE_MINUS'] = [0 for i in xrange(P['COUNTER'])]
+P['HEAVE_PLUS'] = [0 for i in xrange(P['COUNTER'])]
 
 # Constants dependent on declared parameters
 P['DELTA_CORE'] = (0.005*P['THETA_MAX']+0.09)*P['C']

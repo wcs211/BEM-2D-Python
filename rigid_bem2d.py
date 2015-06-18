@@ -48,15 +48,7 @@ S4 = Swimmer(SwiP, GeoP, MotP4, COUNTER-1)
 S5 = Swimmer(SwiP, GeoP, MotP5, COUNTER-1)
 Swimmers = [S1]
 
-Solid1 = solid(S1.Body, P['N_ELEMENTS_S'], P['T_MAX'])
-FSI1 = FSI(S1.Body, Solid1)
-PyFEA1 = PyFEA(Solid1, P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
-
 po().calc_input(MotP1.THETA_MAX/np.pi*180.,RE,MotP1.THETA_MAX/np.pi*180.,DEL_T)
-
-Solid1.initMesh()
-Solid1.initThinPlate(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
-#    Solid1.initTearDrop(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
 
 # Data points per cycle == 1/(F*DEL_T)
 for i in xrange(COUNTER):
@@ -72,7 +64,7 @@ for i in xrange(COUNTER):
         wake_rollup(Swimmers, DEL_T, i)
         archive(S1.Body.AF.x_mid)
         archive(S1.Body.AF.z_mid)
-        graph.plot_n_go(S1.Edge, S1.Body, Solid1)  
+        graph.plot_n_go(S1.Edge, S1.Body)  
     else:
         if np.fmod(i,P['VERBOSITY']) == 0:
             po().timestep_header(i,T[i])
@@ -90,7 +82,7 @@ for i in xrange(COUNTER):
         wake_rollup(Swimmers, DEL_T, i)
         archive(S1.Body.AF.x_mid)
         archive(S1.Body.AF.z_mid)
-        graph.plot_n_go(S1.Edge, S1.Body, Solid1)
+        graph.plot_n_go(S1.Edge, S1.Body)
 
 
 total_time = time.time()-start_time

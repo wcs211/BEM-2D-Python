@@ -99,7 +99,7 @@ class FSI(object):
         self.fsiRelaxationFactor = np.copy(self.fsiRelaxationFactorMin)
         self.nOuterCorr = nOuterCorrMax
         
-    def setInterfaceForce(self, Solid, Body, PyFEA, t, TSTEP, outerCorr, 
+    def setInterfaceForce(self, Solid, Body, PyFEA, THETA, HEAVE, outerCorr, 
                           SW_VISC_DRAG, delFs, SW_INTERP_MTD, C, i_t):
         """
         Updates the structural mesh position, calculates the traction forces on
@@ -122,10 +122,11 @@ class FSI(object):
         """
         # Determine current pitching angle and heave position
         # TODO: Add heaving functionality to kinematics 
-        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
+#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * t + Body.MP.PHI)
+#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
 #        theta = 5*np.pi/180*np.tanh(t)
 #        theta = 5*np.pi/180*(0.5*np.tanh(t-5)+0.5)
-        heave = 0
+#        heave = 0
         
         # Superposing the structural displacements
         if (outerCorr > 1):
@@ -134,8 +135,8 @@ class FSI(object):
             
         if (outerCorr <= 1):
             # Updating the new kinematics
-            Solid.nodes[:,0] = (Solid.nodesNew[:,0] - Solid.nodesNew[0,0])*np.cos(theta)
-            Solid.nodes[:,1] = heave + (Solid.nodesNew[:,0] - Solid.nodesNew[0,0])*np.sin(theta)
+            Solid.nodes[:,0] = (Solid.nodesNew[:,0] - Solid.nodesNew[0,0])*np.cos(THETA)
+            Solid.nodes[:,1] = HEAVE + (Solid.nodesNew[:,0] - Solid.nodesNew[0,0])*np.sin(THETA)
             
             # Calculating the shift in node positions with the swimming velocity
             nodeDelxp = Body.AF.x_le * np.ones((Solid.Nelements + 1,1))
@@ -189,7 +190,7 @@ class FSI(object):
             nodalInput[:,5] = spline(Solid.meanline_c0[0.5*Body.N:], colM[:,0], Solid.nodes[:,2])
             
         # Rotate force components into the relative cooridnate system
-        (nodalInput[:,0], nodalInput[:,1]) = self.rotatePts(nodalInput[:,0], nodalInput[:,1], -theta)
+        (nodalInput[:,0], nodalInput[:,1]) = self.rotatePts(nodalInput[:,0], nodalInput[:,1], -THETA)
         
         # Create the load matrix
         Fload = np.zeros((3*(Solid.Nnodes),1))
@@ -227,7 +228,7 @@ class FSI(object):
         PyFEA.I = np.copy(I)
         PyFEA.l = l_0 * np.ones(Solid.Nelements)
             
-    def getDisplacements(self, Solid, Body, PyFEA, t, TSTEP, SW_INTERP_MTD, FLEX_RATIO):
+    def getDisplacements(self, Solid, Body, PyFEA, THETA, HEAVE, SW_INTERP_MTD, FLEX_RATIO):
         """
         Calculates the new position of the fluid body based on the displacements
         calculated by the structural body. This is used to calculate the FSI 
@@ -247,10 +248,11 @@ class FSI(object):
         """
         # Determine current pitching angle and heave position
         # TODO: Add heaving functionality to kinematics
-        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
+#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * t + Body.MP.PHI) 
+#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
 #        theta = 5*np.pi/180 *np.tanh(t)
 #        theta = 5*np.pi/180*(0.5*np.tanh(t-5)+0.5)
-        heave = 0      
+#        heave = 0      
         
         # Get the absolute x and z displacements
         nodeDisplacements = np.zeros((Solid.Nnodes-Solid.fixedCounter,2))
@@ -263,8 +265,8 @@ class FSI(object):
         tempNodes[Solid.fixedCounter:,1] = Solid.nodes_0[Solid.fixedCounter:,1] + nodeDisplacements[:,1] # New z-position
         
         # Transform the structural mesh into the fluid body absolute reference frame.
-        tempNodes[:,0], tempNodes[:,1] = self.rotatePts(tempNodes[:,0], tempNodes[:,1], theta)
-        tempNodes[:,1] = tempNodes[:,1] + heave
+        tempNodes[:,0], tempNodes[:,1] = self.rotatePts(tempNodes[:,0], tempNodes[:,1], THETA)
+        tempNodes[:,1] = tempNodes[:,1] + HEAVE
         
         # Calculating the shift in node positions with the swimming velocity
         nodeDelxp = Body.AF.x_le * np.ones((Solid.Nnodes,1))

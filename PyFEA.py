@@ -272,7 +272,7 @@ class PyFEA(object):
         
         return (U_nPlus, Udot_nPlus, UdotDot_nPlus)
         
-    def solve(self, Body, Solid, outerCorr, t, TSTEP, mType, method, alpha, beta, gamma):
+    def solve(self, Body, Solid, outerCorr, mType, method, alpha, beta, gamma):
         """
         Solves an unsteady finite element system of equations.
         
@@ -281,7 +281,6 @@ class PyFEA(object):
             Solid (object): A solid object created from the solid class.
             outerCorr (int): Current FSI subiteration number.
             t (float): Current simulation time.
-            TSTEP (flaot): Small, incremental distance/time offsets.
             mType (str): Type of Mass Matrix. must be 'consistent' or 'lumped'.
             method (str): Time integration method to use.
             alpha (float): Integration constant.
@@ -291,9 +290,7 @@ class PyFEA(object):
         Raises:
             ValueError: If 'method' is not defined as 'HHT', 'NEWMARK', or 'TRAPEZOIDAL'.           
         """
-        # Determine current pitching angle
-#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
-#        theta = 5*np.pi/180*np.tanh(t)
+        
         U_n = np.copy(self.U_n)
         Udot_n = np.copy(self.Udot_n)
         UdotDot_n = np.copy(self.UdotDot_n)        

@@ -65,19 +65,20 @@ def transformation(xt,zt,xi,zi):
 
     return(xp1,xp2,zp)
 
-def absoluteToBody(Body, Solid, t, TSTEP):
+def absoluteToBody(Body, Solid, THETA, HEAVE):
     """Transforms absolute reference frame to body reference frame"""
-    theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
+#    theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * t + Body.MP.PHI)
+#    theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
 #    theta = 5*np.pi/180*np.tanh(t)
 #    theta = 5*np.pi/180*(0.5*np.tanh(t-5)+0.5)
 
-    Body.BF.x = ((Body.AF.x - Body.AF.x_le) * np.cos(-1*theta) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*theta))
-    Body.BF.z = ((Body.AF.z - Body.AF.z_le) * np.cos(-1*theta) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*theta))
+    Body.BF.x = ((Body.AF.x - Body.AF.x_le) * np.cos(-1*THETA) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*THETA))
+    Body.BF.z = ((Body.AF.z - Body.AF.z_le) * np.cos(-1*THETA) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*THETA))
     Body.BF.x_col = ((Body.BF.x[1:] + Body.BF.x[:-1])/2)
     Body.BF.z_col = ((Body.BF.z[1:] + Body.BF.z[:-1])/2)
 
-    Solid.nodesNew[:,0] = (Solid.nodes[:,0] - Body.AF.x_le) * np.cos(-1*theta) - (Solid.nodes[:,1] - Body.AF.z_le) * np.sin(-1*theta)
-    Solid.nodesNew[:,1] = (Solid.nodes[:,1] - Body.AF.z_le) * np.cos(-1*theta) + (Solid.nodes[:,0] - Body.AF.x_le) * np.sin(-1*theta)
+    Solid.nodesNew[:,0] = (Solid.nodes[:,0] - Body.AF.x_le) * np.cos(-1*THETA) - (Solid.nodes[:,1] - Body.AF.z_le) * np.sin(-1*THETA)
+    Solid.nodesNew[:,1] = (Solid.nodes[:,1] - Body.AF.z_le) * np.cos(-1*THETA) + (Solid.nodes[:,0] - Body.AF.x_le) * np.sin(-1*THETA)
     
 def ramp(t, slope, startTime):
     """
