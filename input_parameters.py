@@ -5,11 +5,22 @@ RF = 2*np.pi # Reduced frequency
 MU = 0.001003
 
 P = PARAMETERS = {
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Geometry Definition                                                         #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+ 'SW_GEOMETRY':    'FP'
+, 'N_BODY':         100
+, 'C':              0.2
+, 'K':              2.-(12.4/180)
+, 'EPSILON':        0.075
+, 'T_MAX':          0.008
+, 'CE':             0.4
+, 'S':              0.01
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  'COUNTER':        201
+, 'COUNTER':        201
 , 'DEL_T':          np.pi*0.1/RF
 , 'DSTEP':          10**-5
 , 'TSTEP':          10**-5
@@ -18,22 +29,13 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Fluid Body Constants                                                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'N_BODY':         100
-, 'C':              0.2
-, 'K':              2.-(12.4/180)
-, 'EPSILON':        0.075
 , 'V0':             -1.0
 , 'THETA_MAX':      5*np.pi/180
 , 'F':              RF/(2*np.pi)
 , 'PHI':            0
-, 'T_MAX':          0.008
-
-, 'CE':             0.4
-, 'S':              0.01
 , 'RHO':            998.2
-
-, 'SW_GEOMETRY':    'FP'
 , 'SW_KUTTA':       1
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Skin Friction Solver Constants                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -56,7 +58,6 @@ P = PARAMETERS = {
 , 'FLEX_RATIO':         0.3
 , 'T_CONST':            0.95
 
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -74,17 +75,18 @@ P = PARAMETERS = {
 , 'SW_INTERP_MTD':  1
 , 'SW_CNST_THK_BM': 1
 , 'SW_RAMP':        1
-
-
-
 }
-
+##### The Following parameters are based on perviously declared variables #####
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Body Motion Parameters                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 P['T'] = T = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
 P['THETA'] = P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'] + P['PHI'])
+P['THETA_MINUS'] = P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'] - P['TSTEP']) + P['PHI'])
+P['THETA_MINUS'] = P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'] + P['TSTEP']) + P['PHI'])
 P['HEAVE'] = 0
+P['HEAVE_MINUS'] = 0
+P['HEAVE_PLUS'] = 0
 
 # Constants dependent on declared parameters
 P['DELTA_CORE'] = (0.005*P['THETA_MAX']+0.09)*P['C']
