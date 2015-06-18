@@ -73,11 +73,8 @@ for i in xrange(COUNTER):
         wake_rollup(Swimmers, DEL_T, i)
         archive(S1.Body.AF.x_mid)
         archive(S1.Body.AF.z_mid)
-        theta = S1.Body.MP.THETA_MAX * np.sin(2 * np.pi * S1.Body.MP.F * (T[i] + TSTEP) + S1.Body.MP.PHI)
-#                theta = 5*np.pi/180*np.tanh(T[i])
-#                theta = 5*np.pi/180*(0.5*np.tanh(T[i]-5)+0.5)
-        Solid1.nodes[:,0] = (Solid1.nodesNew[:,0] - Solid1.nodesNew[0,0])*np.cos(theta)
-        Solid1.nodes[:,1] = (Solid1.nodesNew[:,0] - Solid1.nodesNew[0,0])*np.sin(theta)
+        Solid1.nodes[:,0] = (Solid1.nodesNew[:,0] - Solid1.nodesNew[0,0])*np.cos(P['THETA'][i])
+        Solid1.nodes[:,1] = (Solid1.nodesNew[:,0] - Solid1.nodesNew[0,0])*np.sin(P['THETA'][i])
         graph.plot_n_go(S1.Edge, S1.Body, Solid1)
 
     else:
@@ -100,10 +97,6 @@ for i in xrange(COUNTER):
                     
                     Swim.Body.AF.x_mid[0,:] = (Swim.Body.AF.x[:-1] + Swim.Body.AF.x[1:])/2
                     Swim.Body.AF.z_mid[0,:] = (Swim.Body.AF.z[:-1] + Swim.Body.AF.z[1:])/2
-#                    theta = Swim.Body.MP.THETA_MAX * np.sin(2 * np.pi * Swim.Body.MP.F * T[i] + Swim.Body.MP.PHI)
-#                    theta = Swim.Body.MP.THETA_MAX * np.sin(2 * np.pi * Swim.Body.MP.F * (T[i] + TSTEP) + Swim.Body.MP.PHI)
-#                            theta = 5*np.pi/180*np.tanh(T[i])
-#                            theta = 5*np.pi/180*(0.5*np.tanh(T[i]-5)+0.5)
                     
                     BFx = (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.cos(-1*P['THETA'][i]) - (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.sin(-1*P['THETA'][i])
                     BFz = (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.cos(-1*P['THETA'][i]) + (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.sin(-1*P['THETA'][i])

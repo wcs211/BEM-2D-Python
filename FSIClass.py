@@ -119,15 +119,7 @@ class FSI(object):
                 interpolation between fluid and solid domains should be used.
             C (float): Body chord length.
             i_t (int): Current time-step number.       
-        """
-        # Determine current pitching angle and heave position
-        # TODO: Add heaving functionality to kinematics 
-#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * t + Body.MP.PHI)
-#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
-#        theta = 5*np.pi/180*np.tanh(t)
-#        theta = 5*np.pi/180*(0.5*np.tanh(t-5)+0.5)
-#        heave = 0
-        
+        """        
         # Superposing the structural displacements
         if (outerCorr > 1):
             Solid.nodes[:,0] += (self.nodeDispl[:,0] - self.nodeDisplOld[:,0])
@@ -245,15 +237,7 @@ class FSI(object):
                 interpolation between fluid and solid domains should be used.
             FLEX_RATIO (float): Percent of the body to remain rigid as measured
                 from the leading edge.
-        """
-        # Determine current pitching angle and heave position
-        # TODO: Add heaving functionality to kinematics
-#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * t + Body.MP.PHI) 
-#        theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)  
-#        theta = 5*np.pi/180 *np.tanh(t)
-#        theta = 5*np.pi/180*(0.5*np.tanh(t-5)+0.5)
-#        heave = 0      
-        
+        """          
         # Get the absolute x and z displacements
         nodeDisplacements = np.zeros((Solid.Nnodes-Solid.fixedCounter,2))
         nodeDisplacements[:,1] =  np.copy(PyFEA.U_nPlus[1::3].T)
