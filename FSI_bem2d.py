@@ -26,7 +26,8 @@ COUNTER = P['COUNTER']
 DEL_T = P['DEL_T']
 DSTEP = P['DSTEP']
 TSTEP = P['TSTEP']
-T = [DEL_T*i for i in xrange(COUNTER)]
+T = P['T']
+#T = [DEL_T*i for i in xrange(COUNTER)]
 RHO = P['RHO']
 RE = P['RE']
 
@@ -55,7 +56,7 @@ PyFEA1 = PyFEA(Solid1, P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
 po().calc_input(MotP1.THETA_MAX/np.pi*180.,RE,MotP1.THETA_MAX/np.pi*180.,DEL_T)
 
 Solid1.initMesh()
-Solid1.initThinPlate(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
+Solid1.initThinPlate(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
 #    Solid1.initTearDrop(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
 
 # Data points per cycle == 1/(F*DEL_T)
@@ -119,9 +120,9 @@ for i in xrange(COUNTER):
 
             #TODO: Replace '0' with viscous drag component when available
             FSI1.setInterfaceForce(Solid1, S1.Body, PyFEA1, T[i], TSTEP, outerCorr,
-                          P['SWITCH_VISC_DRAG'], 0, P['SWITCH_INTERP_MTD'], P['C'], i)
+                          P['SW_VISC_DRAG'], 0, P['SW_INTERP_MTD'], P['C'], i)
             PyFEA1.solve(S1.Body, Solid1, outerCorr, T[i], TSTEP, P['M_TYPE'], P['INT_METHOD'], P['ALPHA'], P['BETA'], P['GAMMA'])
-            FSI1.getDisplacements(Solid1, S1.Body, PyFEA1, T[i], TSTEP, P['SWITCH_INTERP_MTD'], P['FLEX_RATIO'])
+            FSI1.getDisplacements(Solid1, S1.Body, PyFEA1, T[i], TSTEP, P['SW_INTERP_MTD'], P['FLEX_RATIO'])
             FSI1.calcFSIResidual(Solid1, outerCorr)
 
             if np.fmod(i,P['VERBOSITY']) == 0:

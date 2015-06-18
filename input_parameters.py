@@ -6,13 +6,14 @@ MU = 0.001003
 
 P = PARAMETERS = {
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Time-step and Misc. Parameters                                              #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   'COUNTER':        201
 , 'DEL_T':          np.pi*0.1/RF
 , 'DSTEP':          10**-5
 , 'TSTEP':          10**-5
-, 'VERBOSITY':      1
-, 'SW_RAMP':        1
-
+, 'VERBOSITY':      1      
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Fluid Body Constants                                                        #
@@ -68,15 +69,22 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Solver Switches                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SWITCH_KUTTA':       0
-, 'SWITCH_FREE_SWIM':   0
-, 'SWITCH_VISC_DRAG':   0
-, 'SWITCH_INTERP_MTD':  1
-, 'SWITCH_CNST_THK_BM': 1
+, 'SW_FREE_SWIM':   0
+, 'SW_VISC_DRAG':   0
+, 'SW_INTERP_MTD':  1
+, 'SW_CNST_THK_BM': 1
+, 'SW_RAMP':        1
 
 
 
 }
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Body Motion Parameters                                                      #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+P['T'] = T = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
+P['THETA'] = P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'] + P['PHI'])
+P['HEAVE'] = 0
 
 # Constants dependent on declared parameters
 P['DELTA_CORE'] = (0.005*P['THETA_MAX']+0.09)*P['C']

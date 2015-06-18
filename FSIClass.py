@@ -100,7 +100,7 @@ class FSI(object):
         self.nOuterCorr = nOuterCorrMax
         
     def setInterfaceForce(self, Solid, Body, PyFEA, t, TSTEP, outerCorr, 
-                          SWITCH_VISC_DRAG, delFs, SWITCH_INTERP_MTD, C, i_t):
+                          SW_VISC_DRAG, delFs, SW_INTERP_MTD, C, i_t):
         """
         Updates the structural mesh position, calculates the traction forces on
         the free nodes, and determines the initial condisitons for the timestep.
@@ -112,10 +112,10 @@ class FSI(object):
             t (float): Current simulation time.
             TSTEP (flaot): Small, incremental distance/time offsets.
             outerCorr (int): Current FSI subiteration number.
-            SWITCH_VISC_DRAG (bool): Used to determine 
+            SW_VISC_DRAG (bool): Used to determine 
                 if viscous forces should be included.
             delFs (float): NumPy array of viscous force components.
-            SWITCH_INTERP_MTD (bool): Used to determine if linear or cubic spline 
+            SW_INTERP_MTD (bool): Used to determine if linear or cubic spline 
                 interpolation between fluid and solid domains should be used.
             C (float): Body chord length.
             i_t (int): Current time-step number.       
@@ -153,7 +153,7 @@ class FSI(object):
         # then calculate the x-z components of this force
         magPF = Body.p * lp * 1.
         pF = np.zeros((Body.N,2))
-        if (SWITCH_VISC_DRAG == 1):
+        if (SW_VISC_DRAG == 1):
             pF[:,0] = (magPF.T * nx.T * -1.) + delFs[:,0]
             pF[:,1] = (magPF.T * nz.T * -1.) + delFs[:,1]
         else:
@@ -179,7 +179,7 @@ class FSI(object):
         
         # Interpolate the collapsed forces and moments onto the structural mesh
         nodalInput = np.zeros((Solid.Nnodes,6))
-        if (SWITCH_INTERP_MTD == 1):
+        if (SW_INTERP_MTD == 1):
             nodalInput[:,0] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colPF[:,0], left=0, right=0)
             nodalInput[:,1] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colPF[:,1], left=0, right=0)
             nodalInput[:,5] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colM[:,0], left=0, right=0)
@@ -227,7 +227,7 @@ class FSI(object):
         PyFEA.I = np.copy(I)
         PyFEA.l = l_0 * np.ones(Solid.Nelements)
             
-    def getDisplacements(self, Solid, Body, PyFEA, t, TSTEP, SWITCH_INTERP_MTD, FLEX_RATIO):
+    def getDisplacements(self, Solid, Body, PyFEA, t, TSTEP, SW_INTERP_MTD, FLEX_RATIO):
         """
         Calculates the new position of the fluid body based on the displacements
         calculated by the structural body. This is used to calculate the FSI 
@@ -240,7 +240,7 @@ class FSI(object):
             PyFEA (object): A FEA solver object created from the PyFEA class.
             t (float): Current simulation time.
             TSTEP (flaot): Small, incremental distance/time offsets.
-            SWITCH_INTERP_MTD (bool): Used to determine if linear or cubic spline 
+            SW_INTERP_MTD (bool): Used to determine if linear or cubic spline 
                 interpolation between fluid and solid domains should be used.
             FLEX_RATIO (float): Percent of the body to remain rigid as measured
                 from the leading edge.
@@ -299,7 +299,7 @@ class FSI(object):
         # Interpolate the structual top and bottom nodes to find the fluid 
         # panel node positions.
         i = np.rint(0.5 * np.shape(Solid.meanline_p0)[0])
-        if (SWITCH_INTERP_MTD == 1):
+        if (SW_INTERP_MTD == 1):
             bottomXp = np.interp(Solid.meanline_p0[0:i], bottomNodes[:,2], bottomNodes[:,0], left=True, right=True)
             bottomZp = np.interp(Solid.meanline_p0[0:i], bottomNodes[:,2], bottomNodes[:,1], left=True, right=True)
             topXp = np.interp(Solid.meanline_p0[i:], topNodes[:,2], topNodes[:,0], left=True, right=True)

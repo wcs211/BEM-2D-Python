@@ -37,7 +37,7 @@ class solid(object):
         self.fixedCounter = 0
         self.beamCounter = 0
         
-    def initThinPlate(self,tmax,c,constThickBeam,tConst,FLEX_RATIO):
+    def initThinPlate(self, tmax, c, SW_CNST_THK_BM, tConst, FLEX_RATIO):
         """
         This function initializes the element nodal positions.
         
@@ -63,14 +63,14 @@ class solid(object):
                 self.ttemp[i,0] = 0.1*np.copy(tmax)
                 self.tBeam[i,0] = np.copy(tmax)
                 self.tBeamStruct[i,0] = 0.1*np.copy(self.tBeam[i,0])
-                if ( constThickBeam == 1 and  self.nodes[i,2] >= tConst):
+                if (SW_CNST_THK_BM == 1 and  self.nodes[i,2] >= tConst):
                     self.tBeamStruct[i,0] = np.copy(self.tBeamStruct[i-1,0])
                 else:
                     self.tBeamStruct[i,0] = 0.1*np.copy(self.tBeam[i,0])
                 if (self.nodes[i,2] <= FLEX_RATIO):
                     self.fixedCounter += 1
                     
-    def initTearDrop(self,tmax,c,constThickBeam,tConst,FLEX_RATIO):
+    def initTearDrop(self, tmax, c, SW_CNST_THK_BM, tConst, FLEX_RATIO):
         """
         This function initializes the element nodal positions.
         
@@ -96,9 +96,9 @@ class solid(object):
                 if i == self.Nelements-1:
                     self.tBeam[i,0] = 0.5 * self.ttemp[i,0]
                     self.tBeamStruct[i,0] = np.copy(self.tBeam[i,0])
-                    if (constThickBeam == 1 and self.nodes[i,2] >= tConst):
+                    if (SW_CNST_THK_BM == 1 and self.nodes[i,2] >= tConst):
                         self.tBeamStruct[i,0] = np.copy(self.tBeamStruct[i-1,0])
-                if ( constThickBeam == 1 and  self.nodes[i,2] >= tConst):
+                if (SW_CNST_THK_BM == 1 and  self.nodes[i,2] >= tConst):
                     self.tBeamStruct[i,0] = np.copy(self.tBeamStruct[i-1,0])
                 else:
                     self.tBeamStruct[i-1,0] = np.copy(self.tBeam[i-1,0])
