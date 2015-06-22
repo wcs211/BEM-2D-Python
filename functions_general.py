@@ -1,4 +1,5 @@
 import numpy as np
+#from swimmer_class import Swimmer
 
     # x,z components of each panel's tangential and normal vectors
 def panel_vectors(x,z):
@@ -106,3 +107,43 @@ def ramp(t, slope, startTime):
     r[popInd] = slope * (t[popInd] + startTime) - 2 * startTime * slope
     
     return (r)
+    
+def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
+    SwiP     = [None for x in xrange(P['N_SWIMMERS'])]
+    GeoP     = [None for x in xrange(P['N_SWIMMERS'])]
+    MotP     = [None for x in xrange(P['N_SWIMMERS'])]
+    Swimmers = [None for x in xrange(P['N_SWIMMERS'])]
+    SolidP   = [None for x in xrange(P['N_SWIMMERS'])]
+    FSIP     = [None for x in xrange(P['N_SWIMMERS'])]
+    PyFEAP   = [None for x in xrange(P['N_SWIMMERS'])]
+    
+    
+    for i in xrange(P['N_SWIMMERS']):
+        SwiP[i] = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
+        if (P['SW_GEOMETRY'] == 'FP'):
+            GeoP[i] = PC.GeoFPParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
+        elif (P['SW_GEOMETRY'] == 'TD'):
+            GeoP[i] = PC.GeoTDParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
+        elif (P['SW_GEOMETRY'] == 'VDV'):
+            GeoP[i] = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
+        else:
+            print 'ERROR! Invalid geometry type.'
+    
+        MotP[i] = PC.MotionParameters(P['X_START'][i], P['Z_START'][i], P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+    
+        Swimmers[i] = Swimmer(SwiP[i], GeoP[i], MotP[i], P['COUNTER']-1)
+        
+        if (P['SW_FSI'] == True):
+            SolidP[i] = solid(Swimmers[i].Body, P['N_ELEMENTS_S'], P['T_MAX'])
+            FSIP[i] = FSI(Swimmers[i].Body, SolidP[i])
+            PyFEAP[i] = PyFEA(SolidP[i], P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
+            
+            SolidP[i].initMesh()
+            if (P['SW_GEOMETRY'] == 'FP'):
+                SolidP[i].initThinPlate(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
+            elif (P['SW_GEOMETRY'] == 'TD'):
+                SolidP[i].initTearDrop(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
+            else:
+                print 'ERROR! Invalid geometry type.'
+            
+    return (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
