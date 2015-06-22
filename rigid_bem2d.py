@@ -14,9 +14,6 @@ import parameter_classes as PC
 from functions_influence import quilt, wake_rollup
 from terminal_output import print_output as po
 import functions_graphics as graph
-from SolidClass import solid
-from PyFEA import PyFEA
-from FSIClass import FSI
 from functions_general import archive
 
 po().prog_title('1.0.0')
@@ -56,22 +53,22 @@ for i in xrange(COUNTER):
         po().initialize_output(T[i])
 
         for Swim in Swimmers:
-                Swim.Body.panel_positions(DSTEP, T[i])
-                Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
+                Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i])
+                Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
         quilt(Swimmers, RHO, DEL_T, i)
         wake_rollup(Swimmers, DEL_T, i)
         archive(S1.Body.AF.x_mid)
         archive(S1.Body.AF.z_mid)
-        graph.plot_n_go(S1.Edge, S1.Body)  
+        graph.body_plot(S1.Edge, S1.Body)  
     else:
         if np.fmod(i,P['VERBOSITY']) == 0:
             po().timestep_header(i,T[i])
 
         for Swim in Swimmers:
-            Swim.Body.panel_positions(DSTEP, T[i])
-            Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
+            Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i])
+            Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], DEL_T, T[i], i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
         quilt(Swimmers, RHO, DEL_T, i)
@@ -82,7 +79,7 @@ for i in xrange(COUNTER):
         wake_rollup(Swimmers, DEL_T, i)
         archive(S1.Body.AF.x_mid)
         archive(S1.Body.AF.z_mid)
-        graph.plot_n_go(S1.Edge, S1.Body)
+        graph.body_plot(S1.Edge, S1.Body)
 
 
 total_time = time.time()-start_time

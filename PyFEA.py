@@ -290,7 +290,6 @@ class PyFEA(object):
         Raises:
             ValueError: If 'method' is not defined as 'HHT', 'NEWMARK', or 'TRAPEZOIDAL'.           
         """
-        
         U_n = np.copy(self.U_n)
         Udot_n = np.copy(self.Udot_n)
         UdotDot_n = np.copy(self.UdotDot_n)        

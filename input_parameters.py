@@ -61,7 +61,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             1
+, 'SW_FSI':             0
 , 'N_OUTERCORR_MAX':    1000
 , 'OUTER_CORR_TOL':     1e-5
 , 'FIXED_PT_RELAX':     0.00001

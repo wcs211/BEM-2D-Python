@@ -119,7 +119,28 @@ def plot_n_go(Edge, Body, Solid):
     plt.clf()
     
     n_fig += 1  
+
+def body_plot(Edge, Body):
+    global n_fig
+    figure = plt.figure(1)
+    figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
+#    plt.gca().set_aspect('equal')
+    plt.gca().invert_yaxis()
     
+    plt.plot(Body.AF.x_col[:Body.N/2], Body.cp[:Body.N/2]/100, 'g')
+    plt.plot(Body.AF.x_col[Body.N/2:], Body.cp[Body.N/2:]/100, 'b')
+    plt.plot(Body.AF.x, Body.AF.z, 'k')
+    plt.plot(Body.AF.x_col, Body.AF.z_col, 'r')
+
+    plt.xlim((np.min(Body.AF.x)-0.02, np.min(Body.AF.x)+0.22))
+    plt.plot(Edge.x, Edge.z, 'g')
+    plt.ylim((-0.05, 0.05))
+    
+    figure.savefig('./movies/%05i.png' % (n_fig), format='png')
+    plt.clf()
+    
+    n_fig += 1
+
 def body(x,y,color='b'):
     figure = plt.figure(2)
     figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here

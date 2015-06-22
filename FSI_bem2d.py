@@ -65,8 +65,8 @@ for i in xrange(COUNTER):
         po().initialize_output(T[i])
 
         for Swim in Swimmers:
-                Swim.Body.panel_positions(DSTEP, T[i])
-                Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
+                Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i])
+                Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
         quilt(Swimmers, RHO, DEL_T, i)
@@ -90,7 +90,7 @@ for i in xrange(COUNTER):
             FSI1.setInterfaceDisplacemet(outerCorr, P['COUPLING_SCHEME'])
             for Swim in Swimmers:
                 if (outerCorr == 1):
-                    Swim.Body.panel_positions(DSTEP, T[i])
+                    Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i])
                 else:
                     Swim.Body.AF.x += (FSI1.fluidNodeDispl[:,0] - FSI1.fluidNodeDisplOld[:,0])
                     Swim.Body.AF.z += (FSI1.fluidNodeDispl[:,1] - FSI1.fluidNodeDisplOld[:,1])
@@ -105,7 +105,7 @@ for i in xrange(COUNTER):
                     Swim.Body.AF.x_col = Swim.Body.AF.x_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[2]*np.absolute(BFz_col)
                     Swim.Body.AF.z_col = Swim.Body.AF.z_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[3]*np.absolute(BFz_col)
 
-                Swim.Body.surface_kinematics(DSTEP, TSTEP, DEL_T, T[i], i)
+                Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 if (outerCorr == 1):
                     Swim.wake_shed(DEL_T, i)                           
