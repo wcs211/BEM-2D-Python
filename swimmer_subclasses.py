@@ -279,14 +279,9 @@ class Body(object):
 
         Args:
             x: An array of body-frame x-coordinates to use as reference points.
-            DSTEP, TSTEP: Small incremental distance/time offsets
-                (intended for differencing).
+            DSTEP: Small incremental distance offset (intended for differencing).
             T: Time of the current step.
-            X0, Z0: Initial position of the leading edge (absolute frame).
-            THETA_MAX: Maximum pitching angle of the body.
-            F: Frequency of the body's pitching motion.
-            PHI: Phase offset of the body's pitching motion.
-            V0: Free-stream velocity.
+            THETA: Current pitching angle.
 
         Returns:
             x_neut and z_neut: X- and Z-coordinates of the neutral axis points.
@@ -313,9 +308,8 @@ class Body(object):
         Args:
             DSTEP: Small incremental distance to pass into neutral_axis().
             T: Time of current step.
-            bfx, bfz: Body-frame x- and z-coordinates.
-            bfz_col: Body-frame collocation z-coordinates (unshifted)
-            V0: Free-stream velocity.
+            THETA: Current pitching angle.
+
         """
         bfx = self.BF.x
         bfz = self.BF.z
@@ -366,7 +360,8 @@ class Body(object):
             DEL_T: Time step length.
             T: Time of current step.
             i: Time step number.
-            x_col, z_col: Unshifted body-frame collocation point coordinates.
+            THETA_MINUS: Pitching angle minus a small time difference (TSTEP)
+            THETA_PLUS: Pitching angle plus a small time difference (TSTEP)
         """
         if i == 0:
 
