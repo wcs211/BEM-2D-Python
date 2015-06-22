@@ -27,41 +27,13 @@ DEL_T = P['DEL_T']
 DSTEP = P['DSTEP']
 TSTEP = P['TSTEP']
 T = P['T']
-#T = [DEL_T*i for i in xrange(COUNTER)]
 RHO = P['RHO']
 RE = P['RE']
 
-#SPLIT = 0.4
-#SwiP = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
-##    GeoP = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
-#GeoP = PC.GeoFPParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
-##    GeoP = PC.GeoTDParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
-#MotP1 = PC.MotionParameters(0., 0*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
-#MotP2 = PC.MotionParameters(0., 1*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
-#MotP3 = PC.MotionParameters(0., 2*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
-#MotP4 = PC.MotionParameters(0., 3*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
-#MotP5 = PC.MotionParameters(0., 4*SPLIT, P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
-#
-#S1 = Swimmer(SwiP, GeoP, MotP1, COUNTER-1)
-#S2 = Swimmer(SwiP, GeoP, MotP2, COUNTER-1)
-#S3 = Swimmer(SwiP, GeoP, MotP3, COUNTER-1)
-#S4 = Swimmer(SwiP, GeoP, MotP4, COUNTER-1)
-#S5 = Swimmer(SwiP, GeoP, MotP5, COUNTER-1)
-#Swimmers = [S1]
-
 (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = geom_setup(P, PC, Swimmer, solid, FSI, PyFEA)
-
-#Solid1 = solid(S1.Body, P['N_ELEMENTS_S'], P['T_MAX'])
-#FSI1 = FSI(S1.Body, Solid1)
-#PyFEA1 = PyFEA(Solid1, P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
 
 po().calc_input(MotP[0].THETA_MAX/np.pi*180.,RE,MotP[0].THETA_MAX/np.pi*180.,DEL_T)
 
-#Solid1.initMesh()
-#Solid1.initThinPlate(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
-#    Solid1.initTearDrop(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
-
-# Data points per cycle == 1/(F*DEL_T)
 for i in xrange(COUNTER):
     if i == 0:
         po().initialize_output(T[i])
