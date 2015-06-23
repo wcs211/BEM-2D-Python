@@ -5,9 +5,9 @@ BEM-2D
 A 2D boundary element method code
 
 """
-
 import time
 import numpy as np
+from data_IO_class import DataIO
 from input_parameters import PARAMETERS as P
 from swimmer_class import Swimmer
 import parameter_classes as PC
@@ -20,6 +20,7 @@ from FSIClass import FSI
 from functions_general import panel_vectors, archive, absoluteToBody, geom_setup
 
 po().prog_title('1.0.0')
+DIO = DataIO(P['OUTPUT_DIR'])
 start_time = time.time()
 
 COUNTER = P['COUNTER']
@@ -50,6 +51,7 @@ for i in xrange(COUNTER):
         SolidP[0].nodes[:,0] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.cos(P['THETA'][i])
         SolidP[0].nodes[:,1] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.sin(P['THETA'][i])
         graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0])
+        DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
 
     else:
         if np.fmod(i,P['VERBOSITY']) == 0:
@@ -109,6 +111,7 @@ for i in xrange(COUNTER):
                 archive(Swimmers[0].Body.AF.x_mid)
                 archive(Swimmers[0].Body.AF.z_mid)
                 graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0])
+                DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
                 break
 
 total_time = time.time()-start_time

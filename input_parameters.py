@@ -6,9 +6,16 @@ MU = 0.001003
 
 P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Data I/O                                                                    #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  'SW_SAVE_DATA':       True
+, 'SAVE_EVERY':         1
+, 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Geometry Definition                                                         #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
- 'SW_GEOMETRY':         'FP'
+, 'SW_GEOMETRY':        'FP'
 , 'N_BODY':             100
 , 'C':                  0.2
 , 'K':                  2.-(12.4/180)
@@ -20,7 +27,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'COUNTER':            201
+, 'COUNTER':            21
 , 'DEL_T':              np.pi*0.1/RF
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
@@ -34,7 +41,7 @@ P = PARAMETERS = {
 , 'F':                  RF/(2*np.pi)
 , 'PHI':                0
 , 'RHO':                998.2
-, 'SW_KUTTA':           1
+, 'SW_KUTTA':           True
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Skin Friction Solver Constants                                              #
@@ -61,7 +68,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             1
+, 'SW_FSI':             False
 , 'N_OUTERCORR_MAX':    1000
 , 'OUTER_CORR_TOL':     1e-5
 , 'FIXED_PT_RELAX':     0.00001
@@ -70,11 +77,11 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Solver Switches                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FREE_SWIM':       0
-, 'SW_VISC_DRAG':       0
-, 'SW_INTERP_MTD':      1
-, 'SW_CNST_THK_BM':     1
-, 'SW_RAMP':            1
+, 'SW_FREE_SWIM':       False
+, 'SW_VISC_DRAG':       False
+, 'SW_INTERP_MTD':      True
+, 'SW_CNST_THK_BM':     True
+, 'SW_RAMP':            True
 }
 
 

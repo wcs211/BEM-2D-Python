@@ -5,9 +5,9 @@ BEM-2D
 A 2D boundary element method code
 
 """
-
 import time
 import numpy as np
+from data_IO_class import DataIO
 from input_parameters import PARAMETERS as P
 from swimmer_class import Swimmer
 import parameter_classes as PC
@@ -17,6 +17,7 @@ import functions_graphics as graph
 from functions_general import archive, geom_setup
 
 po().prog_title('1.0.0')
+DIO = DataIO(P['OUTPUT_DIR'])
 start_time = time.time()
 
 COUNTER = P['COUNTER']
@@ -46,7 +47,8 @@ for i in xrange(COUNTER):
         for Swim in Swimmers:
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body)  
+        graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body)
+        DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
     else:
         if np.fmod(i,P['VERBOSITY']) == 0:
             po().timestep_header(i,T[i])
@@ -66,6 +68,7 @@ for i in xrange(COUNTER):
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
         graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body) 
+        DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
 
 total_time = time.time()-start_time
