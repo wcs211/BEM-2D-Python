@@ -11,6 +11,7 @@ Other related projects:
 ## Getting Started
 * Edit the simulation input file [input_parameters.py](https://github.com/wcs211/BEM-2D-Python/blob/master/input_parameters.py)
 * Execuite the file [bem2d.py](https://github.com/wcs211/BEM-2D-Python/blob/BEM2DFSI/bem2d.py) at the terminal prompt:
+
 	$ python bem2d.py
 
 ## Features
