@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -99,6 +100,10 @@ def lift_vs_period(Body,RHO,t):
     
 def plot_n_go(Edge, Body, Solid):
     global n_fig
+    # Determine if the output directory exists. If not, create the directory.
+    if not os.path.exists('./movies'):
+        os.makedirs('./movies')
+        
     figure = plt.figure(1)
     figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
 #    plt.gca().set_aspect('equal')
@@ -122,6 +127,11 @@ def plot_n_go(Edge, Body, Solid):
 
 def body_plot(Edge, Body):
     global n_fig
+    
+    # Determine if the output directory exists. If not, create the directory.
+    if not os.path.exists('./movies'):
+        os.makedirs('./movies')
+        
     figure = plt.figure(1)
     figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
 #    plt.gca().set_aspect('equal')

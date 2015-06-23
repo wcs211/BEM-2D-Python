@@ -8,9 +8,8 @@ Other related projects:
 * [kmoored/BEM-2D-Matlab](https://github.com/kmoored/BEM-2D-Matlab)
 * [wcs211/BEM-3D-Python](https://github.com/wcs211/BEM-3D-Python)
 
-## Get Started
+## Getting Started
 * Edit the simulation input file [input_parameters.py](https://github.com/wcs211/BEM-2D-Python/blob/master/input_parameters.py)
-* Verrify a 'movies' directory exists in the execuition path for timestep plots to be saved to.
 * Execuite the file 'bem2d.py' at the terminal prompt:
     $ python bem2d.py
 
@@ -19,10 +18,12 @@ Other related projects:
 * Modular code structure allows easier implementation of new features
 * Multiple body interactions
 * Implicit and Explicit Kutta condition enforcement
+* Saves time-step data for post-processing
 
 ## Future Features
 The following features have planned implementation in the code:
 
+* Start from a previous data save
 * Vortex Particle wake representation
 * Lumped wake representation
 * Equations of motion solver
