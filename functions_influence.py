@@ -118,7 +118,7 @@ def quilt(Swimmers, RHO, DEL_T, i):
                 rhs = -np.dot(b_s, sigma_all) - np.squeeze(np.dot(b_de, Swimmers[0].mu_guess[0]))
             else:              
                 rhs = -np.dot(b_s, sigma_all) - np.dot(np.insert(b_dw, 0, b_de[:,0], axis=1), np.insert(Swimmers[0].Wake.mu[:i], 0, Swimmers[0].mu_guess[0]))
-            
+
             Swimmers[0].Body.mu = np.dot(a_inv, rhs)
             
         for Swim in Swimmers:
@@ -126,7 +126,9 @@ def quilt(Swimmers, RHO, DEL_T, i):
         if len(Swimmers) > 1 or Swimmers[0].SW_KUTTA == 0:
             break
         Swimmers[0].delta_cp[0] = np.absolute(Swimmers[0].Body.cp[-1]-Swimmers[0].Body.cp[0])
-        if Swimmers[0].delta_cp[0] < 0.0001:
+        
+        # wcs211: Added a max iteration break for the implicit Kutta loop
+        if Swimmers[0].delta_cp[0] < 0.0001 or n_iter >= 1000:
             break
                 
     for Swim in Swimmers:
