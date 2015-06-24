@@ -18,13 +18,11 @@ from SolidClass import solid
 from PyFEA import PyFEA
 from FSIClass import FSI
 from functions_general import panel_vectors, archive, absoluteToBody, simulation_startup
-#from functions_general import panel_vectors, archive, absoluteToBody, geom_setup
 
 po().prog_title('1.0.0')
 DIO = DataIO(P)
 start_time = time.time()
 
-#COUNTER = P['COUNTER']
 DEL_T = P['DEL_T']
 DSTEP = P['DSTEP']
 TSTEP = P['TSTEP']
@@ -33,16 +31,12 @@ RHO = P['RHO']
 RE = P['RE']
 
 (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = simulation_startup(P, DIO, PC, Swimmer, solid, FSI, PyFEA)
-#(SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = geom_setup(P, PC, Swimmer, solid, FSI, PyFEA)
 
 po().calc_input(MotP[0].THETA_MAX/np.pi*180.,RE,MotP[0].THETA_MAX/np.pi*180.,DEL_T)
 po().initialize_output((START_COUNTER-1)*DEL_T)
 
-#for i in xrange(COUNTER):
 for i in xrange(START_COUNTER, COUNTER):
     if i == 0:
-#        po().initialize_output(T[i])
-
         for Swim in Swimmers:
                 Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i])
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], DEL_T, T[i], i)
@@ -122,4 +116,3 @@ total_time = time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
 
 graph.body_wake_plot(Swimmers)
-#    graph.cp_plot(S1.Body)

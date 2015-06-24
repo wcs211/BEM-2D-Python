@@ -15,13 +15,11 @@ from functions_influence import quilt, wake_rollup
 from terminal_output import print_output as po
 import functions_graphics as graph
 from functions_general import archive, simulation_startup
-#from functions_general import archive, geom_setup
 
 po().prog_title('1.0.0')
 DIO = DataIO(P)
 start_time = time.time()
 
-#COUNTER = P['COUNTER']
 DEL_T = P['DEL_T']
 DSTEP = P['DSTEP']
 TSTEP = P['TSTEP']
@@ -31,17 +29,12 @@ RE = P['RE']
 
 (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers) = simulation_startup(P, DIO, PC, Swimmer)[0:6]
 
-#(SwiP, GeoP, MotP, Swimmers) = geom_setup(P, PC, Swimmer)[0:4]
-
 po().calc_input(MotP[0].THETA_MAX/np.pi*180.,RE,MotP[0].THETA_MAX/np.pi*180.,DEL_T)
 po().initialize_output((START_COUNTER-1)*DEL_T)
 
 # Data points per cycle == 1/(F*DEL_T)
-#for i in xrange(COUNTER):
 for i in xrange(START_COUNTER, COUNTER):
     if i == 0:
-#        po().initialize_output(T[i])
-
         for Swim in Swimmers:
                 Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i])
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], DEL_T, T[i], i)
@@ -54,6 +47,7 @@ for i in xrange(START_COUNTER, COUNTER):
             archive(Swim.Body.AF.z_mid)
         graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
+        
     else:
         if np.fmod(i,P['VERBOSITY']) == 0:
             po().timestep_header(i,T[i])
@@ -79,4 +73,3 @@ total_time = time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
 
 graph.body_wake_plot(Swimmers)
-#    graph.cp_plot(S1.Body)
