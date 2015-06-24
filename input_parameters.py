@@ -11,6 +11,7 @@ P = PARAMETERS = {
   'SW_SAVE_DATA':       True
 , 'SAVE_EVERY':         1
 , 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
+, 'START_FROM':         'latestTime'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Geometry Definition                                                         #
@@ -27,7 +28,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'COUNTER':            21
+, 'COUNTER':            301
 , 'DEL_T':              np.pi*0.1/RF
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5

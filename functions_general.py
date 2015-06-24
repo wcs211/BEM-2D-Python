@@ -1,3 +1,5 @@
+import os
+import sys
 import numpy as np
 #from swimmer_class import Swimmer
 
@@ -117,7 +119,6 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
     FSIP     = [None for x in xrange(P['N_SWIMMERS'])]
     PyFEAP   = [None for x in xrange(P['N_SWIMMERS'])]
     
-    
     for i in xrange(P['N_SWIMMERS']):
         SwiP[i] = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
         if (P['SW_GEOMETRY'] == 'FP'):
@@ -147,3 +148,62 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
                 print 'ERROR! Invalid geometry type.'
             
     return (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
+    
+def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
+    if (os.path.exists(P['OUTPUT_DIR']) == False or os.listdir(P['OUTPUT_DIR']) == []):
+        P['START_FROM'] = 'zeroTime'
+    
+    if (P['START_FROM'] == 'latestTime'): 
+        startTime = 0.
+        for file in os.listdir(''.join((P['OUTPUT_DIR'], '/'))):
+            startTime = max(float(file), startTime)
+
+        (sP, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
+        if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
+            print 'ERROR! Inconsistent input parameters with starting data file.'
+
+        if (Swimmers[0].Wake.x.shape[0] < P['COUNTER']):
+            for Swim in Swimmers:
+                Swim.Wake.x.resize(P['COUNTER'])
+                Swim.Wake.z.resize(P['COUNTER'])
+                Swim.Wake.mu.resize(P['COUNTER']-1)
+                Swim.Wake.gamma.resize(P['COUNTER'])
+        
+        START_COUNTER = i + 1
+        COUNTER = P['COUNTER']
+        
+    elif (P['START_FROM'] == 'firstTime'):
+        startTime = sys.float_info.max
+        for file in os.listdir(''.join((P['OUTPUT_DIR'], '/'))):
+            startTime = max(float(file), startTime)
+
+        (sP, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
+        if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
+            print 'ERROR! Inconsistent input parameters with starting data file.'
+            
+        if (Swimmers[0].Wake.x.shape[0] < P['COUNTER']):
+            for Swim in Swimmers:
+                Swim.Wake.x.resize(P['COUNTER'])
+                Swim.Wake.z.resize(P['COUNTER'])
+                Swim.Wake.mu.resize(P['COUNTER']-1)
+                Swim.Wake.gamma.resize(P['COUNTER'])
+            
+        START_COUNTER = i + 1
+        COUNTER = P['COUNTER']
+            
+    elif (P['START_FROM'] == 'zeroTime'):
+        startTime = '0.00000000'
+        (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = geom_setup(P, PC, Swimmer, solid, FSI, PyFEA)
+        
+        START_COUNTER = 0
+        COUNTER = P['COUNTER']
+        
+    else:
+        print 'ERROR! Invalid START_FROM. Valid values are:'
+        print '    latestTime'
+        print '    firstTime'
+        print '    zeroTime'
+
+    return (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
+        
+    
