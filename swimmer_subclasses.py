@@ -269,7 +269,7 @@ class Body(object):
 
         return Body(N, S, BodyFrameCoordinates, MotionParameters)
 
-    def neutral_axis(self, x, T, THETA, DSTEP=0):
+    def neutral_axis(self, x, T, THETA, HEAVE, DSTEP=0):
         """Finds a body's neutral axis for a given time.
 
         The neutral axis is the axis which coincides with the chord line and
@@ -298,11 +298,11 @@ class Body(object):
 #        theta = 5*np.pi/180*(0.5*np.tanh(T-5)+0.5)
 
         x_neut = X0 + (x+DSTEP)*np.cos(THETA) + V0*T
-        z_neut = Z0 + (x+DSTEP)*np.sin(THETA)
+        z_neut = Z0 + (x+DSTEP)*np.sin(THETA) + HEAVE
 
         return(x_neut, z_neut)
 
-    def panel_positions(self, DSTEP, T, THETA):
+    def panel_positions(self, DSTEP, T, THETA, HEAVE):
         """Updates all the absolute-frame coordinates of the body.
 
         Args:
@@ -316,11 +316,11 @@ class Body(object):
         bfz_col = self.BF.z_col
         V0 = self.V0 # Used only for x_le
 
-        (x_neut, z_neut) = self.neutral_axis(bfx, T, THETA)
+        (x_neut, z_neut) = self.neutral_axis(bfx, T, THETA, HEAVE)
 
         # Infinitesimal differences on the neutral axis to calculate the tangential and normal vectors
-        (xdp_s, zdp_s) = self.neutral_axis(bfx, T, THETA, DSTEP)
-        (xdm_s, zdm_s) = self.neutral_axis(bfx, T, THETA, -DSTEP)
+        (xdp_s, zdp_s) = self.neutral_axis(bfx, T, THETA, HEAVE, DSTEP)
+        (xdm_s, zdm_s) = self.neutral_axis(bfx, T, THETA, HEAVE, -DSTEP)
 
         # Absolute-frame panel endpoint positions for time t
         afx = x_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[2]*bfz
@@ -349,7 +349,7 @@ class Body(object):
         self.AF.x_le = V0*T
         self.AF.z_le = 0.
 
-    def surface_kinematics(self, DSTEP, TSTEP, THETA_MINUS, THETA_PLUS, DEL_T, T, i):
+    def surface_kinematics(self, DSTEP, TSTEP, THETA_MINUS, THETA_PLUS, HEAVE_MINUS, HEAVE_PLUS, DEL_T, T, i):
         """Calculates the body-frame surface velocities of body panels.
 
         Also finds the body panel source strengths based on these surface
@@ -370,12 +370,12 @@ class Body(object):
 
             # Panel midpoint velocity calculations
             # Calculating the surface positions at tplus(tp) and tminus(tm)
-            (xtpneut, ztpneut) = self.neutral_axis(x_col, T, THETA_PLUS, 0)
-            (xtpdp, ztpdp) = self.neutral_axis(x_col, T, THETA_PLUS, DSTEP)
-            (xtpdm, ztpdm) = self.neutral_axis(x_col, T, THETA_PLUS, -DSTEP)
-            (xtmneut, ztmneut) = self.neutral_axis(x_col, T, THETA_MINUS, 0)
-            (xtmdp, ztmdp) = self.neutral_axis(x_col, T, THETA_MINUS, DSTEP)
-            (xtmdm, ztmdm) = self.neutral_axis(x_col, T, THETA_MINUS, -DSTEP)
+            (xtpneut, ztpneut) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, 0)
+            (xtpdp, ztpdp) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, DSTEP)
+            (xtpdm, ztpdm) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, -DSTEP)
+            (xtmneut, ztmneut) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, 0)
+            (xtmdp, ztmdp) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, DSTEP)
+            (xtmdm, ztmdm) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, -DSTEP)
 
             # Displaced airfoil's panel midpoints for times tplus(tp) and tminus(tm)
             xctp = xtpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[2]*z_col

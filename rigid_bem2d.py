@@ -36,8 +36,8 @@ po().initialize_output((START_COUNTER-1)*DEL_T)
 for i in xrange(START_COUNTER, COUNTER):
     if i == 0:
         for Swim in Swimmers:
-                Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i])
-                Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], DEL_T, T[i], i)
+                Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
+                Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
         quilt(Swimmers, RHO, DEL_T, i)
@@ -53,8 +53,8 @@ for i in xrange(START_COUNTER, COUNTER):
             po().timestep_header(i,T[i])
 
         for Swim in Swimmers:
-            Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i])
-            Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], DEL_T, T[i], i)
+            Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
+            Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
         quilt(Swimmers, RHO, DEL_T, i)

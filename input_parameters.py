@@ -11,7 +11,7 @@ P = PARAMETERS = {
   'SW_SAVE_DATA':       True
 , 'SAVE_EVERY':         1
 , 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
-, 'START_FROM':         'latestTime'
+, 'START_FROM':         'zeroTime'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Geometry Definition                                                         #
@@ -28,17 +28,18 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'COUNTER':            301
-, 'DEL_T':              np.pi*0.1/RF
+, 'COUNTER':            601
+, 'DEL_T':              np.pi*0.01/RF
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
-, 'VERBOSITY':          1      
+, 'VERBOSITY':          10      
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Fluid Body Constants                                                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'V0':                 -1.0
 , 'THETA_MAX':          5*np.pi/180
+, 'HEAVE_MAX':          0.018
 , 'F':                  RF/(2*np.pi)
 , 'PHI':                0
 , 'RHO':                998.2
@@ -101,9 +102,9 @@ P['T']           = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
 P['THETA']       = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i] + P['PHI']) for i in xrange(P['COUNTER'])]
 P['THETA_MINUS'] = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
 P['THETA_PLUS']  = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
-P['HEAVE']       = [0 for i in xrange(P['COUNTER'])]
-P['HEAVE_MINUS'] = [0 for i in xrange(P['COUNTER'])]
-P['HEAVE_PLUS']  = [0 for i in xrange(P['COUNTER'])]
+P['HEAVE']       = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i]) for i in xrange(P['COUNTER'])]
+P['HEAVE_MINUS'] = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP'])) for i in xrange(P['COUNTER'])]
+P['HEAVE_PLUS']  = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP'])) for i in xrange(P['COUNTER'])]
 
 # Constants dependent on declared parameters
 P['DELTA_CORE']  = (0.005*P['THETA_MAX']+0.09)*P['C']
