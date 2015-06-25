@@ -20,7 +20,7 @@ def quilt(Swimmers, RHO, DEL_T, i):
         Swim.i_e = n_e
         Swim.i_w = n_w
         n_b += Swim.Body.N
-        n_e += 1 #Swim.Edge.N?
+        n_e += Swim.Edge.N
         n_w += Swim.Wake.get_relevant(i)[0]
 
     xp1 = np.empty((n_b,n_b))
@@ -46,12 +46,12 @@ def quilt(Swimmers, RHO, DEL_T, i):
     xp2 = np.empty((n_e,n_b))
     zp = np.empty((n_e,n_b))
     for SwimI in Swimmers:
-#        (r0, rn) = (SwimI.i_e, SwimI.i_e+SwimI.Edge.N)
-        r0 = SwimI.i_e
+        (r0, rn) = (SwimI.i_e, SwimI.i_e+SwimI.Edge.N)
+#        r0 = SwimI.i_e
         for SwimT in Swimmers:
             (c0, cn) = (SwimT.i_b, SwimT.i_b+SwimT.Body.N)
-            (xp1[r0, c0:cn], xp2[r0, c0:cn], zp[r0, c0:cn]) = \
-                transformation(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col, SwimI.Edge.x[:2], SwimI.Edge.z[:2])
+            (xp1[r0:rn, c0:cn], xp2[r0:rn, c0:cn], zp[r0:rn, c0:cn]) = \
+                transformation(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col, SwimI.Edge.x[:], SwimI.Edge.z[:])
     # Edge doublet singularities influencing the bodies
     b_de = np.transpose(-(np.arctan2(zp,xp2) - np.arctan2(zp,xp1))/(2*np.pi))
 
@@ -69,7 +69,7 @@ def quilt(Swimmers, RHO, DEL_T, i):
                 c[:,SwimI.i_b+SwimI.Body.N-1] = b_de[:, SwimI.i_e]
             a_inv = np.linalg.inv(a + c)
             # Get right-hand side
-            b = -np.dot(b_s, sigma_all)
+            b = -np.dot(b_s, sigma_all) - np.dot(b_de[:, SwimI.i_e+1], Swim.Edge.mu[1])
             # Solve for bodies' doublet strengths using explicit Kutta
             mu_b_all = np.dot(a_inv, b)
             # First mu_guess (from explicit Kutta)
@@ -114,7 +114,6 @@ def quilt(Swimmers, RHO, DEL_T, i):
         Swim.Body.mu_past[1,:] = Swim.Body.mu_past[0,:]
         Swim.Body.mu_past[0,:] = Swim.Body.mu
 
-        archive(Swim.Edge.mu)
         Swim.Edge.mu[0] = Swim.mu_guess[0]
         if i>1:
             Swim.Wake.alpha[0] = Swim.Edge.mu[1] - Swim.Edge.mu[0]
@@ -183,21 +182,21 @@ def wake_rollup(Swimmers, DEL_T, i):
                 SwimT.Wake.vx += np.dot(dummy1, SwimI.Body.gamma)
                 SwimT.Wake.vz += np.dot(dummy2, SwimI.Body.gamma)
 
-#                # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
-#                NI = 1
-#                xp = np.repeat(SwimT.Wake.x[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Edge.x[:,np.newaxis], NT, 1)
-#                zp = np.repeat(SwimT.Wake.z[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Edge.z[:,np.newaxis], NT, 1)
-#
-#                # Find distance r_e between each influence/target
-#                r_e = np.sqrt(xp**2+zp**2)
-#
-#                # Katz-Plotkin eqns 10.9 and 10.10 for edge (as point vortices) influence
-#                dummy1 = np.transpose(zp/(2*np.pi*(r_e**2+DELTA_CORE**2)))
-#                dummy2 = np.transpose(-xp/(2*np.pi*(r_e**2+DELTA_CORE**2)))
-#
-#                # Finish eqns 10.9 and 10.10 by multiplying with Edge.gamma, add to induced velocity
-#                SwimT.Wake.vx += np.dot(dummy1, SwimI.Edge.gamma)
-#                SwimT.Wake.vz += np.dot(dummy2, SwimI.Edge.gamma)
+                # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
+                NI = 1
+                xp = np.repeat(SwimT.Wake.x[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Edge.x[:,np.newaxis], NT, 1)
+                zp = np.repeat(SwimT.Wake.z[i_0:i_n,np.newaxis].T, NI, 0) - np.repeat(SwimI.Edge.z[:,np.newaxis], NT, 1)
+
+                # Find distance r_e between each influence/target
+                r_e = np.sqrt(xp**2+zp**2)
+
+                # Katz-Plotkin eqns 10.9 and 10.10 for edge (as point vortices) influence
+                dummy1 = np.transpose(zp/(2*np.pi*(r_e**2+DELTA_CORE**2)))
+                dummy2 = np.transpose(-xp/(2*np.pi*(r_e**2+DELTA_CORE**2)))
+
+                # Finish eqns 10.9 and 10.10 by multiplying with Edge.gamma, add to induced velocity
+                SwimT.Wake.vx += np.dot(dummy1, SwimI.Edge.gamma)
+                SwimT.Wake.vz += np.dot(dummy2, SwimI.Edge.gamma)
 
 #                # Formation of (x-x0) and (z-z0) matrices, similar to xp1/xp2/zp but coordinate transformation is not necessary
 #                if SwimI.Wake.SW_WAKE == 0:
@@ -243,9 +242,10 @@ def calc_psi(xt, zt, xi, zi, alpha, DELTA_CORE):
     """
     delta_x = np.repeat(xt[:,np.newaxis], len(xi), 1) - np.repeat(xi[:,np.newaxis].T, len(xt), 0)
     delta_z = np.repeat(zt[:,np.newaxis], len(zi), 1) - np.repeat(zi[:,np.newaxis].T, len(zt), 0)
-    r = np.sqrt(delta_x**2 + delta_z**2)
+    r = np.sqrt(delta_x**2 + delta_z**2 + DELTA_CORE**2)
 
-    matrix = 1./(4*np.pi*(r+DELTA_CORE))
+#    matrix = 1./(4*np.pi*(r+DELTA_CORE))
+    matrix = 1./(4*np.pi*r)
     return np.dot(matrix, alpha)
 
 def u_psi(Swimmers, i, target='Body'):
@@ -258,11 +258,18 @@ def u_psi(Swimmers, i, target='Body'):
             SwimT.Body.u_psi = np.zeros((SwimT.Body.N,2))
             for SwimI in Swimmers:
                 NI = SwimI.Wake.get_relevant(i)[0]
+                xi = np.insert(SwimI.Wake.x[:NI], 0, SwimI.Edge.x[-1])
+                zi = np.insert(SwimI.Wake.z[:NI], 0, SwimI.Edge.z[-1])
+                ai = np.insert(SwimI.Wake.alpha[:NI], 0, SwimI.Edge.mu[-1])
 
-                psi_xplus = calc_psi(SwimT.Body.AF.x_col+DSTEP, SwimT.Body.AF.z_col, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
-                psi_xminus = calc_psi(SwimT.Body.AF.x_col-DSTEP, SwimT.Body.AF.z_col, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
-                psi_zplus = calc_psi(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col+DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
-                psi_zminus = calc_psi(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col-DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+#                psi_xplus = calc_psi(SwimT.Body.AF.x_col+DSTEP, SwimT.Body.AF.z_col, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+#                psi_xminus = calc_psi(SwimT.Body.AF.x_col-DSTEP, SwimT.Body.AF.z_col, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+#                psi_zplus = calc_psi(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col+DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+#                psi_zminus = calc_psi(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col-DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+                psi_xplus = calc_psi(SwimT.Body.AF.x_col+DSTEP, SwimT.Body.AF.z_col, xi, zi, ai, SwimI.DELTA_CORE)
+                psi_xminus = calc_psi(SwimT.Body.AF.x_col-DSTEP, SwimT.Body.AF.z_col, xi, zi, ai, SwimI.DELTA_CORE)
+                psi_zplus = calc_psi(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col+DSTEP, xi, zi, ai, SwimI.DELTA_CORE)
+                psi_zminus = calc_psi(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col-DSTEP, xi, zi, ai, SwimI.DELTA_CORE)
 
                 SwimT.Body.u_psi[:,0] += (psi_zminus-psi_zplus)/(2*DSTEP)
                 SwimT.Body.u_psi[:,1] += (psi_xplus-psi_xminus)/(2*DSTEP)
@@ -273,11 +280,18 @@ def u_psi(Swimmers, i, target='Body'):
             SwimT.Wake.u_psi = np.zeros((NT,2))
             for SwimI in Swimmers:
                 NI = SwimI.Wake.get_relevant(i)[0]
+                xi = np.insert(SwimI.Wake.x[:NI], 0, SwimI.Edge.x[-1])
+                zi = np.insert(SwimI.Wake.z[:NI], 0, SwimI.Edge.z[-1])
+                ai = np.insert(SwimI.Wake.alpha[:NI], 0, SwimI.Edge.mu[-1])
 
-                psi_xplus = calc_psi(SwimT.Wake.x[:NT]+DSTEP, SwimT.Wake.z[:NT], SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
-                psi_xminus = calc_psi(SwimT.Wake.x[:NT]-DSTEP, SwimT.Wake.z[:NT], SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
-                psi_zplus = calc_psi(SwimT.Wake.x[:NT], SwimT.Wake.z[:NT]+DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
-                psi_zminus = calc_psi(SwimT.Wake.x[:NT], SwimT.Wake.z[:NT]-DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+#                psi_xplus = calc_psi(SwimT.Wake.x[:NT]+DSTEP, SwimT.Wake.z[:NT], SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+#                psi_xminus = calc_psi(SwimT.Wake.x[:NT]-DSTEP, SwimT.Wake.z[:NT], SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+#                psi_zplus = calc_psi(SwimT.Wake.x[:NT], SwimT.Wake.z[:NT]+DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+#                psi_zminus = calc_psi(SwimT.Wake.x[:NT], SwimT.Wake.z[:NT]-DSTEP, SwimI.Wake.x[:NI], SwimI.Wake.z[:NI], SwimI.Wake.alpha[:NI], SwimI.DELTA_CORE)
+                psi_xplus = calc_psi(SwimT.Wake.x[:NT]+DSTEP, SwimT.Wake.z[:NT], xi, zi, ai, SwimI.DELTA_CORE)
+                psi_xminus = calc_psi(SwimT.Wake.x[:NT]-DSTEP, SwimT.Wake.z[:NT], xi, zi, ai, SwimI.DELTA_CORE)
+                psi_zplus = calc_psi(SwimT.Wake.x[:NT], SwimT.Wake.z[:NT]+DSTEP, xi, zi, ai, SwimI.DELTA_CORE)
+                psi_zminus = calc_psi(SwimT.Wake.x[:NT], SwimT.Wake.z[:NT]-DSTEP, xi, zi, ai, SwimI.DELTA_CORE)
 
                 SwimT.Wake.u_psi[:,0] += (psi_zminus-psi_zplus)/(2*DSTEP)
                 SwimT.Wake.u_psi[:,1] += (psi_xplus-psi_xminus)/(2*DSTEP)

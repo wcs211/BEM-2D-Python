@@ -6,7 +6,7 @@ MU = 0.001003
 
 P = PARAMETERS = {
 
-  'COUNTER':        401
+  'COUNTER':        11
 , 'DEL_T':          np.pi*0.01/RF
 #, 'DEL_T':          1/0.7104278595/200
 , 'DSTEP':          10**-5
@@ -89,5 +89,5 @@ P = PARAMETERS = {
 }
 
 # Constants dependent on declared parameters
-P['DELTA_CORE'] = (0.005*P['THETA_MAX']+0.09)*P['C']/2.
+P['DELTA_CORE'] = (0.005*P['THETA_MAX']+0.09)*P['C']/1.
 P['RE'] = P['RHO']*-P['V0']*P['C']/MU
