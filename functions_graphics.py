@@ -137,8 +137,8 @@ def body_plot(Edge, Body):
 #    plt.gca().set_aspect('equal')
     plt.gca().invert_yaxis()
     
-    plt.plot(Body.AF.x_col[:Body.N/2], Body.cp[:Body.N/2]/100, 'g')
-    plt.plot(Body.AF.x_col[Body.N/2:], Body.cp[Body.N/2:]/100, 'b')
+#    plt.plot(Body.AF.x_col[:Body.N/2], Body.cp[:Body.N/2]/100, 'g')
+#    plt.plot(Body.AF.x_col[Body.N/2:], Body.cp[Body.N/2:]/100, 'b')
     plt.plot(Body.AF.x, Body.AF.z, 'k')
     plt.plot(Body.AF.x_col, Body.AF.z_col, 'r')
 

@@ -8,7 +8,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Data I/O                                                                    #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  'SW_SAVE_DATA':       True
+  'SW_SAVE_DATA':       False
 , 'SAVE_EVERY':         1
 , 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
 , 'START_FROM':         'zeroTime'
@@ -28,22 +28,22 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'COUNTER':            601
+, 'COUNTER':            401
 , 'DEL_T':              np.pi*0.01/RF
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
-, 'VERBOSITY':          10      
+, 'VERBOSITY':          1   
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Fluid Body Constants                                                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'V0':                 -1.0
-, 'THETA_MAX':          5*np.pi/180
+, 'V0':                 -0.05
+, 'THETA_MAX':          0.
 , 'HEAVE_MAX':          0.018
 , 'F':                  RF/(2*np.pi)
 , 'PHI':                0
 , 'RHO':                998.2
-, 'SW_KUTTA':           True
+, 'SW_KUTTA':           False
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Skin Friction Solver Constants                                              #
@@ -64,14 +64,14 @@ P = PARAMETERS = {
 , 'E':                  3.8e9
 , 'RHO_S':              935
 , 'FRAC_DELT':          0.1
-, 'FLEX_RATIO':         0.3
+, 'FLEX_RATIO':         0.05
 , 'T_CONST':            0.95
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             False
-, 'N_OUTERCORR_MAX':    1000
+, 'SW_FSI':             True
+, 'N_OUTERCORR_MAX':    1500
 , 'OUTER_CORR_TOL':     1e-5
 , 'FIXED_PT_RELAX':     0.00001
 , 'COUPLING_SCHEME':    'Aitken'
@@ -102,9 +102,9 @@ P['T']           = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
 P['THETA']       = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i] + P['PHI']) for i in xrange(P['COUNTER'])]
 P['THETA_MINUS'] = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
 P['THETA_PLUS']  = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
-P['HEAVE']       = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i]) for i in xrange(P['COUNTER'])]
-P['HEAVE_MINUS'] = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP'])) for i in xrange(P['COUNTER'])]
-P['HEAVE_PLUS']  = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP'])) for i in xrange(P['COUNTER'])]
+P['HEAVE']       = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i]) * np.tanh(3 * P['T'][i]) for i in xrange(P['COUNTER'])]
+P['HEAVE_MINUS'] = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP'])) * np.tanh(3 * (P['T'][i] - P['TSTEP'])) for i in xrange(P['COUNTER'])]
+P['HEAVE_PLUS']  = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP'])) * np.tanh(3 * (P['T'][i] + P['TSTEP'])) for i in xrange(P['COUNTER'])]
 
 # Constants dependent on declared parameters
 P['DELTA_CORE']  = (0.005*P['THETA_MAX']+0.09)*P['C']
