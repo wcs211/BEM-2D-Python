@@ -1,7 +1,7 @@
 import numpy as np
 
 # Constants that determine other parameters and don't actually need lookup
-RF = 2*np.pi # Reduced frequency
+#RF = 2*np.pi # Reduced frequency
 MU = 0.001003
 
 P = PARAMETERS = {
@@ -28,8 +28,10 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'COUNTER':            401
-, 'DEL_T':              np.pi*0.01/RF
+, 'N_STEP':             200
+, 'N_CYC':              3
+#, 'COUNTER':            401
+#, 'DEL_T':              np.pi*0.01/RF
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
 , 'VERBOSITY':          1   
@@ -40,10 +42,10 @@ P = PARAMETERS = {
 , 'V0':                 -0.05
 , 'THETA_MAX':          0.
 , 'HEAVE_MAX':          0.018
-, 'F':                  RF/(2*np.pi)
+, 'F':                  1.00
 , 'PHI':                0
 , 'RHO':                998.2
-, 'SW_KUTTA':           False
+, 'SW_KUTTA':           True
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Skin Friction Solver Constants                                              #
@@ -70,7 +72,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             True
+, 'SW_FSI':             False
 , 'N_OUTERCORR_MAX':    1500
 , 'OUTER_CORR_TOL':     1e-5
 , 'FIXED_PT_RELAX':     0.00001
@@ -94,6 +96,12 @@ P = PARAMETERS = {
 P['N_SWIMMERS']  = 1
 P['X_START']     = [i * 0.0 for i in xrange(P['N_SWIMMERS'])]
 P['Z_START']     = [i * 0.4 for i in xrange(P['N_SWIMMERS'])]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Time-stepParameters                                                         #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+P['DEL_T'] = 1. / P['F'] / P['N_STEP']
+P['COUNTER'] = P['N_CYC'] * P['N_STEP'] + 1
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Body Motion Parameters                                                      #
