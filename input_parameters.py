@@ -1,7 +1,6 @@
 import numpy as np
 
 # Constants that determine other parameters and don't actually need lookup
-#RF = 2*np.pi # Reduced frequency
 MU = 0.001003
 
 P = PARAMETERS = {
@@ -30,8 +29,6 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'N_STEP':             200
 , 'N_CYC':              3
-#, 'COUNTER':            401
-#, 'DEL_T':              np.pi*0.01/RF
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
 , 'VERBOSITY':          1   
