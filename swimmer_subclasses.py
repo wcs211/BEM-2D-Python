@@ -347,7 +347,7 @@ class Body(object):
         self.AF.z_neut = z_neut
         # Location of leading edge (currently pitching motion only)
         self.AF.x_le = V0*T
-        self.AF.z_le = 0.
+        self.AF.z_le = HEAVE
 
     def surface_kinematics(self, DSTEP, TSTEP, THETA_MINUS, THETA_PLUS, HEAVE_MINUS, HEAVE_PLUS, DEL_T, T, i):
         """Calculates the body-frame surface velocities of body panels.
