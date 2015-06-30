@@ -126,8 +126,9 @@ def quilt(Swimmers, RHO, DEL_T, i):
         if len(Swimmers) > 1 or Swimmers[0].SW_KUTTA == 0:
             break
         Swimmers[0].delta_cp[0] = np.absolute(Swimmers[0].Body.cp[-1]-Swimmers[0].Body.cp[0])
+        
+        # wcs211: Added a max iteration break for the implicit Kutta loop
         if Swimmers[0].delta_cp[0] < 0.0001 or n_iter >= 1000:
-#        if Swimmers[0].delta_cp[0] < 0.0001:
             break
                 
     for Swim in Swimmers:

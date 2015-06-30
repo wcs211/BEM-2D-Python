@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -11,9 +12,11 @@ def basic_xy(x,y,color='b'):
     global n_fig
     figure = plt.figure(n_fig)
     figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
-    plt.gca().set_aspect('equal')
+    plt.gca().set_aspect('equal')  
+    plt.plot(x,y,color)
+    plt.show()
     
-    plt.plot(x, y, color)
+#    time.sleep(5)
     n_fig += 1
 
 def body_wake_plot(Swimmers):
@@ -52,6 +55,7 @@ def body_wake_plot(Swimmers):
         plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
         plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
         plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
+        plt.show()
     
     n_fig += 1
     
@@ -94,8 +98,12 @@ def lift_vs_period(Body,RHO,t):
     
     n_fig += 1
     
-def plot_n_go(Body):
+def plot_n_go(Edge, Body, Solid, V0, T, HEAVE):
     global n_fig
+    # Determine if the output directory exists. If not, create the directory.
+    if not os.path.exists('./movies'):
+        os.makedirs('./movies')
+        
     figure = plt.figure(1)
     figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
 #    plt.gca().set_aspect('equal')
@@ -106,10 +114,59 @@ def plot_n_go(Body):
     plt.plot(Body.AF.x, Body.AF.z, 'k')
     plt.plot(Body.AF.x_col, Body.AF.z_col, 'r')
     
-    plt.xlim((np.min(Body.AF.x)-0.02, np.min(Body.AF.x)+1.22))
+    plt.plot(Solid.tempNodes[:,0], Solid.tempNodes[:,1], 'k')
+    
+    plt.xlim((np.min(Body.AF.x)-0.02, np.min(Body.AF.x)+0.22))
+    plt.plot(Edge.x, Edge.z, 'g')
     plt.ylim((-0.05, 0.05))
+    
+    rigidX = np.zeros(2)
+    rigidZ = np.zeros(2)
+    rigidX[0] = 0.
+    rigidX[1] = 0.2
+    rigidZ[0] = 0.
+    rigidZ[1] = 0.
+    rigidX += V0*T
+    rigidZ += HEAVE
+    plt.plot(rigidX, rigidZ, 'm')
+    
     
     figure.savefig('./movies/%05i.png' % (n_fig), format='png')
     plt.clf()
     
     n_fig += 1  
+
+def body_plot(Edge, Body):
+    global n_fig
+    
+    # Determine if the output directory exists. If not, create the directory.
+    if not os.path.exists('./movies'):
+        os.makedirs('./movies')
+        
+    figure = plt.figure(1)
+    figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
+#    plt.gca().set_aspect('equal')
+    plt.gca().invert_yaxis()
+    
+#    plt.plot(Body.AF.x_col[:Body.N/2], Body.cp[:Body.N/2]/100, 'g')
+#    plt.plot(Body.AF.x_col[Body.N/2:], Body.cp[Body.N/2:]/100, 'b')
+    plt.plot(Body.AF.x, Body.AF.z, 'k')
+    plt.plot(Body.AF.x_col, Body.AF.z_col, 'r')
+
+    plt.xlim((np.min(Body.AF.x)-0.02, np.min(Body.AF.x)+0.22))
+    plt.plot(Edge.x, Edge.z, 'g')
+    plt.ylim((-0.05, 0.05))
+    
+    figure.savefig('./movies/%05i.png' % (n_fig), format='png')
+    plt.clf()
+    
+    n_fig += 1
+
+def body(x,y,color='b'):
+    figure = plt.figure(2)
+    figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
+    plt.gca().set_aspect('equal')  
+    plt.plot(x,y,color)
+    plt.xlim((np.min(x)-0.02, np.min(x)+0.22))
+    plt.ylim((-0.05, 0.05))
+    plt.show()

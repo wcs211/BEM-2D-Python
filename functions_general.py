@@ -1,4 +1,7 @@
+import os
+import sys
 import numpy as np
+#from swimmer_class import Swimmer
 
     # x,z components of each panel's tangential and normal vectors
 def panel_vectors(x,z):
@@ -65,14 +68,142 @@ def transformation(xt,zt,xi,zi):
 
     return(xp1,xp2,zp)
 
-def absoluteToBody(Body, Solid, t, TSTEP):
+def absoluteToBody(Body, Solid, THETA, HEAVE):
     """Transforms absolute reference frame to body reference frame"""
-    theta = Body.MP.THETA_MAX * np.sin(2 * np.pi * Body.MP.F * (t + TSTEP) + Body.MP.PHI)
-
-    Body.BF.x = (Body.AF.x - Body.AF.x_le) * np.cos(-1*theta) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*theta)
-    Body.BF.z = (Body.AF.z - Body.AF.z_le) * np.cos(-1*theta) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*theta)
+    Body.BF.x = ((Body.AF.x - Body.AF.x_le) * np.cos(-1*THETA) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*THETA))
+    Body.BF.z = ((Body.AF.z - Body.AF.z_le) * np.cos(-1*THETA) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*THETA))
     Body.BF.x_col = ((Body.BF.x[1:] + Body.BF.x[:-1])/2)
     Body.BF.z_col = ((Body.BF.z[1:] + Body.BF.z[:-1])/2)
 
-    Solid.nodesNew[:,0] = (Solid.nodes[:,0] - Body.AF.x_le) * np.cos(-1*theta) - (Solid.nodes[:,1] - Body.AF.z_le) * np.sin(-1*theta)
-    Solid.nodesNew[:,1] = (Solid.nodes[:,1] - Body.AF.z_le) * np.cos(-1*theta) + (Solid.nodes[:,0] - Body.AF.x_le) * np.sin(-1*theta)
+    Solid.nodesNew[:,0] = (Solid.nodes[:,0] - Body.AF.x_le) * np.cos(-1*THETA) - (Solid.nodes[:,1] - Body.AF.z_le) * np.sin(-1*THETA)
+    Solid.nodesNew[:,1] = (Solid.nodes[:,1] - Body.AF.z_le) * np.cos(-1*THETA) + (Solid.nodes[:,0] - Body.AF.x_le) * np.sin(-1*THETA)
+    
+def ramp(t, slope, startTime):
+    """
+    This function can generate a ramp signal based on the following inputs:
+    
+    Args:
+        t: array of time samples
+        slope: slope of the ramp signal
+        startTime: location where the ramp turns on
+    """
+    # Get the number of samples in the output signal
+    N = t.size
+    
+    # Initialize the ramp signal
+    r = np.zeros(N)
+    
+    # Find the index where the ramp turns on
+    if (np.median(np.diff(t)) > 0):
+        startInd = np.min((t>=startTime).nonzero())
+        popInd =np.arange(startInd,N)
+    elif (np.median(np.diff(t)) < 0):
+        # Time-reversed ramp
+        startTime = -1. * startTime
+        startInd = np.max((t>=startTime).nonzero())
+        popInd = np.arange(startInd)
+        slope = -1. * slope
+        
+    # For indicies greater than the start time, compute the 
+    # proper signal value based on slope
+    r[popInd] = slope * (t[popInd] + startTime) - 2 * startTime * slope
+    
+    return (r)
+    
+def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
+    SwiP     = [None for x in xrange(P['N_SWIMMERS'])]
+    GeoP     = [None for x in xrange(P['N_SWIMMERS'])]
+    MotP     = [None for x in xrange(P['N_SWIMMERS'])]
+    Swimmers = [None for x in xrange(P['N_SWIMMERS'])]
+    SolidP   = [None for x in xrange(P['N_SWIMMERS'])]
+    FSIP     = [None for x in xrange(P['N_SWIMMERS'])]
+    PyFEAP   = [None for x in xrange(P['N_SWIMMERS'])]
+    
+    for i in xrange(P['N_SWIMMERS']):
+        SwiP[i] = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
+        if (P['SW_GEOMETRY'] == 'FP'):
+            GeoP[i] = PC.GeoFPParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
+        elif (P['SW_GEOMETRY'] == 'TD'):
+            GeoP[i] = PC.GeoTDParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
+        elif (P['SW_GEOMETRY'] == 'VDV'):
+            GeoP[i] = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
+        else:
+            print 'ERROR! Invalid geometry type.'
+    
+        MotP[i] = PC.MotionParameters(P['X_START'][i], P['Z_START'][i], P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+    
+        Swimmers[i] = Swimmer(SwiP[i], GeoP[i], MotP[i], P['COUNTER']-1)
+        
+        if (P['SW_FSI'] == True):
+            SolidP[i] = solid(Swimmers[i].Body, P['N_ELEMENTS_S'], P['T_MAX'])
+            FSIP[i] = FSI(Swimmers[i].Body, SolidP[i])
+            PyFEAP[i] = PyFEA(SolidP[i], P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
+            
+            SolidP[i].initMesh()
+            if (P['SW_GEOMETRY'] == 'FP'):
+                SolidP[i].initThinPlate(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
+            elif (P['SW_GEOMETRY'] == 'TD'):
+                SolidP[i].initTearDrop(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
+            else:
+                print 'ERROR! Invalid geometry type.'
+            
+    return (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
+    
+def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
+    if (os.path.exists(P['OUTPUT_DIR']) == False or os.listdir(P['OUTPUT_DIR']) == []):
+        P['START_FROM'] = 'zeroTime'
+    
+    if (P['START_FROM'] == 'latestTime'): 
+        startTime = 0.
+        for file in os.listdir(''.join((P['OUTPUT_DIR'], '/'))):
+            startTime = max(float(file), startTime)
+
+        (sP, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
+        if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
+            print 'ERROR! Inconsistent input parameters with starting data file.'
+
+        if (Swimmers[0].Wake.x.shape[0] < P['COUNTER']):
+            for Swim in Swimmers:
+                Swim.Wake.x.resize(P['COUNTER'])
+                Swim.Wake.z.resize(P['COUNTER'])
+                Swim.Wake.mu.resize(P['COUNTER']-1)
+                Swim.Wake.gamma.resize(P['COUNTER'])
+        
+        START_COUNTER = i + 1
+        COUNTER = P['COUNTER']
+        
+    elif (P['START_FROM'] == 'firstTime'):
+        startTime = sys.float_info.max
+        for file in os.listdir(''.join((P['OUTPUT_DIR'], '/'))):
+            startTime = max(float(file), startTime)
+
+        (sP, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
+        if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
+            print 'ERROR! Inconsistent input parameters with starting data file.'
+            
+        if (Swimmers[0].Wake.x.shape[0] < P['COUNTER']):
+            for Swim in Swimmers:
+                Swim.Wake.x.resize(P['COUNTER'])
+                Swim.Wake.z.resize(P['COUNTER'])
+                Swim.Wake.mu.resize(P['COUNTER']-1)
+                Swim.Wake.gamma.resize(P['COUNTER'])
+            
+        START_COUNTER = i + 1
+        COUNTER = P['COUNTER']
+            
+    elif (P['START_FROM'] == 'zeroTime'):
+        startTime = '0.00000000'
+        (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = geom_setup(P, PC, Swimmer, solid, FSI, PyFEA)
+        
+        START_COUNTER = 0
+        COUNTER = P['COUNTER']
+        
+    else:
+        print 'ERROR! Invalid START_FROM. Valid values are:'
+        print '    latestTime'
+        print '    firstTime'
+        print '    zeroTime'
+
+    return (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
+        
+    

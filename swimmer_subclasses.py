@@ -159,16 +159,12 @@ class Body(object):
         step  = (N+2)/2
         theta = np.linspace(start,stop,step)
         xb = (C*np.cos(theta).T + C)/(2.)
-#        print xb
 
         start = np.pi
         stop  = 0
         step  = (N+2)/2
         theta = np.linspace(start,stop,step)
         xt = (C*np.cos(theta).T + C)/(2.)
-#        print xt
-#        xb = np.linspace(c,0,(N+2)/2).T
-#        xt = np.linspace(0,c,(N+2)/2).T
         zb = -0.5*D*np.ones((N+2)/2)
         zt =  0.5*D*np.ones((N+2)/2)
 
@@ -273,7 +269,7 @@ class Body(object):
 
         return Body(N, S, BodyFrameCoordinates, MotionParameters)
 
-    def neutral_axis(self, x, T, DSTEP=0, TSTEP=0):
+    def neutral_axis(self, x, T, THETA, HEAVE, DSTEP=0):
         """Finds a body's neutral axis for a given time.
 
         The neutral axis is the axis which coincides with the chord line and
@@ -283,50 +279,48 @@ class Body(object):
 
         Args:
             x: An array of body-frame x-coordinates to use as reference points.
-            DSTEP, TSTEP: Small incremental distance/time offsets
-                (intended for differencing).
+            DSTEP: Small incremental distance offset (intended for differencing).
             T: Time of the current step.
-            X0, Z0: Initial position of the leading edge (absolute frame).
-            THETA_MAX: Maximum pitching angle of the body.
-            F: Frequency of the body's pitching motion.
-            PHI: Phase offset of the body's pitching motion.
-            V0: Free-stream velocity.
+            THETA: Current pitching angle.
 
         Returns:
             x_neut and z_neut: X- and Z-coordinates of the neutral axis points.
         """
         X0 = self.MP.X0
         Z0 = self.MP.Z0
-        THETA_MAX = self.MP.THETA_MAX
-        F = self.MP.F
-        PHI = self.MP.PHI
+#        THETA_MAX = self.MP.THETA_MAX
+#        F = self.MP.F
+#        PHI = self.MP.PHI
         V0 = self.MP.V0
+            
+#        theta = THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)
+#        theta = 5*np.pi/180*np.tanh(T)
+#        theta = 5*np.pi/180*(0.5*np.tanh(T-5)+0.5)
 
-        x_neut = X0 + (x+DSTEP)*np.cos(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)) + V0*T
-        z_neut = Z0 + (x+DSTEP)*np.sin(THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI))
+        x_neut = X0 + (x+DSTEP)*np.cos(THETA) + V0*T
+        z_neut = Z0 + (x+DSTEP)*np.sin(THETA) + HEAVE
 
         return(x_neut, z_neut)
 
-    def panel_positions(self, DSTEP, T):
+    def panel_positions(self, DSTEP, T, THETA, HEAVE):
         """Updates all the absolute-frame coordinates of the body.
 
         Args:
             DSTEP: Small incremental distance to pass into neutral_axis().
             T: Time of current step.
-            bfx, bfz: Body-frame x- and z-coordinates.
-            bfz_col: Body-frame collocation z-coordinates (unshifted)
-            V0: Free-stream velocity.
+            THETA: Current pitching angle.
+
         """
         bfx = self.BF.x
         bfz = self.BF.z
         bfz_col = self.BF.z_col
         V0 = self.V0 # Used only for x_le
 
-        (x_neut, z_neut) = self.neutral_axis(bfx, T)
+        (x_neut, z_neut) = self.neutral_axis(bfx, T, THETA, HEAVE)
 
         # Infinitesimal differences on the neutral axis to calculate the tangential and normal vectors
-        (xdp_s, zdp_s) = self.neutral_axis(bfx, T, DSTEP)
-        (xdm_s, zdm_s) = self.neutral_axis(bfx, T, -DSTEP)
+        (xdp_s, zdp_s) = self.neutral_axis(bfx, T, THETA, HEAVE, DSTEP)
+        (xdm_s, zdm_s) = self.neutral_axis(bfx, T, THETA, HEAVE, -DSTEP)
 
         # Absolute-frame panel endpoint positions for time t
         afx = x_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[2]*bfz
@@ -353,9 +347,9 @@ class Body(object):
         self.AF.z_neut = z_neut
         # Location of leading edge (currently pitching motion only)
         self.AF.x_le = V0*T
-        self.AF.z_le = 0.
+        self.AF.z_le = HEAVE
 
-    def surface_kinematics(self, DSTEP, TSTEP, DEL_T, T, i):
+    def surface_kinematics(self, DSTEP, TSTEP, THETA_MINUS, THETA_PLUS, HEAVE_MINUS, HEAVE_PLUS, DEL_T, T, i):
         """Calculates the body-frame surface velocities of body panels.
 
         Also finds the body panel source strengths based on these surface
@@ -366,7 +360,8 @@ class Body(object):
             DEL_T: Time step length.
             T: Time of current step.
             i: Time step number.
-            x_col, z_col: Unshifted body-frame collocation point coordinates.
+            THETA_MINUS: Pitching angle minus a small time difference (TSTEP)
+            THETA_PLUS: Pitching angle plus a small time difference (TSTEP)
         """
         if i == 0:
 
@@ -375,12 +370,12 @@ class Body(object):
 
             # Panel midpoint velocity calculations
             # Calculating the surface positions at tplus(tp) and tminus(tm)
-            (xtpneut, ztpneut) = self.neutral_axis(x_col, T, 0, TSTEP)
-            (xtpdp, ztpdp) = self.neutral_axis(x_col, T, DSTEP, TSTEP)
-            (xtpdm, ztpdm) = self.neutral_axis(x_col, T, -DSTEP, TSTEP)
-            (xtmneut, ztmneut) = self.neutral_axis(x_col, T, 0, -TSTEP)
-            (xtmdp, ztmdp) = self.neutral_axis(x_col, T, DSTEP, -TSTEP)
-            (xtmdm, ztmdm) = self.neutral_axis(x_col, T, -DSTEP, -TSTEP)
+            (xtpneut, ztpneut) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, 0)
+            (xtpdp, ztpdp) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, DSTEP)
+            (xtpdm, ztpdm) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, -DSTEP)
+            (xtmneut, ztmneut) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, 0)
+            (xtmdp, ztmdp) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, DSTEP)
+            (xtmdm, ztmdm) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, -DSTEP)
 
             # Displaced airfoil's panel midpoints for times tplus(tp) and tminus(tm)
             xctp = xtpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[2]*z_col
@@ -392,7 +387,7 @@ class Body(object):
             # Velocity calculations on the surface panel midpoints
             self.vx = (xctp - xctm)/(2*TSTEP)
             self.vz = (zctp - zctm)/(2*TSTEP)
-#        else:
+
         elif i == 1:
             # First-order backwards differencing of body collocation point positions
             self.vx = (self.AF.x_mid[0,:]-self.AF.x_mid[1,:])/DEL_T - self.V0
