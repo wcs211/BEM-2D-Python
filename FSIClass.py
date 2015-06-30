@@ -132,11 +132,11 @@ class FSI(object):
             
             # Calculating the shift in node positions with the swimming velocity
             nodeDelxp = Body.AF.x_le * np.ones((Solid.Nelements + 1,1))
-            nodeDelzp = Body.AF.z_le * np.ones((Solid.Nelements + 1,1))
+#            nodeDelzp = Body.AF.z_le * np.ones((Solid.Nelements + 1,1))
             
             #Superposiing the kinematics and swimming translations
             Solid.nodes[:,0] = Solid.nodes[:,0] + nodeDelxp.T
-            Solid.nodes[:,1] = Solid.nodes[:,1] + nodeDelzp.T          
+#            Solid.nodes[:,1] = Solid.nodes[:,1] + nodeDelzp.T          
             
         # Determine the load conditons from the fluid solver
         # Calculate the panel lengths and normal vectors
@@ -250,7 +250,7 @@ class FSI(object):
         
         # Transform the structural mesh into the fluid body absolute reference frame.
         tempNodes[:,0], tempNodes[:,1] = self.rotatePts(tempNodes[:,0], tempNodes[:,1], THETA)
-        tempNodes[:,1] = tempNodes[:,1] + HEAVE
+#        tempNodes[:,1] = tempNodes[:,1] + HEAVE
         
         # Calculating the shift in node positions with the swimming velocity
         nodeDelxp = Body.AF.x_le * np.ones((Solid.Nnodes,1))
