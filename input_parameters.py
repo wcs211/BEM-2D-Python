@@ -31,7 +31,7 @@ P = PARAMETERS = {
 , 'N_CYC':              10
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
-, 'VERBOSITY':          1   
+, 'VERBOSITY':          1
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Fluid Body Constants                                                        #

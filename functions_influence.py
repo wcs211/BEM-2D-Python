@@ -3,14 +3,73 @@
 import numpy as np
 from functions_general import panel_vectors, transformation
 
-def quilt(Swimmers, RHO, DEL_T, i):
-    """Constructs the influence coefficient matrices and solves using Kutta condition.
+def inf_sourcepanel(xp1, xp2, zp):
+    """Returns a matrix of source panel influence coefficients."""
+    return((xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) \
+          + 2*zp*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1)))/(4*np.pi))
+
+def inf_doubletpanel(xp1, xp2, zp):
+    """Returns a matrix of doublet panel influence coefficients."""
+    return(-(np.arctan2(zp,xp2) - np.arctan2(zp,xp1))/(2*np.pi))
+
+def quilt(Swimmers, influence_type, NT, NI, i):
+    """Constructs a full transformation matrix that includes all Swimmers.
+
+    The target is always the Bodies' collocation points, but the influence
+    could be the Bodies, Edges, or Wakes.
 
     Args:
         Swimmers: List of Swimmer objects being simulated.
-        RHO: Fluid density.
-        DEL_T: Time step length.
+        influence_type: Type of influencing panel (Body, Edge, or Wake).
+        NT: Total number of target panels (across all Swimmers).
+        NI: Total number of influence panels (across all Swimmers).
         i: Time step number.
+
+    Returns:
+        xp1: Transformed coordinate matrix from panels' left endpoints.
+        xp2: Transformed coordinate matrix from panels' right endpoints.
+        zp: Transformed coordinate matrix from panels' z-levels.
+    """
+    xp1 = np.empty((NT,NI))
+    xp2 = np.empty((NT,NI))
+    zp = np.empty((NT,NI))
+
+    for SwimT in Swimmers: # Target Swimmer (rows)
+        (r0, rn) = (SwimT.i_b, SwimT.i_b+SwimT.Body.N) # Insertion row range
+
+        for SwimI in Swimmers: # Influencing Swimmer (columns)
+            if influence_type == 'Body':
+                (c0, cn) = (SwimI.i_b, SwimI.i_b+SwimI.Body.N) # Insertion column range
+                (xi, zi) = (SwimI.Body.AF.x, SwimI.Body.AF.z) # Coordinates of influences
+            elif influence_type == 'Edge':
+                (c0, cn) = (SwimI.i_e, SwimI.i_e+SwimI.Edge.N)
+                (xi, zi) = (SwimI.Edge.x, SwimI.Edge.z)
+            elif influence_type == 'Wake':
+                (c0, cn) = (SwimI.i_w, SwimI.i_w+i)
+                (xi, zi) = (SwimI.Wake.x[:i+1], SwimI.Wake.z[:i+1])
+            else:
+                print 'ERROR! Invalid influence type.'
+
+            (xp1[r0:rn, c0:cn], xp2[r0:rn, c0:cn], zp[r0:rn, c0:cn]) = \
+                transformation(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col, xi, zi)
+
+    return(xp1, xp2, zp)
+
+
+def influence_matrices(Swimmers, i):
+    """Constructs the influence coefficient matrices.
+
+    Args:
+        Swimmers: List of Swimmer objects being simulated.
+        i: Time step number.
+
+    Returns:
+        sigma_all: Array containing all Swimmers' body source strengths.
+        a_bodydoublet: Body doublet panels' influence matrix.
+        b_bodysource: Body source panels' influence matrix.
+        b_edgedoublet: Edge panels' influence matrix.
+        b_wakedoublet: Wake panels' influence matrix.
+        a_explicit: Augments the a_bodydoublet matrix when doing explicit Kutta.
     """
     n_b = 0
     n_e = 0
@@ -23,51 +82,47 @@ def quilt(Swimmers, RHO, DEL_T, i):
         n_e += 1
         n_w += i
 
-    xp1 = np.empty((n_b,n_b))
-    xp2 = np.empty((n_b,n_b))
-    zp = np.empty((n_b,n_b))
     sigma_all = np.empty(n_b)
-    for SwimT in Swimmers: # Target Swimmer (rows)
-        (r0, rn) = (SwimT.i_b, SwimT.i_b+SwimT.Body.N) # Insertion row range
-        for SwimI in Swimmers: # Influencing Swimmer (columns)
-            (c0, cn) = (SwimI.i_b, SwimI.i_b+SwimI.Body.N) # Insertion column range
-            sigma_all[c0:cn] = SwimI.Body.sigma[:]
-            (xp1[r0:rn, c0:cn], xp2[r0:rn, c0:cn], zp[r0:rn, c0:cn]) = \
-                transformation(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col, SwimI.Body.AF.x, SwimI.Body.AF.z)
-    # Body source singularities influencing the bodies
-    b_s = (xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) \
-          + 2*zp*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1)))/(4*np.pi)
-    # Body doublet singularities influencing bodies themselves
-    a = -(np.arctan2(zp,xp2) - np.arctan2(zp,xp1))/(2*np.pi)
+    mu_w_all = np.empty(n_w)
+    for Swim in Swimmers:
+        (r0, rn) = (Swim.i_b, Swim.i_b+Swim.Body.N)
+        sigma_all[r0:rn] = Swim.Body.sigma[:]
+        (r0, rn) = (Swim.i_w, Swim.i_w+i)
+        mu_w_all[r0:rn] = Swim.Wake.mu[:i]
 
-    xp1 = np.empty((n_b,n_e))
-    xp2 = np.empty((n_b,n_e))
-    zp = np.empty((n_b,n_e))
-    for SwimT in Swimmers:
-        (r0, rn) = (SwimT.i_b, SwimT.i_b+SwimT.Body.N)
-        for SwimI in Swimmers:
-            (c0, cn) = (SwimI.i_e, SwimI.i_e+SwimI.Edge.N)
-            (xp1[r0:rn, c0:cn], xp2[r0:rn, c0:cn], zp[r0:rn, c0:cn]) = \
-                transformation(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col, SwimI.Edge.x, SwimI.Edge.z)
-    # Edge doublet singularities influencing the bodies
-    b_de = -(np.arctan2(zp,xp2) - np.arctan2(zp,xp1))/(2*np.pi)
+    (xp1, xp2, zp) = quilt(Swimmers, 'Body', n_b, n_b, i)
+    # Body source singularities influencing the bodies (part of RHS)
+    b_bodysource = inf_sourcepanel(xp1, xp2, zp)
+    # Body doublet singularities influencing bodies themselves (the A matrix)
+    a_bodydoublet = inf_doubletpanel(xp1, xp2, zp)
 
-    if i > 0: # There are no wake panels until i==1
-        xp1 = np.empty((n_b,n_w))
-        xp2 = np.empty((n_b,n_w))
-        zp = np.empty((n_b,n_w))
-        mu_w_all = np.empty(n_w)
-        for SwimT in Swimmers:
-            (r0, rn) = (SwimT.i_b, SwimT.i_b+SwimT.Body.N)
-            for SwimI in Swimmers:
-                (c0, cn) = (SwimI.i_w, SwimI.i_w+i)
-                mu_w_all[c0:cn] = SwimI.Wake.mu[:i]
-                (xp1[r0:rn, c0:cn], xp2[r0:rn, c0:cn], zp[r0:rn, c0:cn]) = \
-                    transformation(SwimT.Body.AF.x_col, SwimT.Body.AF.z_col, SwimI.Wake.x[:i+1], SwimI.Wake.z[:i+1])
-        # Wake doublet singularities influencing the bodies
-        b_dw = -(np.arctan2(zp,xp2) - np.arctan2(zp,xp1))/(2*np.pi)
+    (xp1, xp2, zp) = quilt(Swimmers, 'Edge', n_b, n_e, i)
+    # Edge doublet singularities influencing the bodies (part of RHS)
+    b_edgedoublet = inf_doubletpanel(xp1, xp2, zp)
 
-    # SOLVING TIME
+    if i==0: # There are no wake panels until i==1
+        b_wakedoublet = 0
+    else:
+        (xp1, xp2, zp) = quilt(Swimmers, 'Wake', n_b, n_w, i)
+        # Wake doublet singularities influencing the bodies (part of RHS)
+        b_wakedoublet = inf_doubletpanel(xp1, xp2, zp)
+
+    a_explicit = np.zeros((n_b,n_b))
+
+    return(sigma_all, mu_w_all, a_bodydoublet, a_explicit,
+           b_bodysource, b_edgedoublet, b_wakedoublet)
+
+def solve_phi(Swimmers, RHO, DEL_T, i):
+    """Solves the boundary integral equation using a Kutta condition.
+
+    Args:
+        Swimmers: List of Swimmer objects being simulated.
+        RHO: Fluid density.
+        DEL_T: Time step length.
+        i: Time step number.
+    """
+    (sigma_all, mu_w_all, a_b, a_e, b_b, b_e, b_w) = influence_matrices(Swimmers, i)
+
     n_iter = 0
     while True:
         n_iter += 1
@@ -75,16 +130,15 @@ def quilt(Swimmers, RHO, DEL_T, i):
         if n_iter == 1:
             # Begin with explicit Kutta condition as first guess
             # Construct the augmented body matrix by combining body and trailing edge panel arrays
-            c = np.zeros((n_b,n_b))
             for SwimI in Swimmers:
-                c[:,SwimI.i_b] = -b_de[:, SwimI.i_e]
-                c[:,SwimI.i_b+SwimI.Body.N-1] = b_de[:, SwimI.i_e]
-            a_inv = np.linalg.inv(a + c)
+                a_e[:,SwimI.i_b] = -b_e[:, SwimI.i_e]
+                a_e[:,SwimI.i_b+SwimI.Body.N-1] = b_e[:, SwimI.i_e]
+            a_inv = np.linalg.inv(a_b + a_e)
             # Get right-hand side
             if i == 0:
-                b = -np.dot(b_s, sigma_all)
+                b = -np.dot(b_b, sigma_all)
             else:
-                b = -np.dot(b_s, sigma_all) - np.dot(b_dw, mu_w_all)
+                b = -np.dot(b_b, sigma_all) - np.dot(b_w, mu_w_all)
             # Solve for bodies' doublet strengths using explicit Kutta
             mu_b_all = np.dot(a_inv, b)
             # First mu_guess (from explicit Kutta)
@@ -97,7 +151,7 @@ def quilt(Swimmers, RHO, DEL_T, i):
         else:
             if n_iter == 2: # Make a second initial guess
                 # Update phi_dinv so it no longer includes explicit Kutta condition
-                a_inv = np.linalg.inv(a)
+                a_inv = np.linalg.inv(a_b)
 
                 Swimmers[0].mu_guess[1] = Swimmers[0].mu_guess[0]
                 Swimmers[0].delta_cp[1] = Swimmers[0].delta_cp[0]
@@ -112,9 +166,9 @@ def quilt(Swimmers, RHO, DEL_T, i):
 
             # Form right-hand side including mu_guess as an influence
             if i == 0:
-                rhs = -np.dot(b_s, sigma_all) - np.squeeze(np.dot(b_de, Swimmers[0].mu_guess[0]))
+                rhs = -np.dot(b_b, sigma_all) - np.squeeze(np.dot(b_e, Swimmers[0].mu_guess[0]))
             else:
-                rhs = -np.dot(b_s, sigma_all) - np.dot(np.insert(b_dw, 0, b_de[:,0], axis=1), np.insert(Swimmers[0].Wake.mu[:i], 0, Swimmers[0].mu_guess[0]))
+                rhs = -np.dot(b_b, sigma_all) - np.dot(np.insert(b_w, 0, b_e[:,0], axis=1), np.insert(Swimmers[0].Wake.mu[:i], 0, Swimmers[0].mu_guess[0]))
 
             Swimmers[0].Body.mu = np.dot(a_inv, rhs)
 

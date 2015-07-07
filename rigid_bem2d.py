@@ -11,7 +11,7 @@ from data_IO_class import DataIO
 from input_parameters import PARAMETERS as P
 from swimmer_class import Swimmer
 import parameter_classes as PC
-from functions_influence import quilt, wake_rollup
+from functions_influence import solve_phi, wake_rollup
 from terminal_output import print_output as po
 import functions_graphics as graph
 from functions_general import archive, simulation_startup
@@ -40,14 +40,13 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
-        quilt(Swimmers, RHO, DEL_T, i)
-        wake_rollup(Swimmers, DEL_T, i) 
+        solve_phi(Swimmers, RHO, DEL_T, i)
         for Swim in Swimmers:
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
         graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
-        
+
     else:
         if np.fmod(i,P['VERBOSITY']) == 0:
             po().timestep_header(i,T[i])
@@ -57,7 +56,7 @@ for i in xrange(START_COUNTER, COUNTER):
             Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
-        quilt(Swimmers, RHO, DEL_T, i)
+        solve_phi(Swimmers, RHO, DEL_T, i)
 
         if np.fmod(i,P['VERBOSITY']) == 0:
             po().solution_output(0,0,0,0,0,0)
@@ -66,7 +65,7 @@ for i in xrange(START_COUNTER, COUNTER):
         for Swim in Swimmers:
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body) 
+        graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
 total_time = time.time()-start_time
