@@ -43,7 +43,6 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
         solve_phi(Swimmers, RHO, DEL_T, i)
-        #quilt(Swimmers, RHO, DEL_T, i)
         wake_rollup(Swimmers, DEL_T, i)
         archive(Swimmers[0].Body.AF.x_mid)
         archive(Swimmers[0].Body.AF.z_mid)
@@ -86,7 +85,6 @@ for i in xrange(START_COUNTER, COUNTER):
                     Swim.wake_shed(DEL_T, i)
                       
             solve_phi(Swimmers, RHO, DEL_T, i)
-            #quilt(Swimmers, RHO, DEL_T, i)
 
             #TODO: Replace '0' with viscous drag component when available
             FSIP[0].setInterfaceForce(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], outerCorr,
