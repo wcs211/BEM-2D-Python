@@ -9,7 +9,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   'SW_SAVE_DATA':       True
 , 'SAVE_EVERY':         1
-, 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
+, 'OUTPUT_DIR':         '/home/chris/BEM-2D-Python/data'
 , 'START_FROM':         'zeroTime'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -69,7 +69,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             False
+, 'SW_FSI':             True
 , 'N_OUTERCORR_MAX':    1500
 , 'OUTER_CORR_TOL':     1e-5
 , 'FIXED_PT_RELAX':     0.00001
