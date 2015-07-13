@@ -63,12 +63,12 @@ class PyFEA(object):
         C1 = (E * A / l)
         C2 = (E * I / l**3)
         k_e = np.array(
-                       [[1.*C1,          0,           0,         -1.*C1,           0,           0],
-                        [0,       12*C2,      6*l*C2,           0,      -12*C2,      6*l*C2],
-                        [0,      6*l*C2,   4*l**2*C2,           0,     -6*l*C2,   2*l**2*C2],
-                        [-1.*C1,         0,           0,          1.*C1,           0,           0],
-                        [0,      -12*C2,     -6*l*C2,           0,       12*C2,     -6*l*C2],
-                        [0,      6*l*C2,   2*l**2*C2,           0,     -6*l*C2,   4*l**2*C2]]        
+                       [[1.*C1,          0.,           0.,     -1.*C1,           0.,           0.],
+                        [0.,         12.*C2,      6.*l*C2,         0.,      -12.*C2,      6.*l*C2],
+                        [0.,        6.*l*C2,    4*l**2*C2,         0.,     -6.*l*C2,   2.*l**2*C2],
+                        [-1.*C1,         0.,           0.,      1.*C1,           0.,           0.],
+                        [0.,        -12.*C2,     -6.*l*C2,         0.,       12.*C2,     -6.*l*C2],
+                        [0.,        6.*l*C2,   2.*l**2*C2,         0.,     -6.*l*C2,   4.*l**2*C2]]        
                       )
         return k_e
         
@@ -94,12 +94,12 @@ class PyFEA(object):
             C1 = RHO_S * A * l / 420
             C2 = RHO_S * A * l / 6
             m_e = np.array(
-                           [[2*C2,         0,          0,          1.*C2,         0,          0],
-                            [   0,    156*C1,    22*l*C1,           0,     54*C1,   -13*l*C1],
-                            [   0,   22*l*C1,  4*l**2*C1,           0,   13*l*C1, -3*l**2*C1],
-                            [  1.*C2,         0,          0,        2*C2,         0,          0],
-                            [   0,     54*C1,    13*l*C1,           0,    156*C1,   -22*l*C1],
-                            [   0,  -13*l*C1, -3*l**2*C1,           0,  -22*l*C1,  4*l**2*C1]]
+                           [[ 2*C2,         0,          0,       1.*C2,         0,          0],
+                            [    0,    156*C1,    22*l*C1,           0,     54*C1,   -13*l*C1],
+                            [    0,   22*l*C1,  4*l**2*C1,           0,   13*l*C1, -3*l**2*C1],
+                            [1.*C2,         0,          0,        2*C2,         0,          0],
+                            [    0,     54*C1,    13*l*C1,           0,    156*C1,   -22*l*C1],
+                            [    0,  -13*l*C1, -3*l**2*C1,           0,  -22*l*C1,  4*l**2*C1]]
                           )
         elif (mType == 'lumped'):
             C1 = RHO_S * A * l / 420
@@ -253,22 +253,24 @@ class PyFEA(object):
             Udot_nPlus (float): NumPy array of final velocities.
             UdotDot_nPlus (float): NumPy array of final accelerations.
         """
+        temp = 3 * fixedNodes
         
         # Form the 'A' matrix
-        A = (self.K + (2 / self.deltaT)**2 * self.M)
+        A = (self.K[temp:,temp:] + (2 / self.deltaT)**2 * self.M[temp:,temp:])
         
         # Form the 'B' matrix
-        B = (Fext_nPlus + self.M * ((2 / self.deltaT)**2 * U_n + \
-            (4 / self.deltaT) * Udot_n + UdotDot_n))
+
+        B = (Fext_nPlus[temp:,:] + np.dot(self.M[temp:,temp:],((2 / self.deltaT)**2 * U_n[temp:,:] + \
+            (4 / self.deltaT) * Udot_n[temp:,:] + UdotDot_n)))
             
         # Solve the system to get the displacements
         U_nPlus = np.linalg.solve(A, B)
         
         # Solve for the velocities
-        Udot_nPlus = 2 * (U_nPlus - U_n) / self.deltaT - Udot_n
+        Udot_nPlus = 2 * (U_nPlus - U_n[temp:,:]) / self.deltaT - Udot_n[temp:,:]
         
         # Solve for the accelerations
-        UdotDot_nPlus = 2 * (Udot_nPlus - Udot_n) / self.deltaT - UdotDot_n
+        UdotDot_nPlus = 2 * (Udot_nPlus - Udot_n[temp:,:]) / self.deltaT - UdotDot_n
         
         return (U_nPlus, Udot_nPlus, UdotDot_nPlus)
         
@@ -334,7 +336,7 @@ class PyFEA(object):
                 (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
             elif (method == 'NEWMARK'):
                 (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.NEWMARK(beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
-            elif (method == ' TRAPEZOIDAL'):
+            elif (method == 'TRAPEZOIDAL'):
                 (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.TRAPEZOIDAL(Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
             else:
                 #TODO: Figure out how to throw an exception and hault exec.
@@ -353,6 +355,7 @@ class PyFEA(object):
                 UdotDot_n = np.copy(UdotDot_nPlus)
                 
         # Store the final displacements, velocities, and accelerations
+        habba = U_nPlus[2::3]
         self.U_nPlus = np.copy(U_nPlus)
         self.Udot_nPlus = np.copy(Udot_nPlus)
         self.UdotDot_nPlus = np.copy(UdotDot_nPlus)

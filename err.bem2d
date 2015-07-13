@@ -1,0 +1,2 @@
+XIO:  fatal IO error 25 (Inappropriate ioctl for device) on X server "localhost:10.0"
+      after 343 requests (343 known processed) with 2 events remaining.

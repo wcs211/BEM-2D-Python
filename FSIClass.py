@@ -6,8 +6,9 @@ A 2D boundary element method code
 
 """
 import numpy as np
-from functions_general import panel_vectors
-from scipy.interpolate import spline
+from functions_general import panel_vectors, extrap1d
+from scipy.interpolate import spline, interp1d
+from scipy import arange, array, exp
 
 class FSI(object):
     'Toolkit for Boundary Elelment Method Fluid Structure Interaction'
@@ -172,10 +173,17 @@ class FSI(object):
         
         # Interpolate the collapsed forces and moments onto the structural mesh
         nodalInput = np.zeros((Solid.Nnodes,6))
-        if (SW_INTERP_MTD == 1):
-            nodalInput[:,0] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colPF[:,0], left=0, right=0)
-            nodalInput[:,1] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colPF[:,1], left=0, right=0)
-            nodalInput[:,5] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colM[:,0], left=0, right=0)
+        habba = Solid.nodes[:,2]
+        if (SW_INTERP_MTD == True):
+            f1 = extrap1d(interp1d(Solid.meanline_c0[0.5*Body.N:], colPF[:,0]))
+            f2 = extrap1d(interp1d( Solid.meanline_c0[0.5*Body.N:], colPF[:,1]))
+            f3 = extrap1d(interp1d(Solid.meanline_c0[0.5*Body.N:], colM[:,0]))
+            nodalInput[:,0] = f1(Solid.nodes[:,2])
+            nodalInput[:,1] = f2(Solid.nodes[:,2])
+            nodalInput[:,5] = f3(Solid.nodes[:,2])
+#            nodalInput[:,0] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colPF[:,0], left=0, right=0)
+#            nodalInput[:,1] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colPF[:,1], left=0, right=0)
+#            nodalInput[:,5] = np.interp(Solid.nodes[:,2], Solid.meanline_c0[0.5*Body.N:], colM[:,0], left=0, right=0)
         else:
             nodalInput[:,0] = spline(Solid.meanline_c0[0.5*Body.N:], colPF[:,0], Solid.nodes[:,2])
             nodalInput[:,1] = spline(Solid.meanline_c0[0.5*Body.N:], colPF[:,1], Solid.nodes[:,2])
@@ -286,10 +294,18 @@ class FSI(object):
         # panel node positions.
         i = np.rint(0.5 * np.shape(Solid.meanline_p0)[0])
         if (SW_INTERP_MTD == 1):
-            bottomXp = np.interp(Solid.meanline_p0[0:i], bottomNodes[:,2], bottomNodes[:,0], left=True, right=True)
-            bottomZp = np.interp(Solid.meanline_p0[0:i], bottomNodes[:,2], bottomNodes[:,1], left=True, right=True)
-            topXp = np.interp(Solid.meanline_p0[i:], topNodes[:,2], topNodes[:,0], left=True, right=True)
-            topZp = np.interp(Solid.meanline_p0[i:], topNodes[:,2], topNodes[:,1], left=True, right=True)
+            f1 = interp1d(bottomNodes[:,2], bottomNodes[:,0])
+            f2 = interp1d(bottomNodes[:,2], bottomNodes[:,1])
+            f3 = interp1d(topNodes[:,2], topNodes[:,0])
+            f4 = interp1d(topNodes[:,2], topNodes[:,1])
+            bottomXp = f1(Solid.meanline_p0[0:i])
+            bottomZp = f2(Solid.meanline_p0[0:i])
+            topXp    = f3(Solid.meanline_p0[i:])
+            topZp    = f4(Solid.meanline_p0[i:])   
+#            bottomXp = np.interp(Solid.meanline_p0[0:i], bottomNodes[:,2], bottomNodes[:,0], left=True, right=True)
+#            bottomZp = np.interp(Solid.meanline_p0[0:i], bottomNodes[:,2], bottomNodes[:,1], left=True, right=True)
+#            topXp = np.interp(Solid.meanline_p0[i:], topNodes[:,2], topNodes[:,0], left=True, right=True)
+#            topZp = np.interp(Solid.meanline_p0[i:], topNodes[:,2], topNodes[:,1], left=True, right=True)
         else:
             bottomXp = spline(bottomNodes[:,2], bottomNodes[:,0], Solid.meanline_p0[0:i])      
             bottomZp = spline(bottomNodes[:,2], bottomNodes[:,1], Solid.meanline_p0[0:i])
@@ -314,6 +330,7 @@ class FSI(object):
         # Store the absolute displacements and temporary nodes.
         self.DU[:,0] = newxp - Body.AF.x
         self.DU[:,1] = newzp - Body.AF.z
+        hoobydooby = self.DU
         self.maxDU = np.max(np.sqrt(self.DU[:,0]**2 + self.DU[:,1]**2))
         Solid.tempNodes = np.copy(tempNodes)
         
@@ -340,8 +357,8 @@ class FSI(object):
         self.nodeResidual = (Solid.tempNodes[:,0:2]-Solid.nodes[:,0:2]) - self.nodeDispl
         
         # Calculate the FSI residual magnitude
-        magFsiResidual = np.sqrt(self.fsiResidual[:,0]**2 + self.fsiResidual[:,1]**2)
-        
+        magFsiResidual = np.sqrt(np.power(self.fsiResidual[:,0], 2) + np.power(self.fsiResidual[:,1],2))
+
         # Calculate the L2 norm of the FSI residual to represent the convergence 
         # as a single RMS value.
         self.fsiResidualNorm = np.linalg.norm(self.fsiResidual, ord=2)

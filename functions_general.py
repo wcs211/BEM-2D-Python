@@ -1,6 +1,8 @@
 import os
 import sys
 import numpy as np
+from scipy.interpolate import interp1d
+from scipy import arange, array, exp
 #from swimmer_class import Swimmer
 
     # x,z components of each panel's tangential and normal vectors
@@ -205,5 +207,20 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         print '    zeroTime'
 
     return (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
-        
-    
+
+def extrap1d(interpolator):
+    xs = interpolator.x
+    ys = interpolator.y
+
+    def pointwise(x):
+        if x < xs[0]:
+            return ys[0]+(x-xs[0])*(ys[1]-ys[0])/(xs[1]-xs[0])
+        elif x > xs[-1]:
+            return ys[-1]+(x-xs[-1])*(ys[-1]-ys[-2])/(xs[-1]-xs[-2])
+        else:
+            return interpolator(x)
+
+    def ufunclike(xs):
+        return array(map(pointwise, array(xs)))
+
+    return ufunclike
