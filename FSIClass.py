@@ -11,54 +11,64 @@ from scipy.interpolate import spline, interp1d
 from scipy import arange, array, exp
 
 def s2f(Solid, tempNodes, SW_INTERP_MTD):
-    # Calculate the normal components of the structure elements
-    normal = np.zeros((Solid.Nelements,2))
-    for i in xrange(Solid.Nelements):
-        normal[i,0] = -1 * (tempNodes[i+1,1] - tempNodes[i,1])
-        normal[i,1] =  1 * (tempNodes[i+1,0] - tempNodes[i,0])
-        normal[i,:] = normal[i,:] / np.sqrt(normal[i,0]**2 + normal[i,1]**2)
-    
-    # Initialize arrays for the structure top and bottom panel nodes
-    topNodes = np.zeros((Solid.Nnodes, 3))
-    bottomNodes = np.zeros((Solid.Nnodes, 3)) 
-    
-    # For each node of the strucutreal mesh, calculate the top and bottom 
-    # surface position based on the element's thickness
-    topNodes[:-1,0] = tempNodes[:-1,0] + 0.5 * Solid.tBeam[:,0] * normal[:,0]
-    topNodes[:-1,1] = tempNodes[:-1,1] + 0.5 * Solid.tBeam[:,0] * normal[:,1]
-    topNodes[-1,0:2] = np.copy(tempNodes[-1,0:2])
-    topNodes[:,2] = np.copy(tempNodes[:,2])
-    bottomNodes[:-1,0] = tempNodes[:-1,0] - 0.5 * Solid.tBeam[:,0] * normal[:,0]
-    bottomNodes[:-1,1] = tempNodes[:-1,1] - 0.5 * Solid.tBeam[:,0] * normal[:,1]
-    bottomNodes[-1,0:2] = np.copy(tempNodes[-1,0:2])
-    bottomNodes[:,2] = np.copy(tempNodes[:,2])
-    
-    # Interpolate the structual top and bottom nodes to find the fluid 
-    # panel node positions.
-    i = np.rint(0.5 * np.shape(Solid.meanline_p0)[0])
-    if (SW_INTERP_MTD == 1):
-        f1 = interp1d(bottomNodes[:,2], bottomNodes[:,0])
-        f2 = interp1d(bottomNodes[:,2], bottomNodes[:,1])
-        f3 = interp1d(topNodes[:,2], topNodes[:,0])
-        f4 = interp1d(topNodes[:,2], topNodes[:,1])
-        bottomXp = f1(Solid.meanline_p0[0:i])
-        bottomZp = f2(Solid.meanline_p0[0:i])
-        topXp    = f3(Solid.meanline_p0[i:])
-        topZp    = f4(Solid.meanline_p0[i:])   
-    else:
-        bottomXp = spline(bottomNodes[:,2], bottomNodes[:,0], Solid.meanline_p0[0:i])      
-        bottomZp = spline(bottomNodes[:,2], bottomNodes[:,1], Solid.meanline_p0[0:i])
-        topXp = spline(topNodes[:,2], topNodes[:,0], Solid.meanline_p0[i:])
-        topZp = spline(topNodes[:,2], topNodes[:,1], Solid.meanline_p0[i:])    
-    
     # Build arrays containing the new fluid panel node positions.
     newxp = np.zeros_like(Solid.meanline_p0)
     newzp = np.zeros_like(Solid.meanline_p0)
-    newxp[0:i] = np.copy(bottomXp)
-    newxp[i:] = np.copy(topXp)
-    newzp[0:i] = np.copy(bottomZp)
-    newzp[i:] = np.copy(topZp)
-            
+    (tx,tz,nx,nz,lelem) = panel_vectors(tempNodes[:,0], tempNodes[:,1])
+    for i in xrange(Solid.xp_0.shape[0]):
+        assoElem =  Solid.elemAsso[i]
+        percent = (Solid.meanline_p0[i] - Solid.nodes[assoElem,2]) / (Solid.nodes[assoElem+1,2] - Solid.nodes[assoElem,2])
+        newxp[i] = tempNodes[assoElem,0] + percent * lelem[assoElem] * tx[assoElem] + Solid.zp_0[i] * nx[assoElem]
+        newzp[i] = tempNodes[assoElem,1] + percent * lelem[assoElem] * tz[assoElem] + Solid.zp_0[i] * nz[assoElem]
+  
+#    # Calculate the normal components of the structure elements
+#    normal = np.zeros((Solid.Nelements,2))
+#    for i in xrange(Solid.Nelements):
+#        normal[i,0] = -1 * (tempNodes[i+1,1] - tempNodes[i,1])
+#        normal[i,1] =  1 * (tempNodes[i+1,0] - tempNodes[i,0])
+#        normal[i,:] = normal[i,:] / np.sqrt(normal[i,0]**2 + normal[i,1]**2)
+#    
+#    # Initialize arrays for the structure top and bottom panel nodes
+#    topNodes = np.zeros((Solid.Nnodes, 3))
+#    bottomNodes = np.zeros((Solid.Nnodes, 3)) 
+#    
+#    # For each node of the strucutreal mesh, calculate the top and bottom 
+#    # surface position based on the element's thickness
+#    topNodes[:-1,0] = tempNodes[:-1,0] + 0.5 * Solid.tBeam[:,0] * normal[:,0]
+#    topNodes[:-1,1] = tempNodes[:-1,1] + 0.5 * Solid.tBeam[:,0] * normal[:,1]
+#    topNodes[-1,0:2] = np.copy(tempNodes[-1,0:2])
+#    topNodes[:,2] = np.copy(tempNodes[:,2])
+#    bottomNodes[:-1,0] = tempNodes[:-1,0] - 0.5 * Solid.tBeam[:,0] * normal[:,0]
+#    bottomNodes[:-1,1] = tempNodes[:-1,1] - 0.5 * Solid.tBeam[:,0] * normal[:,1]
+#    bottomNodes[-1,0:2] = np.copy(tempNodes[-1,0:2])
+#    bottomNodes[:,2] = np.copy(tempNodes[:,2])
+#    
+#    # Interpolate the structual top and bottom nodes to find the fluid 
+#    # panel node positions.
+#    i = np.rint(0.5 * np.shape(Solid.meanline_p0)[0])
+#    if (SW_INTERP_MTD == 1):
+#        f1 = interp1d(bottomNodes[:,2], bottomNodes[:,0])
+#        f2 = interp1d(bottomNodes[:,2], bottomNodes[:,1])
+#        f3 = interp1d(topNodes[:,2], topNodes[:,0])
+#        f4 = interp1d(topNodes[:,2], topNodes[:,1])
+#        bottomXp = f1(Solid.meanline_p0[0:i])
+#        bottomZp = f2(Solid.meanline_p0[0:i])
+#        topXp    = f3(Solid.meanline_p0[i:])
+#        topZp    = f4(Solid.meanline_p0[i:])   
+#    else:
+#        bottomXp = spline(bottomNodes[:,2], bottomNodes[:,0], Solid.meanline_p0[0:i])      
+#        bottomZp = spline(bottomNodes[:,2], bottomNodes[:,1], Solid.meanline_p0[0:i])
+#        topXp = spline(topNodes[:,2], topNodes[:,0], Solid.meanline_p0[i:])
+#        topZp = spline(topNodes[:,2], topNodes[:,1], Solid.meanline_p0[i:])    
+#    
+#    # Build arrays containing the new fluid panel node positions.
+#    newxp = np.zeros_like(Solid.meanline_p0)
+#    newzp = np.zeros_like(Solid.meanline_p0)
+#    newxp[0:i] = np.copy(bottomXp)
+#    newxp[i:] = np.copy(topXp)
+#    newzp[0:i] = np.copy(bottomZp)
+#    newzp[i:] = np.copy(topZp)
+#            
     return (newxp, newzp)
     
 

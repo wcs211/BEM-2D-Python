@@ -36,6 +36,7 @@ class solid(object):
         self.meanline_c0 = x_mid / (np.max(Body.BF.x) - np.min(Body.BF.x))
         self.fixedCounter = 0
         self.beamCounter = 0
+        self.elemAsso = np.zeros(Body.BF.x.shape, int)
         
     def initThinPlate(self, tmax, c, SW_CNST_THK_BM, tConst, FLEX_RATIO):
         """
@@ -116,7 +117,13 @@ class solid(object):
         self.nodes[:,2] = self.nodes[:,0] / (max(self.nodes[:,0])-min(self.nodes[:,1]))
         
         self.nodes_0 = np.copy(self.nodes)      
-        self.nodesNew = np.copy(self.nodes)        
+        self.nodesNew = np.copy(self.nodes) 
+        
+        for i in xrange(self.xp_0.shape[0]):
+            for j in xrange(self.Nelements):
+                if (self.xp_0[i] <= self.nodes_0[j+1,0] and self.xp_0[i] >= self.nodes_0[j,0]):
+                    self.elemAsso[i] = np.copy(j)
+        print self.elemAsso
     
     #TODO: This function exists in FSIClass.py. Remove it in a future release?    
     def rotatePts(x0, y0, theta):
