@@ -11,7 +11,7 @@ from data_IO_class import DataIO
 from input_parameters import PARAMETERS as P
 from swimmer_class import Swimmer
 import parameter_classes as PC
-from functions_influence import quilt, wake_rollup
+from functions_influence import solve_phi, wake_rollup
 from terminal_output import print_output as po
 import functions_graphics as graph
 from SolidClass import solid
@@ -42,7 +42,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
-        quilt(Swimmers, RHO, DEL_T, i)
+        solve_phi(Swimmers, RHO, DEL_T, i)
         wake_rollup(Swimmers, DEL_T, i)
         archive(Swimmers[0].Body.AF.x_mid)
         archive(Swimmers[0].Body.AF.z_mid)
@@ -82,9 +82,9 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 if (outerCorr == 1):
-                    Swim.wake_shed(DEL_T, i)                           
-
-            quilt(Swimmers, RHO, DEL_T, i)
+                    Swim.wake_shed(DEL_T, i)
+                      
+            solve_phi(Swimmers, RHO, DEL_T, i)
 
             #TODO: Replace '0' with viscous drag component when available
             FSIP[0].setInterfaceForce(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], outerCorr,

@@ -9,7 +9,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   'SW_SAVE_DATA':       True
 , 'SAVE_EVERY':         1
-, 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
+, 'OUTPUT_DIR':         '/home/chris/BEM-2D-Python/data'
 , 'START_FROM':         'zeroTime'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -31,7 +31,7 @@ P = PARAMETERS = {
 , 'N_CYC':              10
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
-, 'VERBOSITY':          1   
+, 'VERBOSITY':          1
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Fluid Body Constants                                                        #
