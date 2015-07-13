@@ -7,9 +7,9 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Data I/O                                                                    #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  'SW_SAVE_DATA':       True
+  'SW_SAVE_DATA':       False
 , 'SAVE_EVERY':         1
-, 'OUTPUT_DIR':         '/home/chris/BEM-2D-Python/data'
+, 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
 , 'START_FROM':         'zeroTime'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -58,7 +58,7 @@ P = PARAMETERS = {
 , 'ALPHA':              0.2
 , 'BETA':               0.25*(1+0.2)**2
 , 'GAMMA':              0.5+0.2
-, 'N_ELEMENTS_S':       100
+, 'N_ELEMENTS_S':       40
 , 'MATERIAL':           'Polyethylene'
 , 'E':                  3.8e9
 , 'RHO_S':              935
