@@ -123,7 +123,6 @@ class solid(object):
             for j in xrange(self.Nelements):
                 if (self.xp_0[i] <= self.nodes_0[j+1,0] and self.xp_0[i] >= self.nodes_0[j,0]):
                     self.elemAsso[i] = np.copy(j)
-        print self.elemAsso
     
     #TODO: This function exists in FSIClass.py. Remove it in a future release?    
     def rotatePts(x0, y0, theta):

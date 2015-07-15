@@ -112,7 +112,7 @@ def influence_matrices(Swimmers, i):
     return(sigma_all, mu_w_all, a_bodydoublet, a_explicit,
            b_bodysource, b_edgedoublet, b_wakedoublet)
 
-def solve_phi(Swimmers, RHO, DEL_T, i):
+def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
     """Solves the boundary integral equation using a Kutta condition.
 
     Args:
@@ -121,6 +121,12 @@ def solve_phi(Swimmers, RHO, DEL_T, i):
         DEL_T: Time step length.
         i: Time step number.
     """
+    for Swim in Swimmers:  
+        if (outerCorr <= 1):
+            # mu_past used in differencing for pressure
+            Swim.Body.mu_past[1,:] = Swim.Body.mu_past[0,:]
+            Swim.Body.mu_past[0,:] = Swim.Body.mu
+    
     (sigma_all, mu_w_all, a_b, a_e, b_b, b_e, b_w) = influence_matrices(Swimmers, i)
 
     n_iter = 0
@@ -182,19 +188,20 @@ def solve_phi(Swimmers, RHO, DEL_T, i):
         if Swimmers[0].delta_cp[0] < 0.0001 or n_iter >= 1000:
             break
 
-    for Swim in Swimmers:
-        # mu_past used in differencing for pressure
-        Swim.Body.mu_past[1,:] = Swim.Body.mu_past[0,:]
-        Swim.Body.mu_past[0,:] = Swim.Body.mu
+    for Swim in Swimmers:  
+        if (outerCorr <= 1):
+#            # mu_past used in differencing for pressure
+#            Swim.Body.mu_past[1,:] = Swim.Body.mu_past[0,:]
+#            Swim.Body.mu_past[0,:] = Swim.Body.mu
 
-        Swim.Edge.mu = Swim.mu_guess[0]
-        Swim.Edge.gamma[0] = -Swim.Edge.mu
-        Swim.Edge.gamma[1] = Swim.Edge.mu
+            Swim.Edge.mu = Swim.mu_guess[0]
+            Swim.Edge.gamma[0] = -Swim.Edge.mu
+            Swim.Edge.gamma[1] = Swim.Edge.mu
 
-        # Get gamma of body panels for use in wake rollup
-        Swim.Body.gamma[0] = -Swim.Body.mu[0]
-        Swim.Body.gamma[1:-1] = Swim.Body.mu[:-1]-Swim.Body.mu[1:]
-        Swim.Body.gamma[-1] = Swim.Body.mu[-1]
+            # Get gamma of body panels for use in wake rollup
+            Swim.Body.gamma[0] = -Swim.Body.mu[0]
+            Swim.Body.gamma[1:-1] = Swim.Body.mu[:-1]-Swim.Body.mu[1:]
+            Swim.Body.gamma[-1] = Swim.Body.mu[-1]
 
 def wake_rollup(Swimmers, DEL_T, i):
     """Performs wake rollup on the swimmers' wake panels.

@@ -8,7 +8,7 @@ A 2D boundary element method code
 import numpy as np
 from functions_general import panel_vectors, extrap1d
 from scipy.interpolate import spline, interp1d
-from scipy import arange, array, exp
+#from scipy import arange, array, exp
 
 def s2f(Solid, tempNodes, SW_INTERP_MTD):
     # Build arrays containing the new fluid panel node positions.
@@ -291,6 +291,7 @@ class FSI(object):
                 newzp[i] = np.copy(Body.AF.z[i])
         
         # Store the absolute displacements and temporary nodes.
+        self.DU.fill(0.)
         self.DU[:,0] = newxp - Body.AF.x
         self.DU[:,1] = newzp - Body.AF.z
         self.maxDU = np.max(np.sqrt(self.DU[:,0]**2 + self.DU[:,1]**2))

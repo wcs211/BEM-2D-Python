@@ -6,6 +6,7 @@ A 2D boundary element method code
 
 """
 import numpy as np
+import scipy.io as sio
 
 class PyFEA(object):
     def __init__(self, Solid, FRAC_DELT, endTime, E, RHO_S):
@@ -32,6 +33,8 @@ class PyFEA(object):
         self.l = np.zeros((Solid.Nelements,1))
         self.RHO_S = RHO_S
         self.Fload = np.zeros((3*Solid.Nnodes,1))
+        self.Fext_n = np.zeros((3*Solid.Nnodes,1))
+        self.Fext_nPlus = np.zeros((3*Solid.Nnodes,1))
         
         # Initial Displacements
         temp = 3 * Solid.fixedCounter
@@ -294,11 +297,11 @@ class PyFEA(object):
         """
         U_n = np.copy(self.U_n)
         Udot_n = np.copy(self.Udot_n)
-        UdotDot_n = np.copy(self.UdotDot_n)        
+        UdotDot_n = np.copy(self.UdotDot_n)   
         
         # Reset mass and stiffness matrix to include all nodes
-        self.M = 0
-        self.K = 0
+        self.M.fill(0.)
+        self.K.fill(0.)
         
         # Assemble global mass and stiffness matricies
         for i in xrange(self.Nelements):
@@ -315,13 +318,16 @@ class PyFEA(object):
             # Add element matricies to the global matricies
             self.M = self.M + np.dot(np.dot(np.transpose(l_e), m_e), l_e)
             self.K = self.K + np.dot(np.dot(np.transpose(l_e), k_e), l_e)
-            
         # Set the zero displacement constraints
         temp = 3 * Solid.fixedCounter
         
         # Solve for the initial acceleration matrix
-        Fext_n = np.copy(self.Fload)
-        RHS = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
+        if (outerCorr == 1):
+            self.Fext_n = np.copy(self.Fext_nPlus)
+        Fext_n = np.copy(self.Fext_n)
+#        RHS = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
+#        theright = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
+        RHS = np.copy(Fext_n[temp:,:])
         UdotDot_n = np.linalg.solve(self.M[temp:,temp:], RHS)
         
         # March through time until the total simulated time has elapsed
@@ -329,7 +335,7 @@ class PyFEA(object):
         for i in xrange(j):
             # Assume the acting force is constant through the time-step and set
             # the initial input force as the final input force.
-            Fext_nPlus = np.copy(Fext_n)
+            Fext_nPlus = np.copy(self.Fload)
             
             # Determine which integration method to use
             if (method == 'HHT'):
@@ -355,7 +361,8 @@ class PyFEA(object):
                 UdotDot_n = np.copy(UdotDot_nPlus)
                 
         # Store the final displacements, velocities, and accelerations
-        habba = U_nPlus[2::3]
+        
         self.U_nPlus = np.copy(U_nPlus)
         self.Udot_nPlus = np.copy(Udot_nPlus)
         self.UdotDot_nPlus = np.copy(UdotDot_nPlus)
+        self.Fext_nPlus = np.copy(Fext_nPlus)

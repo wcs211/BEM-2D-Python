@@ -109,15 +109,15 @@ def plot_n_go(Edge, Body, Solid, V0, T, HEAVE):
 #    plt.gca().set_aspect('equal')
     plt.gca().invert_yaxis()
     
-    plt.plot(Body.AF.x_col[:Body.N/2], Body.cp[:Body.N/2]/100, 'g')
-    plt.plot(Body.AF.x_col[Body.N/2:], Body.cp[Body.N/2:]/100, 'b')
+#    plt.plot(Body.AF.x_col[:Body.N/2], Body.cp[:Body.N/2]/100, 'g')
+#    plt.plot(Body.AF.x_col[Body.N/2:], Body.cp[Body.N/2:]/100, 'b')
     plt.plot(Body.AF.x, Body.AF.z, 'k')
-    plt.plot(Body.AF.x_col, Body.AF.z_col, 'r')
+#    plt.plot(Body.AF.x_col, Body.AF.z_col, 'r')
     
-    plt.plot(Solid.tempNodes[:,0], Solid.tempNodes[:,1], 'k')
+#    plt.plot(Solid.tempNodes[:,0], Solid.tempNodes[:,1], 'k')
     
     plt.xlim((np.min(Body.AF.x)-0.02, np.min(Body.AF.x)+0.22))
-    plt.plot(Edge.x, Edge.z, 'g')
+#    plt.plot(Edge.x, Edge.z, 'g')
     plt.ylim((-0.05, 0.05))
     
     rigidX = np.zeros(2)
