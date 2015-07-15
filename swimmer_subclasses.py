@@ -288,14 +288,7 @@ class Body(object):
         """
         X0 = self.MP.X0
         Z0 = self.MP.Z0
-#        THETA_MAX = self.MP.THETA_MAX
-#        F = self.MP.F
-#        PHI = self.MP.PHI
         V0 = self.MP.V0
-            
-#        theta = THETA_MAX*np.sin(2*np.pi*F*(T+TSTEP) + PHI)
-#        theta = 5*np.pi/180*np.tanh(T)
-#        theta = 5*np.pi/180*(0.5*np.tanh(T-5)+0.5)
 
         x_neut = X0 + (x+DSTEP)*np.cos(THETA) + V0*T
         z_neut = Z0 + (x+DSTEP)*np.sin(THETA) + HEAVE
@@ -336,8 +329,6 @@ class Body(object):
         # Normal vectors point outward but positive S is inward, so the shift must be subtracted from the panel midpoints
         afx_col = x_mid - self.S*panel_vectors(afx, afz)[2]*np.absolute(bfz_col)
         afz_col = z_mid - self.S*panel_vectors(afx, afz)[3]*np.absolute(bfz_col)
-#        afx_col = x_mid - panel_vectors(afx, afz)[2]*0.000102606
-#        afz_col = z_mid - panel_vectors(afx, afz)[3]*0.000102606
 
         self.AF.x = afx
         self.AF.z = afz
@@ -437,10 +428,6 @@ class Body(object):
         dmu_dl[0] = (self.mu[0]-self.mu[1]) / (lpanel[0]/2 + lpanel[1]/2)
         dmu_dl[1:-1] = (self.mu[:-2]-self.mu[2:]) / (lpanel[:-2]/2 + lpanel[1:-1] + lpanel[2:]/2)
         dmu_dl[-1] = (self.mu[-2]-self.mu[-1]) / (lpanel[-2]/2 + lpanel[-1]/2)
-        
-        currentMu = np.copy(self.mu)
-        oldMu = np.copy(self.mu_past[0,:])
-        secondOldMu = np.copy(self.mu_past[1,:])
 
         # Potential change dmu/dt, second-order differencing after first time step
         if i == 0:
