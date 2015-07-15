@@ -55,9 +55,9 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'INT_METHOD':         'HHT'
 , 'M_TYPE':             'consistent'
-, 'ALPHA':              0.1
-, 'BETA':               0.25*(1+0.1)**2
-, 'GAMMA':              0.5+0.1
+, 'ALPHA':              0.3
+, 'BETA':               0.25*(1+0.3)**2
+, 'GAMMA':              0.5+0.3
 , 'N_ELEMENTS_S':       100
 , 'MATERIAL':           'Polyethylene'
 , 'E':                  3.8e9
