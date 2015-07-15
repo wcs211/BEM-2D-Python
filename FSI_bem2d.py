@@ -17,7 +17,7 @@ import functions_graphics as graph
 from SolidClass import solid
 from PyFEA import PyFEA
 from FSIClass import FSI
-from functions_general import panel_vectors, archive, absoluteToBody, simulation_startup
+from functions_general import archive, absoluteToBody, simulation_startup
 
 po().prog_title('1.0.0')
 DIO = DataIO(P)
@@ -39,10 +39,10 @@ outerCorr = 2
 for i in xrange(START_COUNTER, COUNTER):
     if i == 0:
         for Swim in Swimmers:
-                Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
-                Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
-                Swim.edge_shed(DEL_T, i)
-                Swim.wake_shed(DEL_T, i)
+            Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
+            Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
+            Swim.edge_shed(DEL_T, i)
+            Swim.wake_shed(DEL_T, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         wake_rollup(Swimmers, DEL_T, i)
         archive(Swimmers[0].Body.AF.x_mid)
@@ -69,29 +69,6 @@ for i in xrange(START_COUNTER, COUNTER):
                     Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
                 else:
                     Swim.Body.fsi_panel_positions(FSIP[0], P['T'][i], P['THETA'][i], P['HEAVE'][i])
-#                    Swim.Body.AF.x = Swim.Body.AF.x + (FSIP[0].fluidNodeDispl[:,0] - FSIP[0].fluidNodeDisplOld[:,0])
-#                    Swim.Body.AF.z = Swim.Body.AF.z + (FSIP[0].fluidNodeDispl[:,1] - FSIP[0].fluidNodeDisplOld[:,1])
-#                    
-#                    xPoints = np.copy(Swim.Body.AF.x)
-#                    zPoints = np.copy(Swim.Body.AF.z)                    
-#                    
-#                    Swim.Body.AF.x_mid[0,:] = (Swim.Body.AF.x[:-1] + Swim.Body.AF.x[1:])/2
-#                    Swim.Body.AF.z_mid[0,:] = (Swim.Body.AF.z[:-1] + Swim.Body.AF.z[1:])/2
-#
-#                    BFx = (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.cos(-1*P['THETA'][i]) - (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.sin(-1*P['THETA'][i])
-#                    BFz = (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.cos(-1*P['THETA'][i]) + (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.sin(-1*P['THETA'][i])
-#                    BFx_col = ((BFx[1:] + BFx[:-1])/2)
-#                    BFz_col =  ((BFz[1:] + BFz[:-1])/2)
-#                    
-#                    Swim.Body.BF.x = np.copy(BFx)
-#                    Swim.Body.BF.z = np.copy(BFz)
-#                    Swim.Body.BF.x_col = np.copy(BFx_col)
-#                    Swim.Body.BF.z_col = np.copy(BFz_col)
-#                    
-#                    (Swim.Body.AF.x_neut, Swim.Body.AF.z_neut) = Swim.Body.neutral_axis(BFx, T[i], P['THETA'][i], P['HEAVE'][i])
-#                    
-#                    Swim.Body.AF.x_col = Swim.Body.AF.x_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[2]*np.absolute(BFz_col)
-#                    Swim.Body.AF.z_col = Swim.Body.AF.z_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[3]*np.absolute(BFz_col)
                     
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
@@ -101,8 +78,7 @@ for i in xrange(START_COUNTER, COUNTER):
             solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
 
             #TODO: Replace '0' with viscous drag component when available
-            FSIP[0].setInterfaceForce(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], outerCorr,
-                          P['SW_VISC_DRAG'], 0, P['SW_INTERP_MTD'], P['C'], i)
+            FSIP[0].setInterfaceForce(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], outerCorr, P['SW_VISC_DRAG'], 0, P['SW_INTERP_MTD'], P['C'], i)
             PyFEAP[0].solve(Swimmers[0].Body, SolidP[0], outerCorr, P['M_TYPE'], P['INT_METHOD'], P['ALPHA'], P['BETA'], P['GAMMA'])
             FSIP[0].getDisplacements(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], P['SW_INTERP_MTD'], P['FLEX_RATIO'])
             FSIP[0].calcFSIResidual(SolidP[0], outerCorr)
@@ -118,7 +94,6 @@ for i in xrange(START_COUNTER, COUNTER):
                 if np.fmod(i,P['VERBOSITY']) == 0:
                     po().solution_output(0,0,0,0,0,0)
                     po().solution_complete_output(i/float(COUNTER-1)*100.)
-#                PyFEA[0].Fext_n = np.copy(PyFEA[0].Fext_nPlus)
                 wake_rollup(Swimmers, DEL_T, i)
                 absoluteToBody(Swimmers[0].Body, SolidP[0], P['THETA'][i], P['HEAVE'][i])
                 archive(Swimmers[0].Body.AF.x_mid)
