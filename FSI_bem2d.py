@@ -68,29 +68,30 @@ for i in xrange(START_COUNTER, COUNTER):
                 if (outerCorr == 1):
                     Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
                 else:
-                    Swim.Body.AF.x = Swim.Body.AF.x + (FSIP[0].fluidNodeDispl[:,0] - FSIP[0].fluidNodeDisplOld[:,0])
-                    Swim.Body.AF.z = Swim.Body.AF.z + (FSIP[0].fluidNodeDispl[:,1] - FSIP[0].fluidNodeDisplOld[:,1])
-                    
-                    xPoints = np.copy(Swim.Body.AF.x)
-                    zPoints = np.copy(Swim.Body.AF.z)                    
-                    
-                    Swim.Body.AF.x_mid[0,:] = (Swim.Body.AF.x[:-1] + Swim.Body.AF.x[1:])/2
-                    Swim.Body.AF.z_mid[0,:] = (Swim.Body.AF.z[:-1] + Swim.Body.AF.z[1:])/2
-
-                    BFx = (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.cos(-1*P['THETA'][i]) - (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.sin(-1*P['THETA'][i])
-                    BFz = (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.cos(-1*P['THETA'][i]) + (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.sin(-1*P['THETA'][i])
-                    BFx_col = ((BFx[1:] + BFx[:-1])/2)
-                    BFz_col =  ((BFz[1:] + BFz[:-1])/2)
-                    
-                    Swim.Body.BF.x = np.copy(BFx)
-                    Swim.Body.BF.z = np.copy(BFz)
-                    Swim.Body.BF.x_col = np.copy(BFx_col)
-                    Swim.Body.BF.z_col = np.copy(BFz_col)
-                    
-                    (Swim.Body.AF.x_neut, Swim.Body.AF.z_neut) = Swim.Body.neutral_axis(BFx, T[i], P['THETA'][i], P['HEAVE'][i])
-                    
-                    Swim.Body.AF.x_col = Swim.Body.AF.x_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[2]*np.absolute(BFz_col)
-                    Swim.Body.AF.z_col = Swim.Body.AF.z_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[3]*np.absolute(BFz_col)
+                    Swim.Body.fsi_panel_positions(FSIP[0], P['T'][i], P['THETA'][i], P['HEAVE'][i])
+#                    Swim.Body.AF.x = Swim.Body.AF.x + (FSIP[0].fluidNodeDispl[:,0] - FSIP[0].fluidNodeDisplOld[:,0])
+#                    Swim.Body.AF.z = Swim.Body.AF.z + (FSIP[0].fluidNodeDispl[:,1] - FSIP[0].fluidNodeDisplOld[:,1])
+#                    
+#                    xPoints = np.copy(Swim.Body.AF.x)
+#                    zPoints = np.copy(Swim.Body.AF.z)                    
+#                    
+#                    Swim.Body.AF.x_mid[0,:] = (Swim.Body.AF.x[:-1] + Swim.Body.AF.x[1:])/2
+#                    Swim.Body.AF.z_mid[0,:] = (Swim.Body.AF.z[:-1] + Swim.Body.AF.z[1:])/2
+#
+#                    BFx = (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.cos(-1*P['THETA'][i]) - (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.sin(-1*P['THETA'][i])
+#                    BFz = (Swim.Body.AF.z - Swim.Body.AF.z_le) * np.cos(-1*P['THETA'][i]) + (Swim.Body.AF.x - Swim.Body.AF.x_le) * np.sin(-1*P['THETA'][i])
+#                    BFx_col = ((BFx[1:] + BFx[:-1])/2)
+#                    BFz_col =  ((BFz[1:] + BFz[:-1])/2)
+#                    
+#                    Swim.Body.BF.x = np.copy(BFx)
+#                    Swim.Body.BF.z = np.copy(BFz)
+#                    Swim.Body.BF.x_col = np.copy(BFx_col)
+#                    Swim.Body.BF.z_col = np.copy(BFz_col)
+#                    
+#                    (Swim.Body.AF.x_neut, Swim.Body.AF.z_neut) = Swim.Body.neutral_axis(BFx, T[i], P['THETA'][i], P['HEAVE'][i])
+#                    
+#                    Swim.Body.AF.x_col = Swim.Body.AF.x_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[2]*np.absolute(BFz_col)
+#                    Swim.Body.AF.z_col = Swim.Body.AF.z_mid[0,:] - Swim.Body.S*panel_vectors(Swim.Body.AF.x, Swim.Body.AF.z)[3]*np.absolute(BFz_col)
                     
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)

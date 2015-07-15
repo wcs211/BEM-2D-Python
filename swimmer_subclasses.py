@@ -350,6 +350,23 @@ class Body(object):
         # Location of leading edge (currently pitching motion only)
         self.AF.x_le = V0*T
         self.AF.z_le = HEAVE
+        
+    def fsi_panel_positions(self, FSI, T, THETA, HEAVE):
+        self.AF.x = self.AF.x + (FSI.fluidNodeDispl[:,0] - FSI.fluidNodeDisplOld[:,0])
+        self.AF.z = self.AF.z + (FSI.fluidNodeDispl[:,1] - FSI.fluidNodeDisplOld[:,1])                 
+
+        self.AF.x_mid[0,:] = (self.AF.x[:-1] + self.AF.x[1:])/2
+        self.AF.z_mid[0,:] = (self.AF.z[:-1] + self.AF.z[1:])/2
+
+        self.BF.x = (self.AF.x - self.AF.x_le) * np.cos(-1*THETA) - (self.AF.z - self.AF.z_le) * np.sin(-1*THETA)
+        self.BF.z = (self.AF.z - self.AF.z_le) * np.cos(-1*THETA) + (self.AF.x - self.AF.x_le) * np.sin(-1*THETA)
+        self.BF.x_col = ((self.BF.x[1:] + self.BF.x[:-1])/2)
+        self.BF.z_col = ((self.BF.z[1:] + self.BF.z[:-1])/2)
+
+        (self.AF.x_neut, self.AF.z_neut) = self.neutral_axis(self.BF.x, T, THETA, HEAVE)
+
+        self.AF.x_col = self.AF.x_mid[0,:] - self.S*panel_vectors(self.AF.x, self.AF.z)[2]*np.absolute(self.BF.z_col)
+        self.AF.z_col = self.AF.z_mid[0,:] - self.S*panel_vectors(self.AF.x, self.AF.z)[3]*np.absolute(self.BF.z_col)
 
     def surface_kinematics(self, DSTEP, TSTEP, THETA_MINUS, THETA_PLUS, HEAVE_MINUS, HEAVE_PLUS, DEL_T, T, i):
         """Calculates the body-frame surface velocities of body panels.
