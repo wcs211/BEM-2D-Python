@@ -20,11 +20,12 @@ Other related projects:
 * Multiple body interactions
 * Implicit and Explicit Kutta condition enforcement
 * Saves time-step data for post-processing
+* Start from a previous data save
+* Fluid Structure Interaction (FSI)
 
 ## Future Features
 The following features have planned implementation in the code:
 
-* Start from a previous data save
 * Vortex Particle wake representation
 * Lumped wake representation
 * Equations of motion solver

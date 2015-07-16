@@ -108,7 +108,7 @@ class print_output(object):
         print '| WARNING! MAX INNER-LOOP ITERATIONS REACHED                                  |'
         print '+-----------------------------------------------------------------------------+'
         
-    def solution_output(self,d_visc,cf,cl,ct,cpow,gamma):
+    def solution_output(self,cf,cl,ct,cpow):
         """
         Prints time-step solution information to STDOUT.
         
@@ -121,12 +121,10 @@ class print_output(object):
             gamma (float): Body circulation.
         """
         print '| Solution Information:                                                       |'
-        print '|     d_visc   = %13e                                                |' % d_visc
         print '|     cf       = %13e                                                |' % cf    
         print '|     cl       = %13e                                                |' % cl    
         print '|     ct       = %13e                                                |' % ct    
         print '|     cpow     = %13e                                                |' % cpow  
-        print '|     gamma    = %13e                                                |' % gamma 
         
     def solution_avg_output(self,cl_avg,ct_avg,tnet_avg,d_avg,pow_avg,cpow_avg):
         """

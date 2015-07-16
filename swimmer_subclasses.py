@@ -90,6 +90,11 @@ class Body(object):
         self.p = np.zeros(N)
         self.cp = np.zeros(N)
         self.mu_past = np.zeros((2,N))
+        
+        self.Cf = 0.
+        self.Cl = 0.
+        self.Ct = 0.
+        self.Cpow = 0.
 
     @classmethod
     def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
@@ -444,16 +449,33 @@ class Body(object):
         self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
         self.cp = self.p / (0.5*RHO*self.V0**2)
 
-    def force(self, i):
+    def force(self, THETA, RHO, V0, C, B, i):
         """Calculates drag and lift forces acting on the body.
 
         Args:
             i: Time step number.
         """
+        
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x, self.AF.z)
 
-        Body.drag[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(tx,(self.N,1)))\
-                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(-tz,(self.N,1)))
+        delFx = -self.p * lpanel * B * nx
+        delFz = -self.p * lpanel * B * nz
+        delF = np.array([delFx, delFz])
+#        delF = -np.multiply(np.kron(self.p, np.array([1, 1])), np.array([nx, nz]).T)
+        delP = np.sum(-delF * np.array([self.vx.T, self.vz.T]), 1)
 
-        self.lift[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(-nz,(self.N,1)))\
-                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(nx,(self.N,1)))
+        force = np.sum(delF,1)
+        lift = force[1] * np.cos(THETA) - force[0] * np.sin(THETA)
+        thrust = -(force[1] * np.sin(THETA) + force[0] * np.cos(THETA))
+        power = np.sum(delP, 0)
+        
+        self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * V0**2 * C *B)
+        self.Cl = lift /(0.5 * RHO * V0**2 * C *B)
+        self.Ct = thrust / (0.5 * RHO * V0**2 * C *B)
+        self.Cpow = power /  (0.5 * RHO * V0**3 * C *B)
+        
+#        Body.drag[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(tx,(self.N,1)))\
+#                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(-tz,(self.N,1)))
+#
+#        self.lift[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(-nz,(self.N,1)))\
+#                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(nx,(self.N,1)))

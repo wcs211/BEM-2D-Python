@@ -44,6 +44,12 @@ class Swimmer(object):
 
         self.Edge = Edge(self.CE)
         self.Wake = Wake(N_WAKE)
+        
+#        self.Cf = np.zeros(N_WAKE+1)
+#        self.Cl = np.zeros(N_WAKE+1)
+#        self.Ct = np.zeros(N_WAKE+1)
+#        self.Cpow = np.zeros(N_WAKE+1)
+        
 
     def edge_shed(self, DEL_T, i):
         """Updates the position of the Edge panel.

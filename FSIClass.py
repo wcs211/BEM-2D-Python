@@ -346,3 +346,7 @@ class FSI(object):
         
         # Determine the maximum magnitude of the FSI residual.
         self.maxMagFsiResidual = np.max(magFsiResidual)
+        
+        # Check if the simulation blew up and raise an error if so
+#        if np.isnan(self.maxDU):
+#            raise

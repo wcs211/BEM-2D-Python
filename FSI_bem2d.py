@@ -5,6 +5,7 @@ BEM-2D
 A 2D boundary element method code
 
 """
+import fpectl
 import time
 import numpy as np
 from data_IO_class import DataIO
@@ -18,6 +19,10 @@ from SolidClass import solid
 from PyFEA import PyFEA
 from FSIClass import FSI
 from functions_general import archive, absoluteToBody, simulation_startup
+
+# Turn on SIGFPE handling
+fpectl.turnon_sigfpe()
+np.seterr(all='raise')
 
 po().prog_title('1.0.0')
 DIO = DataIO(P)
@@ -43,6 +48,7 @@ for i in xrange(START_COUNTER, COUNTER):
             Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
+            Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         wake_rollup(Swimmers, DEL_T, i)
         archive(Swimmers[0].Body.AF.x_mid)
@@ -50,7 +56,6 @@ for i in xrange(START_COUNTER, COUNTER):
         SolidP[0].nodes[:,0] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.cos(P['THETA'][i])
         SolidP[0].nodes[:,1] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.sin(P['THETA'][i])
         graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0], P['V0'], P['T'][i], P['HEAVE'][i])
-        Pressure = np.copy(Swimmers[0].Body.p)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
 
     else:
@@ -74,6 +79,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.edge_shed(DEL_T, i)
                 if (outerCorr == 1):
                     Swim.wake_shed(DEL_T, i)
+                Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i)
                       
             solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
 
@@ -92,7 +98,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 else:
                     po().fsi_not_converged()
                 if np.fmod(i,P['VERBOSITY']) == 0:
-                    po().solution_output(0,0,0,0,0,0)
+                    po().solution_output(Swimmers[0].Body.Cf, Swimmers[0].Body. Cl,Swimmers[0].Body.Ct,Swimmers[0].Body.Cpow)
                     po().solution_complete_output(i/float(COUNTER-1)*100.)
                 wake_rollup(Swimmers, DEL_T, i)
                 absoluteToBody(Swimmers[0].Body, SolidP[0], P['THETA'][i], P['HEAVE'][i])
