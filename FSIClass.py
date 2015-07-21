@@ -233,8 +233,10 @@ class FSI(object):
         elif (i_t > 0 and outerCorr <= 1):
             PyFEA.U_n = np.zeros((3*Solid.Nnodes,1))
             PyFEA.Udot_n = np.zeros((3*Solid.Nnodes,1))
+            PyFEA.UdotDot_n = np.zeros((3*Solid.Nnodes - temp,1))
             PyFEA.U_n[temp:,0] = PyFEA.U_nPlus.T
             PyFEA.Udot_n[temp:,0] = PyFEA.Udot_nPlus.T
+            PyFEA.UdotDot_n = PyFEA.Udot_nPlus
         
         PyFEA.Fload = np.copy(Fload)
         PyFEA.A = np.copy(A)

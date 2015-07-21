@@ -295,6 +295,9 @@ class PyFEA(object):
         Raises:
             ValueError: If 'method' is not defined as 'HHT', 'NEWMARK', or 'TRAPEZOIDAL'.           
         """
+        # Set the zero displacement constraints
+        temp = 3 * Solid.fixedCounter
+        
         U_n = np.copy(self.U_n)
         Udot_n = np.copy(self.Udot_n)
         UdotDot_n = np.copy(self.UdotDot_n)   
@@ -318,8 +321,6 @@ class PyFEA(object):
             # Add element matricies to the global matricies
             self.M = self.M + np.dot(np.dot(np.transpose(l_e), m_e), l_e)
             self.K = self.K + np.dot(np.dot(np.transpose(l_e), k_e), l_e)
-        # Set the zero displacement constraints
-        temp = 3 * Solid.fixedCounter
         
         # Solve for the initial acceleration matrix
         if (outerCorr == 1):
@@ -327,8 +328,8 @@ class PyFEA(object):
         Fext_n = np.copy(self.Fext_n)
 #        RHS = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
 #        theright = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
-        RHS = np.copy(Fext_n[temp:,:])
-        UdotDot_n = np.linalg.solve(self.M[temp:,temp:], RHS)
+#        RHS = np.copy(Fext_n[temp:,:])
+#        UdotDot_n = np.linalg.solve(self.M[temp:,temp:], RHS)
         
         # March through time until the total simulated time has elapsed
         j = np.size(np.arange(self.deltaT,self.endTime+self.deltaT,self.deltaT))
