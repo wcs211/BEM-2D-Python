@@ -27,7 +27,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'N_STEP':             200
+, 'N_STEP':             20
 , 'N_CYC':              10
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
@@ -69,7 +69,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             True
+, 'SW_FSI':             False
 , 'N_OUTERCORR_MAX':    1500
 , 'OUTER_CORR_TOL':     1e-7
 , 'FIXED_PT_RELAX':     1e-8
@@ -104,9 +104,9 @@ P['COUNTER'] = P['N_CYC'] * P['N_STEP'] + 1
 # Body Motion Parameters                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 P['T']           = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
-RAMP             = [0.5*np.tanh(0.25*(P['T'][i]-4))+0.5 for i in xrange(P['COUNTER'])]
-RAMP_P           = [0.5*np.tanh(0.25*((P['T'][i] + P['TSTEP'])-4))+0.5 for i in xrange(P['COUNTER'])]
-RAMP_M           = [0.5*np.tanh(0.25*((P['T'][i] - P['TSTEP'])-4))+0.5 for i in xrange(P['COUNTER'])]
+RAMP             = [0.5*np.tanh(2.*(P['T'][i]-2))+0.5 for i in xrange(P['COUNTER'])]
+RAMP_P           = [0.5*np.tanh(2.*((P['T'][i] + P['TSTEP'])-2))+0.5 for i in xrange(P['COUNTER'])]
+RAMP_M           = [0.5*np.tanh(2.*((P['T'][i] - P['TSTEP'])-2))+0.5 for i in xrange(P['COUNTER'])]
 
 #P['HEAVE']       = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i] + P['PHI'])  * RAMP[i] for i in xrange(P['COUNTER'])]
 #P['HEAVE_MINUS'] = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) * RAMP_M[i] for i in xrange(P['COUNTER'])]

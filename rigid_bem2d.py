@@ -31,6 +31,7 @@ RE = P['RE']
 
 po().calc_input(MotP[0].THETA_MAX/np.pi*180.,RE,MotP[0].THETA_MAX/np.pi*180.,DEL_T)
 po().initialize_output((START_COUNTER-1)*DEL_T)
+outerCorr = 1
 
 # Data points per cycle == 1/(F*DEL_T)
 for i in xrange(START_COUNTER, COUNTER):
@@ -40,7 +41,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
-        solve_phi(Swimmers, RHO, DEL_T, i)
+        solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         for Swim in Swimmers:
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
@@ -56,13 +57,13 @@ for i in xrange(START_COUNTER, COUNTER):
             Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
-        solve_phi(Swimmers, RHO, DEL_T, i)
+        solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
 
-        if np.fmod(i,P['VERBOSITY']) == 0:
-            po().solution_output(0,0,0,0,0,0)
-            po().solution_complete_output(i/float(COUNTER-1)*100.)
         wake_rollup(Swimmers, DEL_T, i)
         for Swim in Swimmers:
+            if np.fmod(i,P['VERBOSITY']) == 0:
+                po().solution_output(Swim.Body.Cf, Swim.Body. Cl,Swim.Body.Ct,Swim.Body.Cpow)
+                po().solution_complete_output(i/float(COUNTER-1)*100.)
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
         graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body)
