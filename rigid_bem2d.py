@@ -59,7 +59,7 @@ for i in xrange(START_COUNTER, COUNTER):
             Swim.wake_shed(DEL_T, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
 
-        wake_rollup(Swimmers, DEL_T, i)
+        wake_rollup(Swimmers, DEL_T, i, P['SW_ROLLUP'])
         for Swim in Swimmers:
             if np.fmod(i,P['VERBOSITY']) == 0:
                 po().solution_output(Swim.Body.Cf, Swim.Body. Cl,Swim.Body.Ct,Swim.Body.Cpow)

@@ -50,12 +50,13 @@ for i in xrange(START_COUNTER, COUNTER):
             Swim.wake_shed(DEL_T, i)
             Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
-        wake_rollup(Swimmers, DEL_T, i)
+        wake_rollup(Swimmers, DEL_T, i, P['SW_ROLLUP'])
         archive(Swimmers[0].Body.AF.x_mid)
         archive(Swimmers[0].Body.AF.z_mid)
         SolidP[0].nodes[:,0] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.cos(P['THETA'][i])
         SolidP[0].nodes[:,1] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.sin(P['THETA'][i])
-        graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0], P['V0'], P['T'][i], P['HEAVE'][i])
+#        graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0], P['V0'], P['T'][i], P['HEAVE'][i])
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i])
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
 
     else:
@@ -100,11 +101,12 @@ for i in xrange(START_COUNTER, COUNTER):
                 if np.fmod(i,P['VERBOSITY']) == 0:
                     po().solution_output(Swimmers[0].Body.Cf, Swimmers[0].Body. Cl,Swimmers[0].Body.Ct,Swimmers[0].Body.Cpow)
                     po().solution_complete_output(i/float(COUNTER-1)*100.)
-                wake_rollup(Swimmers, DEL_T, i)
+                wake_rollup(Swimmers, DEL_T, i, P['SW_ROLLUP'])
                 absoluteToBody(Swimmers[0].Body, SolidP[0], P['THETA'][i], P['HEAVE'][i])
                 archive(Swimmers[0].Body.AF.x_mid)
                 archive(Swimmers[0].Body.AF.z_mid)
-                graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0], P['V0'], P['T'][i], P['HEAVE'][i])
+#                graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0], P['V0'], P['T'][i], P['HEAVE'][i])
+                graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i])
                 DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
                 break
 
