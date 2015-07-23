@@ -45,7 +45,7 @@ for i in xrange(START_COUNTER, COUNTER):
         for Swim in Swimmers:
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body)
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i])
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
     else:
@@ -66,7 +66,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 po().solution_complete_output(i/float(COUNTER-1)*100.)
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.body_plot(Swimmers[0].Edge, Swimmers[0].Body)
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i])
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
 total_time = time.time()-start_time
