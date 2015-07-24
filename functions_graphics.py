@@ -99,11 +99,10 @@ def lift_vs_period(Body,RHO,t):
     n_fig += 1
     
 #def plot_n_go(Edge, Body, Solid, V0, T, HEAVE):
-def plot_n_go(Swimmers, V0, T, HEAVE):
+def plot_n_go(Swimmers, V0, T, HEAVE, i):
     global n_fig
     
-    figure = plt.figure(n_fig)
-    plt.clf()
+    figure = plt.figure(1)
     figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
     plt.gca().set_aspect('equal')
     maxpercentile = 95 # For truncating outliers
@@ -132,7 +131,10 @@ def plot_n_go(Swimmers, V0, T, HEAVE):
         # Extract color map for the individual Swim
         c = color[Swim.i_color:Swim.i_color+Swim.n_color]
         # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
-        plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
+        if (i > 0):
+#            for idx in xrange(i):
+#                plt.scatter(Swim.Wake.x[1:idx], Swim.Wake.z[1:idx], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
+            plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
         plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
         plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
 

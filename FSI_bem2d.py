@@ -56,7 +56,7 @@ for i in xrange(START_COUNTER, COUNTER):
         SolidP[0].nodes[:,0] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.cos(P['THETA'][i])
         SolidP[0].nodes[:,1] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.sin(P['THETA'][i])
 #        graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0], P['V0'], P['T'][i], P['HEAVE'][i])
-        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i])
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
 
     else:
@@ -106,7 +106,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 archive(Swimmers[0].Body.AF.x_mid)
                 archive(Swimmers[0].Body.AF.z_mid)
 #                graph.plot_n_go(Swimmers[0].Edge, Swimmers[0].Body, SolidP[0], P['V0'], P['T'][i], P['HEAVE'][i])
-                graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i])
+                graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i)
                 DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
                 break
 

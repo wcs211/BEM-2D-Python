@@ -27,7 +27,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'N_STEP':             50
+, 'N_STEP':             25
 , 'N_CYC':              10
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
@@ -37,9 +37,9 @@ P = PARAMETERS = {
 # Fluid Body Constants                                                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'V0':                 -0.15
-, 'THETA_MAX':          0.
-, 'HEAVE_MAX':          0.0100
-, 'F':                  0.7104278595
+, 'THETA_MAX':          np.arctan(0.0835287/0.15)
+, 'HEAVE_MAX':          0.0008
+, 'F':                  2.8932630043
 , 'PHI':                0.5*np.pi
 , 'RHO':                998.2
 , 'SW_KUTTA':           True
@@ -69,7 +69,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             False
+, 'SW_FSI':             True
 , 'N_OUTERCORR_MAX':    1500
 , 'OUTER_CORR_TOL':     1e-7
 , 'FIXED_PT_RELAX':     1e-8
@@ -78,7 +78,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Solver Switches                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_ROLLUP':          False
+, 'SW_ROLLUP':          True
 , 'SW_FREE_SWIM':       False
 , 'SW_VISC_DRAG':       False
 , 'SW_INTERP_MTD':      True
@@ -105,15 +105,17 @@ P['COUNTER'] = P['N_CYC'] * P['N_STEP'] + 1
 # Body Motion Parameters                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 P['T']           = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
-RAMP             = [0.5*np.tanh(2.*(P['T'][i]-2))+0.5 for i in xrange(P['COUNTER'])]
-RAMP_P           = [0.5*np.tanh(2.*((P['T'][i] + P['TSTEP'])-2))+0.5 for i in xrange(P['COUNTER'])]
-RAMP_M           = [0.5*np.tanh(2.*((P['T'][i] - P['TSTEP'])-2))+0.5 for i in xrange(P['COUNTER'])]
+slope  = 8.25
+offset = 1.
+RAMP             = [0.5*np.tanh(slope *(P['T'][i] - offset))+0.5 for i in xrange(P['COUNTER'])]
+RAMP_P           = [0.5*np.tanh(slope *((P['T'][i] + P['TSTEP'])-offset))+0.5 for i in xrange(P['COUNTER'])]
+RAMP_M           = [0.5*np.tanh(slope *((P['T'][i] - P['TSTEP'])-offset))+0.5 for i in xrange(P['COUNTER'])]
 P['HEAVE']       = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i] + P['PHI'])  * RAMP[i] for i in xrange(P['COUNTER'])]
 P['HEAVE_MINUS'] = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) * RAMP_M[i] for i in xrange(P['COUNTER'])]
 P['HEAVE_PLUS']  = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) * RAMP_P[i] for i in xrange(P['COUNTER'])]
-H_DOT            = [2. * np.pi * P['F'] * P['HEAVE_MAX'] * (0.5 * np.tanh(2. * (P['T'][i] - 2.)) + 0.5) * np.cos(2. * np.pi * P['F'] * P['T'][i] + P['PHI']) + P['HEAVE_MAX'] / (np.cosh(2. * (P['T'][i] - 2.)))**2 * np.sin(2. * np.pi * P['F'] * P['T'][i] + P['PHI']) for i in xrange(P['COUNTER'])]
-H_DOT_PLUS       = [2. * np.pi * P['F'] * P['HEAVE_MAX'] * (0.5 * np.tanh(2. * ((P['T'][i] + P['TSTEP']) - 2.)) + 0.5) * np.cos(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) + P['HEAVE_MAX'] / (np.cosh(2. * ((P['T'][i] + P['TSTEP']) - 2.)))**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
-H_DOT_MINUS      = [2. * np.pi * P['F'] * P['HEAVE_MAX'] * (0.5 * np.tanh(2. * ((P['T'][i] - P['TSTEP']) - 2.)) + 0.5) * np.cos(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) + P['HEAVE_MAX'] / (np.cosh(2. * ((P['T'][i] - P['TSTEP']) - 2.)))**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
+H_DOT            = [2. * np.pi * P['F'] * P['HEAVE_MAX'] * (0.5 * np.tanh(slope * (P['T'][i] - offset)) + 0.5) * np.cos(2. * np.pi * P['F'] * P['T'][i] + P['PHI']) + P['HEAVE_MAX'] / (np.cosh(slope * (P['T'][i] - offset)))**2 * np.sin(2. * np.pi * P['F'] * P['T'][i] + P['PHI']) for i in xrange(P['COUNTER'])]
+H_DOT_PLUS       = [2. * np.pi * P['F'] * P['HEAVE_MAX'] * (0.5 * np.tanh(slope * ((P['T'][i] + P['TSTEP']) - offset)) + 0.5) * np.cos(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) + P['HEAVE_MAX'] / (np.cosh(slope * ((P['T'][i] + P['TSTEP']) - offset)))**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
+H_DOT_MINUS      = [2. * np.pi * P['F'] * P['HEAVE_MAX'] * (0.5 * np.tanh(slope * ((P['T'][i] - P['TSTEP']) - offset)) + 0.5) * np.cos(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) + P['HEAVE_MAX'] / (np.cosh(slope * ((P['T'][i] - P['TSTEP']) - offset)))**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
 P['THETA']       = [np.arctan(H_DOT[i] / P['V0']) for i in xrange(P['COUNTER'])]
 P['THETA_MINUS'] = [np.arctan(H_DOT_MINUS[i] / P['V0']) for i in xrange(P['COUNTER'])]
 P['THETA_PLUS']  = [np.arctan(H_DOT_PLUS[i] / P['V0']) for i in xrange(P['COUNTER'])]
