@@ -41,11 +41,12 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
+                Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         for Swim in Swimmers:
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i])
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
     else:
@@ -57,6 +58,7 @@ for i in xrange(START_COUNTER, COUNTER):
             Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
+            Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
 
         wake_rollup(Swimmers, DEL_T, i, P['SW_ROLLUP'])
@@ -66,7 +68,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 po().solution_complete_output(i/float(COUNTER-1)*100.)
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i])
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
 total_time = time.time()-start_time

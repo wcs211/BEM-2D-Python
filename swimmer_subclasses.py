@@ -455,7 +455,7 @@ class Body(object):
         Args:
             i: Time step number.
         """
-        
+        B = 0.39
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x, self.AF.z)
 
         delFx = -self.p * lpanel * B * nx
@@ -469,10 +469,10 @@ class Body(object):
         thrust = -(force[1] * np.sin(THETA) + force[0] * np.cos(THETA))
         power = np.sum(delP, 0)
         
-        self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * V0**2 * C *B)
-        self.Cl = lift /(0.5 * RHO * V0**2 * C *B)
-        self.Ct = thrust / (0.5 * RHO * V0**2 * C *B)
-        self.Cpow = power /  (0.5 * RHO * V0**3 * C *B)
+        self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * np.abs(V0)**2 * C * B)
+        self.Cl = lift /(0.5 * RHO * np.abs(V0)**2 * C * B)
+        self.Ct = thrust / (0.5 * RHO * np.abs(V0)**2 * C * B)
+        self.Cpow = power /  (0.5 * RHO * np.abs(V0)**3 * C * B)
         
 #        Body.drag[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(tx,(self.N,1)))\
 #                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(-tz,(self.N,1)))
