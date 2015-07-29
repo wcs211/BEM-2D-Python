@@ -33,10 +33,16 @@ class DataIO(object):
             FSI (Optional [list]):
             PyFEA (Optional [list]):     
         """
-        if (np.fmod(i,P['SAVE_EVERY']) == 0 and P['SW_SAVE_DATA'] == True):
-            outfile = ''.join((self.OUTPUT_DIR, "/%.8f" % (i * DEL_T)))
-            with open(outfile, 'wb') as f:
-                pickle.dump([P, i, i*DEL_T, SwiP, GeoP, MotP, Swimmers, solid, FSI, PyFEA], f, 1)
+        if (i >= (P['N_CYC']-1) * P['N_STEP'] and P['SW_SV_L_CYCLE'] == True):
+            if (np.fmod(i,P['SAVE_EVERY']) == 0 and P['SW_SAVE_DATA'] == True):
+                outfile = ''.join((self.OUTPUT_DIR, "/%.8f" % (i * DEL_T)))
+                with open(outfile, 'wb') as f:
+                    pickle.dump([P, i, i*DEL_T, SwiP, GeoP, MotP, Swimmers, solid, FSI, PyFEA], f, 1)
+        else:
+            if (np.fmod(i,P['SAVE_EVERY']) == 0 and P['SW_SAVE_DATA'] == True and P['SW_SV_L_CYCLE'] == False):
+                outfile = ''.join((self.OUTPUT_DIR, "/%.8f" % (i * DEL_T)))
+                with open(outfile, 'wb') as f:
+                    pickle.dump([P, i, i*DEL_T, SwiP, GeoP, MotP, Swimmers, solid, FSI, PyFEA], f, 1)
             
     def read_data(self, INPUT_FILE):
         with open(INPUT_FILE, 'rb') as f:

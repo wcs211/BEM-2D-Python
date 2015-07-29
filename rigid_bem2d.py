@@ -16,7 +16,7 @@ from terminal_output import print_output as po
 import functions_graphics as graph
 from functions_general import archive, simulation_startup
 
-po().prog_title('1.0.0')
+#po().prog_title('1.0.0')
 DIO = DataIO(P)
 start_time = time.time()
 
@@ -46,7 +46,7 @@ for i in xrange(START_COUNTER, COUNTER):
         for Swim in Swimmers:
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i)
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
     else:
@@ -68,7 +68,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 po().solution_complete_output(i/float(COUNTER-1)*100.)
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i)
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
 total_time = time.time()-start_time

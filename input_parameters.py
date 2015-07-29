@@ -7,7 +7,8 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Data I/O                                                                    #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  'SW_SAVE_DATA':       False
+  'SW_SAVE_DATA':       True
+, 'SW_SV_L_CYCLE':      True
 , 'SAVE_EVERY':         1
 , 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
 , 'START_FROM':         'zeroTime'
@@ -27,7 +28,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'N_STEP':             25
+, 'N_STEP':             150
 , 'N_CYC':              10
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
@@ -37,10 +38,10 @@ P = PARAMETERS = {
 # Fluid Body Constants                                                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'V0':                 -0.05
-, 'THETA_MAX':          np.arctan(0.0835287/0.15)
-, 'HEAVE_MAX':          0.0008
-, 'F':                  1.446631502
-, 'PHI':                0.
+, 'THETA_MAX':          np.arctan(0.025132741/0.05)
+, 'HEAVE_MAX':          0.005
+, 'F':                  0.8
+, 'PHI':                0.5*np.pi
 , 'RHO':                998.2
 , 'SW_KUTTA':           True
 
@@ -70,9 +71,9 @@ P = PARAMETERS = {
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'SW_FSI':             True
-, 'N_OUTERCORR_MAX':    1500
+, 'N_OUTERCORR_MAX':    150
 , 'OUTER_CORR_TOL':     1e-7
-, 'FIXED_PT_RELAX':     1e-8
+, 'FIXED_PT_RELAX':     1e-5
 , 'COUPLING_SCHEME':    'Aitken'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -84,6 +85,7 @@ P = PARAMETERS = {
 , 'SW_INTERP_MTD':      True
 , 'SW_CNST_THK_BM':     True
 , 'SW_RAMP':            True
+, 'SW_PLOT_FIG':        False
 }
 
 
@@ -105,7 +107,7 @@ P['COUNTER'] = P['N_CYC'] * P['N_STEP'] + 1
 # Body Motion Parameters                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 P['T']           = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
-slope  = 8.25
+slope  = 1.75
 offset = 1.
 RAMP             = [0.5*np.tanh(slope *(P['T'][i] - offset))+0.5 for i in xrange(P['COUNTER'])]
 RAMP_P           = [0.5*np.tanh(slope *((P['T'][i] + P['TSTEP'])-offset))+0.5 for i in xrange(P['COUNTER'])]
