@@ -89,7 +89,9 @@ class FSI(object):
             self.fsiRelaxationFactor = self.fsiRelaxationFactor * (np.dot(self.fsiResidualOld.T, (self.fsiResidualOld - self.fsiResidual))) / (np.linalg.norm(self.fsiResidualOld - self.fsiResidual, ord=2))**2
             self.fsiRelaxationFactor = np.linalg.norm(self.fsiRelaxationFactor, ord=2)
             if (self.fsiRelaxationFactor > 1.):
-                self.fsiRelaxationFactor = 1           
+                self.fsiRelaxationFactor = 1 
+            if (self.fsiRelaxationFactor < self.fsiRelaxationFactorMin):
+                self.fsiRelaxationFactor = np.copy(self.fsiRelaxationFactorMin)
             self.fluidNodeDisplOld = np.copy(self.fluidNodeDispl)
             self.nodeDisplOld = np.copy(self.nodeDispl)
             self.fluidNodeDispl = self.fluidNodeDispl + self.fsiRelaxationFactor * self.fsiResidual

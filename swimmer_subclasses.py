@@ -95,6 +95,7 @@ class Body(object):
         self.Cl = 0.
         self.Ct = 0.
         self.Cpow = 0.
+        self.forceData = np.zeros((0,5))
 
     @classmethod
     def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
@@ -455,6 +456,8 @@ class Body(object):
         Args:
             i: Time step number.
         """
+        
+
         B = 0.39
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x, self.AF.z)
 
@@ -473,6 +476,8 @@ class Body(object):
         self.Cl = lift /(0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Ct = thrust / (0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Cpow = power /  (0.5 * RHO * np.abs(V0)**3 * C * B)
+        
+        self.forceData = np.append(self.forceData, np.array([[i, self.Cf, self.Cl, self.Ct, self.Cpow]]), axis=0)
         
 #        Body.drag[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(tx,(self.N,1)))\
 #                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(-tz,(self.N,1)))
