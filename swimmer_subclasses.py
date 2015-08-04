@@ -95,7 +95,7 @@ class Body(object):
         self.Cl = 0.
         self.Ct = 0.
         self.Cpow = 0.
-        self.forceData = np.zeros((0,5))
+        self.forceData = np.zeros((0,6))
 
     @classmethod
     def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
@@ -450,7 +450,7 @@ class Body(object):
         self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
         self.cp = self.p / (0.5*RHO*self.V0**2)
 
-    def force(self, THETA, RHO, V0, C, B, i):
+    def force(self, THETA, RHO, V0, C, B, i, SW_SV_FORCES):
         """Calculates drag and lift forces acting on the body.
 
         Args:
@@ -477,7 +477,9 @@ class Body(object):
         self.Ct = thrust / (0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Cpow = power /  (0.5 * RHO * np.abs(V0)**3 * C * B)
         
-        self.forceData = np.append(self.forceData, np.array([[i, self.Cf, self.Cl, self.Ct, self.Cpow]]), axis=0)
+               
+        
+
         
 #        Body.drag[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(tx,(self.N,1)))\
 #                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(-tz,(self.N,1)))

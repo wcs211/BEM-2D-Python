@@ -38,7 +38,8 @@ RE = P['RE']
 (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = simulation_startup(P, DIO, PC, Swimmer, solid, FSI, PyFEA)
 
 po().calc_input(MotP[0].THETA_MAX/np.pi*180.,RE,MotP[0].THETA_MAX/np.pi*180.,DEL_T)
-po().initialize_output((START_COUNTER-1)*DEL_T)
+#po().initialize_output((START_COUNTER-1)*DEL_T)
+po().initialize_output(P['T'][0])
 outerCorr = 2
 
 for i in xrange(START_COUNTER, COUNTER):
@@ -48,7 +49,7 @@ for i in xrange(START_COUNTER, COUNTER):
             Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
-            Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i)
+            Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i, P['SW_SV_FORCES'])
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         wake_rollup(Swimmers, DEL_T, i, P['SW_ROLLUP'])
         archive(Swimmers[0].Body.AF.x_mid)
@@ -80,7 +81,7 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.edge_shed(DEL_T, i)
                 if (outerCorr == 1):
                     Swim.wake_shed(DEL_T, i)
-                Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i)
+                Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i, P['SW_SV_FORCES'])
                       
             solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
 

@@ -8,7 +8,7 @@ A 2D boundary element method code
 from input_parameters import PARAMETERS as P
 from terminal_output import print_output as po
 
-po().prog_title('1.0.0')
+po().prog_title('1.0.080315a')
 
 if (P['SW_FSI'] == True):
     # Run the Fluid Structure Interaction Solver with the BEM Solver

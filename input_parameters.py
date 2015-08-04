@@ -9,6 +9,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   'SW_SAVE_DATA':       False
 , 'SW_SV_L_CYCLE':      True
+, 'SW_SV_FORCES':       True
 , 'SAVE_EVERY':         1
 , 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
 , 'START_FROM':         'zeroTime'
@@ -39,8 +40,8 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'V0':                 -0.05
 , 'THETA_MAX':          np.arctan(0.025132741/0.05)
-, 'HEAVE_MAX':          0.0025
-, 'F':                  0.4
+, 'HEAVE_MAX':          0.0005
+, 'F':                  1.1
 , 'PHI':                0.5*np.pi
 , 'RHO':                998.2
 , 'SW_KUTTA':           False

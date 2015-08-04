@@ -33,6 +33,10 @@ class DataIO(object):
             FSI (Optional [list]):
             PyFEA (Optional [list]):     
         """
+        if P['SW_SV_FORCES']:
+            Swimmers[0].Body.forceData = np.append(Swimmers[0].Body.forceData, np.array([[i, Swimmers[0].Body.Cf, Swimmers[0].Body.Cl, Swimmers[0].Body.Ct, Swimmers[0].Body.Cpow, Swimmers[0].Body.AF.z[0]]]), axis=0)
+            np.savetxt("forces.csv", Swimmers[0].Body.forceData, delimiter=",", header="i [-], Cf [-], Cl [-], Ct [-], Cpow [-], TE_A [-]")        
+        
         if (i >= (P['N_CYC']-1) * P['N_STEP'] and P['SW_SV_L_CYCLE'] == True):
             if (np.fmod(i,P['SAVE_EVERY']) == 0 and P['SW_SAVE_DATA'] == True):
                 outfile = ''.join((self.OUTPUT_DIR, "/%.8f" % (i * DEL_T)))
