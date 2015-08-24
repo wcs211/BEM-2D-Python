@@ -18,19 +18,19 @@ P = PARAMETERS = {
 # Geometry Definition                                                         #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'SW_GEOMETRY':        'FP'
-, 'N_BODY':             100
-, 'C':                  0.100
+, 'N_BODY':             150
+, 'C':                  0.1
 , 'K':                  2.-(12.4/180)
 , 'EPSILON':            0.075
-, 'T_MAX':              0.0011
+, 'T_MAX':              0.000381
 , 'CE':                 0.4
-, 'S':                  0.01
+, 'S':                  0.15
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'N_STEP':             25
-, 'N_CYC':              10
+, 'N_STEP':             200
+, 'N_CYC':              5
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
 , 'VERBOSITY':          1
@@ -38,11 +38,11 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Fluid Body Constants                                                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'V0':                 -0.05
-, 'THETA_MAX':          np.arctan(0.025132741/0.05)
-, 'HEAVE_MAX':          0.0005
-, 'F':                  1.1
-, 'PHI':                0.5*np.pi
+, 'V0':                 -0.20
+, 'THETA_MAX':          5./180.*np.pi
+, 'HEAVE_MAX':          0.005
+, 'F':                  1.00
+, 'PHI':                0.0*np.pi
 , 'RHO':                998.2
 , 'SW_KUTTA':           False
 
@@ -62,11 +62,11 @@ P = PARAMETERS = {
 , 'GAMMA':              0.5+0.02
 , 'N_ELEMENTS_S':       100
 , 'MATERIAL':           'Polyethylene'
-, 'E':                  3.8e9
-, 'RHO_S':              935
+, 'E':                  2.0e9
+, 'RHO_S':              1250
 , 'FRAC_DELT':          1.0
-, 'FLEX_RATIO':         0.056410256
-, 'T_CONST':            0.95
+, 'FLEX_RATIO':         0.10
+, 'T_CONST':            0.10
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
@@ -108,8 +108,9 @@ P['COUNTER'] = P['N_CYC'] * P['N_STEP'] + 1
 # Body Motion Parameters                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 P['T']           = [P['DEL_T'] * i for i in xrange(P['COUNTER'])]
-slope  = P['F']
-offset = 0.25 * P['N_CYC'] / P['F']
+# Zero Angle of Attack Motions
+slope  = 3*P['F']
+offset = 0.03125 * P['N_CYC'] / P['F'] - 10. * P['F']
 RAMP             = [0.5*np.tanh(slope *(P['T'][i] - offset))+0.5 for i in xrange(P['COUNTER'])]
 RAMP_P           = [0.5*np.tanh(slope *((P['T'][i] + P['TSTEP'])-offset))+0.5 for i in xrange(P['COUNTER'])]
 RAMP_M           = [0.5*np.tanh(slope *((P['T'][i] - P['TSTEP'])-offset))+0.5 for i in xrange(P['COUNTER'])]
@@ -123,20 +124,23 @@ P['THETA']       = [np.arctan(H_DOT[i] / P['V0']) for i in xrange(P['COUNTER'])]
 P['THETA_MINUS'] = [np.arctan(H_DOT_MINUS[i] / P['V0']) for i in xrange(P['COUNTER'])]
 P['THETA_PLUS']  = [np.arctan(H_DOT_PLUS[i] / P['V0']) for i in xrange(P['COUNTER'])]
 
+# Pitching Only Motions
 #P['THETA']       = [np.tanh(P['T'][i])*5./180.*np.pi for i in xrange(P['COUNTER'])]
 #P['THETA_MINUS'] = [np.tanh(P['T'][i])*5./180.*np.pi for i in xrange(P['COUNTER'])]
 #P['THETA_PLUS']  = [np.tanh(P['T'][i])*5./180.*np.pi for i in xrange(P['COUNTER'])]
 #P['HEAVE']       = [0. for i in xrange(P['COUNTER'])]
 #P['HEAVE_MINUS'] = [0. for i in xrange(P['COUNTER'])]
 #P['HEAVE_PLUS']  = [0. for i in xrange(P['COUNTER'])]
-#
+
+# Heaving and Pitching Motions
 #P['THETA']       = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i] + P['PHI']) for i in xrange(P['COUNTER'])]
 #P['THETA_MINUS'] = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
 #P['THETA_PLUS']  = [P['THETA_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + P['PHI']) for i in xrange(P['COUNTER'])]
-#P['HEAVE']       = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i]) * np.tanh(3 * P['T'][i])  * RAMP[i] for i in xrange(P['COUNTER'])]
-#P['HEAVE_MINUS'] = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP'])) * np.tanh(3 * (P['T'][i] - P['TSTEP'])) * RAMP[i] for i in xrange(P['COUNTER'])]
-#P['HEAVE_PLUS']  = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP'])) * np.tanh(3 * (P['T'][i] + P['TSTEP'])) * RAMP[i] for i in xrange(P['COUNTER'])]
+#P['HEAVE']       = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i]) * np.tanh(3 * P['T'][i]) for i in xrange(P['COUNTER'])]
+#P['HEAVE_MINUS'] = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP'])) * np.tanh(3 * (P['T'][i] - P['TSTEP'])) for i in xrange(P['COUNTER'])]
+#P['HEAVE_PLUS']  = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP'])) * np.tanh(3 * (P['T'][i] + P['TSTEP'])) for i in xrange(P['COUNTER'])]
 
 # Constants dependent on declared parameters
-P['DELTA_CORE']  = (0.005*P['THETA_MAX']+0.09)*P['C']
+#P['DELTA_CORE']  = (0.005*P['THETA_MAX']+0.09)*P['C']
+P['DELTA_CORE']  = 1e-7
 P['RE']          = P['RHO']*-P['V0']*P['C']/MU

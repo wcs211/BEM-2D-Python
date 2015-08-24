@@ -5,45 +5,25 @@ BEM-2D
 A 2D boundary element method code
 
 """
-import os
 import numpy as np
-import pickle
-from data_IO_class import DataIO
-#from input_parameters import PARAMETERS as P
-from swimmer_class import Swimmer
-import parameter_classes as PC
-from functions_influence import solve_phi, wake_rollup
-from terminal_output import print_output as po
-import functions_graphics as graph
-from SolidClass import solid
-from PyFEA import PyFEA
-from FSIClass import FSI
-from functions_general import archive, absoluteToBody, simulation_startup
+from input_parameters import PARAMETERS as P
 
-# Input Directory
-INPUT_DIR = '/home/wcs211/Python_Post-processing/data/'
+importCsv = np.genfromtxt('forces.csv', delimiter=',')
+dataLength = importCsv.shape[0]
+avgData = np.zeros((P['N_CYC'], 6))
+norm = P['HEAVE_MAX']
 
-i = len([name for name in os.listdir(INPUT_DIR) if os.path.isfile(os.path.join(INPUT_DIR, name))])
-IF = np.empty(i)
-j = 0
-for file in os.listdir(INPUT_DIR):
-    IF[j] = float(file)
-    j = j + 1
+for i in xrange(P['N_CYC']):
+    avgData[i,0] = i+1
+    avgData[i,1] = np.trapz(importCsv[i*P['N_STEP']:(i+1)*P['N_STEP']+1,1], x=importCsv[i*P['N_STEP']:(i+1)*P['N_STEP']+1,0]*P['DEL_T']) / (P['T'][(i+1)*P['N_STEP']] - P['T'][i*P['N_STEP']])
+    avgData[i,2] = np.trapz(importCsv[i*P['N_STEP']:(i+1)*P['N_STEP']+1,2], x=importCsv[i*P['N_STEP']:(i+1)*P['N_STEP']+1,0]*P['DEL_T']) / (P['T'][(i+1)*P['N_STEP']] - P['T'][i*P['N_STEP']])
+    avgData[i,3] = np.trapz(importCsv[i*P['N_STEP']:(i+1)*P['N_STEP']+1,3], x=importCsv[i*P['N_STEP']:(i+1)*P['N_STEP']+1,0]*P['DEL_T']) / (P['T'][(i+1)*P['N_STEP']] - P['T'][i*P['N_STEP']])
+    avgData[i,4] = np.trapz(importCsv[i*P['N_STEP']:(i+1)*P['N_STEP']+1,4], x=importCsv[i*P['N_STEP']:(i+1)*P['N_STEP']+1,0]*P['DEL_T']) / (P['T'][(i+1)*P['N_STEP']] - P['T'][i*P['N_STEP']])
 
-INPUT_FILES = sorted(IF)
-csvData = np.zeros((np.shape(INPUT_FILES)[0], 6))
+    for i_t in xrange(dataLength):
+        if (i_t >= i * P['N_STEP'] and i_t <= (i+1) * P['N_STEP']):
+            if (np.abs(importCsv[i_t, 5] / norm) > avgData[i,5]):
+                avgData[i,5] = np.abs(importCsv[i_t, 5] / norm)
 
-for i_t in xrange(np.shape(INPUT_FILES)[0]):
-    INPT_FL = "%s%.8f" % (INPUT_DIR, INPUT_FILES[i_t])
-    
-    with open(INPT_FL, 'rb') as f:
-        P, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, solid, FSI, PyFEA = pickle.load(f)
-    
-    csvData[i_t,0] = i
-    csvData[i_t,1] = P['T'][i]
-    csvData[i_t,2] = Swimmers[0].Body.Cf
-    csvData[i_t,3] = Swimmers[0].Body.Cl
-    csvData[i_t,4] = Swimmers[0].Body.Ct
-    csvData[i_t,5] = Swimmers[0].Body.Cpow
-    
-np.savetxt("performance.csv", csvData, delimiter=",", header="i [-], Flow Time [s], Cf [-], Cl [-], Ct [-], Cpow [-]")
+np.savetxt("avg_Performance.csv", avgData, delimiter=",", header="Cycle No. [-], Cf_avg [-], Cl_avg [-], Ct_avg [-], Cpow_avg [-], TE_A_max [-]")
+#np.savetxt("avg_Performance.csv", avgData, delimiter=",")

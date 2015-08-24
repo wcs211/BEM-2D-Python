@@ -30,7 +30,7 @@ RE = P['RE']
 (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers) = simulation_startup(P, DIO, PC, Swimmer)[0:6]
 
 po().calc_input(MotP[0].THETA_MAX/np.pi*180.,RE,MotP[0].THETA_MAX/np.pi*180.,DEL_T)
-po().initialize_output((START_COUNTER-1)*DEL_T)
+po().initialize_output(P['T'][START_COUNTER])
 outerCorr = 1
 
 # Data points per cycle == 1/(F*DEL_T)
@@ -61,7 +61,7 @@ for i in xrange(START_COUNTER, COUNTER):
             Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i, P['SW_SV_FORCES'])
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
 
-        wake_rollup(Swimmers, DEL_T, i, P['SW_ROLLUP'])
+        wake_rollup(Swimmers, DEL_T, i, P)
         for Swim in Swimmers:
             if np.fmod(i,P['VERBOSITY']) == 0:
                 po().solution_output(Swim.Body.Cf, Swim.Body. Cl,Swim.Body.Ct,Swim.Body.Cpow)
@@ -73,5 +73,3 @@ for i in xrange(START_COUNTER, COUNTER):
 
 total_time = time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"
-
-graph.body_wake_plot(Swimmers)

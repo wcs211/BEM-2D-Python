@@ -7,6 +7,7 @@ A 2D boundary element method code
 """
 import numpy as np
 import scipy.io as sio
+import scipy.linalg as spla
 
 class PyFEA(object):
     def __init__(self, Solid, FRAC_DELT, endTime, E, RHO_S):
@@ -189,7 +190,9 @@ class PyFEA(object):
             alpha * Fext_n[temp:,:] - alpha * np.dot(self.K[temp:,temp:], U_n[temp:,:])
             
         # Solve the system to get the displacements
-        U_nPlus = np.linalg.solve(A, B)
+#        U_nPlus = np.linalg.solve(A, B)
+        U_nPlus = spla.solve(A, B)
+#       
         
         # Solve for the accelerations
         UdotDot_nPlus = (U_nPlus - (U_n[temp:,:] + self.deltaT * Udot_n[temp:,:] + self.deltaT**2 * (0.5 - beta) * UdotDot_n)) / (beta * self.deltaT**2)

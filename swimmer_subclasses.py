@@ -86,6 +86,7 @@ class Body(object):
         self.phi_dw = np.zeros(N)
         self.mu = np.zeros(N)
         self.gamma = np.zeros(N+1)
+        self.zcval = np.copy(self.BF.z_col)
 
         self.p = np.zeros(N)
         self.cp = np.zeros(N)
@@ -333,8 +334,8 @@ class Body(object):
         # They should be shifted inside or outside of the boundary depending on the dirichlet or neumann condition
         # Shifting surface collocation points some percent of the height from the neutral axis
         # Normal vectors point outward but positive S is inward, so the shift must be subtracted from the panel midpoints
-        afx_col = x_mid - self.S*panel_vectors(afx, afz)[2]*np.absolute(bfz_col)
-        afz_col = z_mid - self.S*panel_vectors(afx, afz)[3]*np.absolute(bfz_col)
+        afx_col = x_mid - self.S*panel_vectors(afx, afz)[2]*np.absolute(self.zcval) #bfz_col
+        afz_col = z_mid - self.S*panel_vectors(afx, afz)[3]*np.absolute(self.zcval)
 
         self.AF.x = afx
         self.AF.z = afz
@@ -362,8 +363,8 @@ class Body(object):
 
         (self.AF.x_neut, self.AF.z_neut) = self.neutral_axis(self.BF.x, T, THETA, HEAVE)
 
-        self.AF.x_col = self.AF.x_mid[0,:] - self.S*panel_vectors(self.AF.x, self.AF.z)[2]*np.absolute(self.BF.z_col)
-        self.AF.z_col = self.AF.z_mid[0,:] - self.S*panel_vectors(self.AF.x, self.AF.z)[3]*np.absolute(self.BF.z_col)
+        self.AF.x_col = self.AF.x_mid[0,:] - self.S*panel_vectors(self.AF.x, self.AF.z)[2]*np.absolute(self.zcval) #self.BF.z_col
+        self.AF.z_col = self.AF.z_mid[0,:] - self.S*panel_vectors(self.AF.x, self.AF.z)[3]*np.absolute(self.zcval)
 
     def surface_kinematics(self, DSTEP, TSTEP, THETA_MINUS, THETA_PLUS, HEAVE_MINUS, HEAVE_PLUS, DEL_T, T, i):
         """Calculates the body-frame surface velocities of body panels.
@@ -429,11 +430,20 @@ class Body(object):
 
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
 
-        # Tangential panel velocity dmu/dl, first-order differencing
+        # Tangential panel velocity dmu/dl, second-order differencing
+        
         dmu_dl = np.empty(self.N)
-        dmu_dl[0] = (self.mu[0]-self.mu[1]) / (lpanel[0]/2 + lpanel[1]/2)
-        dmu_dl[1:-1] = (self.mu[:-2]-self.mu[2:]) / (lpanel[:-2]/2 + lpanel[1:-1] + lpanel[2:]/2)
-        dmu_dl[-1] = (self.mu[-2]-self.mu[-1]) / (lpanel[-2]/2 + lpanel[-1]/2)
+#        ddmu_dl[0] = (-self.mu[2] + 4.*self.mu[1] - 3.*self.mu[0]) / (0.5*lpanel[0] + lpanel[1] + 0.5*lpanel[2])
+#        dmu_dl[1:-1] = (self.mu[:-2]-self.mu[2:]) / (lpanel[:-2]/2 + lpanel[1:-1] + lpanel[2:]/2)
+#        dmu_dl[-1] = (3.*self.mu[-3] - 4.*self.mu[-2] + self.mu[-1]) / (0.5*lpanel[-1] + lpanel[-2] + 0.5*lpanel[-3])
+        
+        # Tangential panel velocity dmu/dl, fourth-order differencing
+        dmu_dl[0] = (25.*self.mu[0] - 48.*self.mu[1] + 36.*self.mu[2] -16.*self.mu[3] + 3.*self.mu[4]) / (3.*(0.5*lpanel[0] + lpanel[1] + lpanel[2] + lpanel[3] + 0.5*lpanel[4]))
+        dmu_dl[1] = (-3.*self.mu[0] - 10.*self.mu[1] + 18.*self.mu[2] - 6.*self.mu[3] + self.mu[4]) / (3.*(0.5*lpanel[0] + lpanel[1] + lpanel[2] + lpanel[3] + 0.5*lpanel[4]))
+        dmu_dl[2:-2] = (-self.mu[4:] + 8.*self.mu[3:-1] - 8.*self.mu[1:-3] + self.mu[:-4]) / (3.*(0.5*lpanel[:-4] + lpanel[1:-3] + lpanel[2:-2] + lpanel[3:-1] + 0.5*lpanel[4:]))
+        dmu_dl[-2] = (-self.mu[-5] + 6.*self.mu[-4] - 18.*self.mu[-3] + 10.*self.mu[-2] + 3.*self.mu[-1]) / (3.*(0.5*lpanel[-5] + lpanel[-4] + lpanel[-3] + lpanel[-2] + 0.5*lpanel[-1]))
+        dmu_dl[-1] = (-3.*self.mu[-5] + 16.*self.mu[-4] - 36.*self.mu[-3] + 48.*self.mu[-2] - 25.*self.mu[-1]) / (3.*(0.5*lpanel[-5] + lpanel[-4] + lpanel[-3] + lpanel[-2] + 0.5*lpanel[-1]))   
+        
 
         # Potential change dmu/dt, second-order differencing after first time step
         if i == 0:
@@ -456,33 +466,20 @@ class Body(object):
         Args:
             i: Time step number.
         """
-        
-
-        B = 0.39
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x, self.AF.z)
 
         delFx = -self.p * lpanel * B * nx
         delFz = -self.p * lpanel * B * nz
         delF = np.array([delFx, delFz])
-#        delF = -np.multiply(np.kron(self.p, np.array([1, 1])), np.array([nx, nz]).T)
         delP = np.sum(-delF * np.array([self.vx.T, self.vz.T]), 1)
 
         force = np.sum(delF,1)
-        lift = force[1] * np.cos(THETA) - force[0] * np.sin(THETA)
-        thrust = -(force[1] * np.sin(THETA) + force[0] * np.cos(THETA))
+        lift = force[1]
+        thrust = -force[0]
+#        lift = force[1] * np.cos(THETpythonforce[0] * np.cos(THETA))
         power = np.sum(delP, 0)
         
         self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Cl = lift /(0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Ct = thrust / (0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Cpow = power /  (0.5 * RHO * np.abs(V0)**3 * C * B)
-        
-               
-        
-
-        
-#        Body.drag[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(tx,(self.N,1)))\
-#                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(-tz,(self.N,1)))
-#
-#        self.lift[i-1] = np.dot(self.p[i-1,:]*lpanel, np.reshape(-nz,(self.N,1)))\
-#                      + np.dot(self.p[i-1,:]*lpanel, np.reshape(nx,(self.N,1)))

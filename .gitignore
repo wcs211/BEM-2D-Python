@@ -3,3 +3,4 @@ movies
 data
 log.*
 err.*
+*.csv

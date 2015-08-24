@@ -164,7 +164,7 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
 
                 Swimmers[0].mu_guess[1] = Swimmers[0].mu_guess[0]
                 Swimmers[0].delta_cp[1] = Swimmers[0].delta_cp[0]
-                Swimmers[0].mu_guess[0] = 0.8*Swimmers[0].mu_guess[1] # Multiply first (explicit) guess by arbitrary constant to get second guess
+                Swimmers[0].mu_guess[0] = 0.99999*Swimmers[0].mu_guess[1] # Multiply first (explicit) guess by arbitrary constant to get second guess
 
             else: # Newton method to get delta_cp == 0
                 # Get slope, which is change in delta_cp divided by change in mu_guess
@@ -184,12 +184,15 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
 
         for Swim in Swimmers:
             Swim.Body.pressure(RHO, DEL_T, i)
+        # Extrapolate pressure as it approaches the top and bottom of the trailing edge panel
         if len(Swimmers) > 1 or Swimmers[0].SW_KUTTA == 0:
             break
         Swimmers[0].delta_cp[0] = np.absolute(Swimmers[0].Body.cp[-1]-Swimmers[0].Body.cp[0])
 
         # wcs211: Added a max iteration break for the implicit Kutta loop
-        if Swimmers[0].delta_cp[0] < 0.0001 or n_iter >= 1000:
+        if Swimmers[0].delta_cp[0] < 0.0000001 or n_iter >= 1000:
+            if n_iter >= 1000:
+                print 'WARNING! Max iterations reached in Implicit Kutta solve!'
             break
 
     for Swim in Swimmers:  
@@ -207,7 +210,7 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
             Swim.Body.gamma[1:-1] = Swim.Body.mu[:-1]-Swim.Body.mu[1:]
             Swim.Body.gamma[-1] = Swim.Body.mu[-1]
 
-def wake_rollup(Swimmers, DEL_T, i, SW_ROLLUP):
+def wake_rollup(Swimmers, DEL_T, i, P):
     """Performs wake rollup on the swimmers' wake panels.
 
     Args:
@@ -215,7 +218,7 @@ def wake_rollup(Swimmers, DEL_T, i, SW_ROLLUP):
         DEL_T: Time step length.
         i: Time step number.
     """
-    if SW_ROLLUP:
+    if (P['SW_ROLLUP']):
         # Wake panels initialize when i==1
         if i == 0:
             pass

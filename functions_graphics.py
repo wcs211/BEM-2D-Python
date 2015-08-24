@@ -1,7 +1,6 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-import time
 
 # Global figure variable
 # This is to make sure each plot is drawn in a new window, no matter which plotting methods are used
@@ -94,7 +93,8 @@ def lift_vs_period(Body,RHO,t):
     plt.xlabel('tau')
     plt.ylabel('Coefficent of lift')
     
-    plt.plot(t[4:]*Body.F, -Body.lift[3:]/(0.5*RHO*Body.V0**2), 'g')
+#    plt.plot(t[4:]*Body.F, -Body.lift[3:]/(0.5*RHO*Body.V0**2), 'g')
+    plt.plot(t[4:], Body.Cl[3:] * (0.5 * RHO * np.abs(Body.V0)**2 * 0.1 * 1), 'g')
     
     n_fig += 1
     
@@ -105,7 +105,10 @@ def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
     if SW_PLOT_FIG:
         figure = plt.figure(1)
         figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
+        figure.set_size_inches(16, 9)
         plt.gca().set_aspect('equal')
+        plt.tick_params(labelsize=28)
+        plt.xticks(np.arange(-15.0, 15.0, 0.2))
         maxpercentile = 95 # For truncating outliers
         
         if (i > 1):
@@ -144,8 +147,20 @@ def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
         if not os.path.exists('./movies'):
             os.makedirs('./movies')
         
-        plt.xlim((np.min(Swim.Body.AF.x)-0.05, np.min(Swim.Body.AF.x)+0.45))
-        plt.ylim((-0.25, 0.25))
+        plt.axis([np.min(Swim.Body.AF.x)-0.05, np.min(Swim.Body.AF.x)+1.75, -0.5, 0.5])
+#        plt.axis([np.min(Swim.Body.AF.x)-0.75, np.min(Swim.Body.AF.x)+25.5, -7.5, 7.5])
+        plt.xlabel('$X$ $[m]$', fontsize=28)
+        plt.ylabel('$Z$ $[m]$', fontsize=28)
+        
+        plt.axes([0.125, 0.677, 0.2, 0.2])
+        plt.gca().set_aspect('equal')
+        plt.gca().axes.get_xaxis().set_visible(False)
+        plt.gca().axes.get_yaxis().set_visible(False)
+        plt.axis([np.max(Swim.Body.AF.x)-0.15, np.max(Swim.Body.AF.x)+0.05, -0.06, 0.06])
+#        plt.axis([np.min(Swim.Body.AF.x)-0.75, np.min(Swim.Body.AF.x)+2.25, -0.9, 0.9])
+        for Swim in Swimmers:
+            plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
+            plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
             
         figure.savefig('./movies/%05i.png' % (n_fig), format='png')
         
