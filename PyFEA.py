@@ -297,71 +297,57 @@ class PyFEA(object):
 
         Raises:
             ValueError: If 'method' is not defined as 'HHT', 'NEWMARK', or 'TRAPEZOIDAL'.           
-        """
-        # Set the zero displacement constraints
-        temp = 3 * Solid.fixedCounter
-        
+        """        
         U_n = np.copy(self.U_n)
         Udot_n = np.copy(self.Udot_n)
         UdotDot_n = np.copy(self.UdotDot_n)   
         
-        # Reset mass and stiffness matrix to include all nodes
-        self.M.fill(0.)
-        self.K.fill(0.)
-        
-        # Assemble global mass and stiffness matricies
-        for i in xrange(self.Nelements):
-            # Clear/initialize old element matrix
-            k_e = np.zeros((6, 6))
-            m_e = np.zeros((6, 6))
-            l_e = np.zeros((6, 2 * (self.Nelements + 1)))
+        # Determine the new global mass and stiffness matrix at the begining of each timestep
+        if (outerCorr <= 1):
+            # Reset mass and stiffness matrix to include all nodes
+            self.M.fill(0.)
+            self.K.fill(0.)
             
-            # Determine element stiffness, mass, and connectivity matricies
-            k_e = self.elementStiffnessMatrix(self.E, self.I[i], self.A[i], self.l[i])
-            m_e = self.elementMassMatrix(self.RHO_S, self.A[i], self.l[i], mType)
-            l_e = self.elementConnectivityMatrix(i, -U_n[3*i-1,0])
-            
-            # Add element matricies to the global matricies
-            self.M = self.M + np.dot(np.dot(np.transpose(l_e), m_e), l_e)
-            self.K = self.K + np.dot(np.dot(np.transpose(l_e), k_e), l_e)
+            # Assemble global mass and stiffness matricies
+            for i in xrange(self.Nelements):
+                # Clear/initialize old element matrix
+                k_e = np.zeros((6, 6))
+                m_e = np.zeros((6, 6))
+                l_e = np.zeros((6, 2 * (self.Nelements + 1)))
+                
+                # Determine element stiffness, mass, and connectivity matricies
+                k_e = self.elementStiffnessMatrix(self.E, self.I[i], self.A[i], self.l[i])
+                m_e = self.elementMassMatrix(self.RHO_S, self.A[i], self.l[i], mType)
+                l_e = self.elementConnectivityMatrix(i, -U_n[3*i-1,0])
+                
+                # Add element matricies to the global matricies
+                self.M = self.M + np.dot(np.dot(np.transpose(l_e), m_e), l_e)
+                self.K = self.K + np.dot(np.dot(np.transpose(l_e), k_e), l_e)
         
-        # Solve for the initial acceleration matrix
+        # Set the force acting at the begining and end of the time integration
         if (outerCorr == 1):
             self.Fext_n = np.copy(self.Fext_nPlus)
         Fext_n = np.copy(self.Fext_n)
+        Fext_nPlus = np.copy(self.Fload)
         
         # March through time until the total simulated time has elapsed
-        j = np.size(np.arange(self.deltaT,self.endTime+self.deltaT,self.deltaT))
-        for i in xrange(j):
-            # Assume the acting force is constant through the time-step and set
-            # the initial input force as the final input force.
-            Fext_nPlus = np.copy(self.Fload)
-            
-            # Determine which integration method to use
-            if (method == 'HHT'):
-                (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
-            elif (method == 'NEWMARK'):
-                (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.NEWMARK(beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
-            elif (method == 'TRAPEZOIDAL'):
-                (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.TRAPEZOIDAL(Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
-            else:
-                #TODO: Figure out how to throw an exception and hault exec.
-                # Throw exception and hault execuition
-                print 'ERROR! Invalid integration scheme "%s".' % method
-                print 'Valid schemes are:'
-                print '    HHT'
-                print '    NEWMARK'
-                print '    TRAPEZOIDAL'
+        # Determine which integration method to use
+        if (method == 'HHT'):
+            (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.HHT(alpha, beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
+        elif (method == 'NEWMARK'):
+            (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.NEWMARK(beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
+        elif (method == 'TRAPEZOIDAL'):
+            (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.TRAPEZOIDAL(Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
+        else:
+            # Throw exception and hault execuition
+            print 'ERROR! Invalid integration scheme "%s".' % method
+            print 'Valid schemes are:'
+            print '    HHT'
+            print '    NEWMARK'
+            print '    TRAPEZOIDAL'
+            raise ValueError('Invalid integration scheme')
                 
-            # Store the final displacmeents, velocities, and accelerations as 
-            # the new intial values if the structural simulation has not reached its end time.
-            if (i != j):
-                U_n[temp:,:] = np.copy(U_nPlus)
-                Udot_n[temp:,:] = np.copy(Udot_nPlus)
-                UdotDot_n = np.copy(UdotDot_nPlus)
-                
-        # Store the final displacements, velocities, and accelerations
-        
+        # Store the final displacements, velocities, and accelerations     
         self.U_nPlus = np.copy(U_nPlus)
         self.Udot_nPlus = np.copy(Udot_nPlus)
         self.UdotDot_nPlus = np.copy(UdotDot_nPlus)

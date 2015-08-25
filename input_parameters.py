@@ -11,7 +11,7 @@ P = PARAMETERS = {
 , 'SW_SV_L_CYCLE':      True
 , 'SW_SV_FORCES':       True
 , 'SAVE_EVERY':         1
-, 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
+, 'OUTPUT_DIR':         '/home/chris/BEM-2D-Python/data'
 , 'START_FROM':         'zeroTime'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -29,7 +29,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'N_STEP':             200
+, 'N_STEP':             250
 , 'N_CYC':              5
 , 'DSTEP':              10**-5
 , 'TSTEP':              10**-5
@@ -60,7 +60,7 @@ P = PARAMETERS = {
 , 'ALPHA':              0.02
 , 'BETA':               0.25*(1+0.02)**2
 , 'GAMMA':              0.5+0.02
-, 'N_ELEMENTS_S':       100
+, 'N_ELEMENTS_S':       200
 , 'MATERIAL':           'Polyethylene'
 , 'E':                  2.0e9
 , 'RHO_S':              1250
