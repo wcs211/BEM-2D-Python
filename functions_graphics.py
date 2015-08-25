@@ -156,7 +156,7 @@ def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
         plt.gca().set_aspect('equal')
         plt.gca().axes.get_xaxis().set_visible(False)
         plt.gca().axes.get_yaxis().set_visible(False)
-        plt.axis([np.max(Swim.Body.AF.x)-0.15, np.max(Swim.Body.AF.x)+0.05, -0.06, 0.06])
+        plt.axis([np.min(Swim.Body.AF.x)-0.05, np.min(Swim.Body.AF.x)+0.15, -0.06, 0.06])
 #        plt.axis([np.min(Swim.Body.AF.x)-0.75, np.min(Swim.Body.AF.x)+2.25, -0.9, 0.9])
         for Swim in Swimmers:
             plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')

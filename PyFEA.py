@@ -329,10 +329,6 @@ class PyFEA(object):
         if (outerCorr == 1):
             self.Fext_n = np.copy(self.Fext_nPlus)
         Fext_n = np.copy(self.Fext_n)
-#        RHS = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
-#        theright = Fext_n[temp:,:] - np.dot(self.K[temp:, temp:], U_n[temp:])
-#        RHS = np.copy(Fext_n[temp:,:])
-#        UdotDot_n = np.linalg.solve(self.M[temp:,temp:], RHS)
         
         # March through time until the total simulated time has elapsed
         j = np.size(np.arange(self.deltaT,self.endTime+self.deltaT,self.deltaT))
