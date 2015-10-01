@@ -3,14 +3,14 @@
 import numpy as np
 from functions_general import panel_vectors, transformation
 
-def inf_sourcepanel(xp1, xp2, zp):
+def inf_sourcepanel(xp1, xp2, zp, mask):
     """Returns a matrix of source panel influence coefficients."""
-    return((xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) \
+    return((mask * xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) - 2*(xp1 - xp2)\
           + 2*zp*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1)))/(4*np.pi))
 
-def inf_doubletpanel(xp1, xp2, zp):
+def inf_doubletpanel(xp1, xp2, zp, mask):
     """Returns a matrix of doublet panel influence coefficients."""
-    return(-(np.arctan2(zp,xp2) - np.arctan2(zp,xp1))/(2*np.pi))
+    return(-mask*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1))/(2*np.pi))
 
 def quilt(Swimmers, influence_type, NT, NI, i):
     """Constructs a full transformation matrix that includes all Swimmers.
@@ -71,6 +71,7 @@ def influence_matrices(Swimmers, i):
         b_wakedoublet: Wake panels' influence matrix.
         a_explicit: Augments the a_bodydoublet matrix when doing explicit Kutta.
     """
+    ep = 2.2204460492503131e-16
     n_b = 0
     n_e = 0
     n_w = 0
@@ -91,21 +92,30 @@ def influence_matrices(Swimmers, i):
         mu_w_all[r0:rn] = Swim.Wake.mu[:i]
 
     (xp1, xp2, zp) = quilt(Swimmers, 'Body', n_b, n_b, i)
+    # Calculate 'Mask' - if a source or doublet gets too close then ignore its influence
+    mask = np.greater_equal(np.absolute(zp),ep).astype(int)
+#    mask = 1
+    
     # Body source singularities influencing the bodies (part of RHS)
-    b_bodysource = inf_sourcepanel(xp1, xp2, zp)
+    b_bodysource = inf_sourcepanel(xp1, xp2, zp, mask)
     # Body doublet singularities influencing bodies themselves (the A matrix)
-    a_bodydoublet = inf_doubletpanel(xp1, xp2, zp)
+    a_bodydoublet = inf_doubletpanel(xp1, xp2, zp, mask)
 
     (xp1, xp2, zp) = quilt(Swimmers, 'Edge', n_b, n_e, i)
+    # Calculate 'Mask' - if a source or doublet gets too close then ignore its influence
+    mask = np.greater_equal(np.absolute(zp),ep).astype(int)
+    
     # Edge doublet singularities influencing the bodies (part of RHS)
-    b_edgedoublet = inf_doubletpanel(xp1, xp2, zp)
+    b_edgedoublet = inf_doubletpanel(xp1, xp2, zp, mask)
 
     if i==0: # There are no wake panels until i==1
         b_wakedoublet = 0
     else:
         (xp1, xp2, zp) = quilt(Swimmers, 'Wake', n_b, n_w, i)
+        # Calculate 'Mask' - if a source or doublet gets too close then ignore its influence
+        mask = np.greater_equal(np.absolute(zp),ep).astype(int)
         # Wake doublet singularities influencing the bodies (part of RHS)
-        b_wakedoublet = inf_doubletpanel(xp1, xp2, zp)
+        b_wakedoublet = inf_doubletpanel(xp1, xp2, zp, mask)
 
     a_explicit = np.zeros((n_b,n_b))
 
@@ -124,7 +134,7 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
     for Swim in Swimmers:  
         if (outerCorr <= 1):
             # mu_past used in differencing for pressure
-            Swim.Body.mu_past[1,:] = Swim.Body.mu_past[0,:]
+            Swim.Body.mu_past[1:4,:] = Swim.Body.mu_past[0:3,:]
             Swim.Body.mu_past[0,:] = Swim.Body.mu
     
     (sigma_all, mu_w_all, a_b, a_e, b_b, b_e, b_w) = influence_matrices(Swimmers, i)
@@ -139,7 +149,6 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
             for SwimI in Swimmers:
                 a_e[:,SwimI.i_b] = -b_e[:, SwimI.i_e]
                 a_e[:,SwimI.i_b+SwimI.Body.N-1] = b_e[:, SwimI.i_e]
-#            a_inv = np.linalg.inv(a_b + a_e)
             a = a_b + a_e
             # Get right-hand side
             if i == 0:
@@ -147,7 +156,6 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
             else:
                 b = -np.dot(b_b, sigma_all) - np.dot(b_w, mu_w_all)
             # Solve for bodies' doublet strengths using explicit Kutta
-#            mu_b_all = np.dot(a_inv, b)
             mu_b_all = np.linalg.solve(a, b)
             # First mu_guess (from explicit Kutta)
             for Swim in Swimmers:
@@ -159,7 +167,6 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
         else:
             if n_iter == 2: # Make a second initial guess
                 # Update phi_dinv so it no longer includes explicit Kutta condition
-#                a_inv = np.linalg.inv(a_b)
                 a = np.copy(a_b)
 
                 Swimmers[0].mu_guess[1] = Swimmers[0].mu_guess[0]

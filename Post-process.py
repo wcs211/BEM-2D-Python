@@ -22,8 +22,7 @@ for i in xrange(P['N_CYC']):
 
     for i_t in xrange(dataLength):
         if (i_t >= i * P['N_STEP'] and i_t <= (i+1) * P['N_STEP']):
-            if (np.abs(importCsv[i_t, 5] / norm) > avgData[i,5]):
-                avgData[i,5] = np.abs(importCsv[i_t, 5] / norm)
+            if (np.abs(importCsv[i_t, 5]) > avgData[i,5]):
+                avgData[i,5] = np.abs(importCsv[i_t, 5])
 
-np.savetxt("avg_Performance.csv", avgData, delimiter=",", header="Cycle No. [-], Cf_avg [-], Cl_avg [-], Ct_avg [-], Cpow_avg [-], TE_A_max [-]")
-#np.savetxt("avg_Performance.csv", avgData, delimiter=",")
+np.savetxt("avg_Performance.csv", avgData, delimiter=",", header="Cycle No. [-], Cf_avg [-], Cl_avg [-], Ct_avg [-], Cpow_avg [-], TE_A_max [m]")

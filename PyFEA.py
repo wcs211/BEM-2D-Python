@@ -76,7 +76,7 @@ class PyFEA(object):
                       )
         return k_e
         
-    def elementMassMatrix(self, RHO_S, A, l, mType):
+    def elementMassMatrix(self, RHO_S, A, l, mType='consistent', add_mass=True, RHO_L=1000.):
         """
         Calculates the element mass matrix for bending and axial loads. This can
         return either a 'consistent' or 'lumped' mass matrix
@@ -124,6 +124,22 @@ class PyFEA(object):
             print '    "consistent"'
             print '    "lumped"'
             
+        if (add_mass == True):
+#            C3 = 1.510 * np.pi * RHO_L * (0.5*A)**2
+            C3 = 0.
+#            C4 = 1.510 * np.pi * RHO_L * (0.5*l)**2
+            C4 = np.pi * RHO_L * (0.5*l)**2
+#            C5 = 0.234 * np.pi * RHO_L * ((0.5*l)**2 - (0.5*A)**2)**2
+            C5 = 0.5 * np.pi * RHO_L * (0.5*l)**4
+            m_e = m_e + np.array(
+                                 [[C3,  0,  0,  0,  0,  0],
+                                  [ 0, C4,  0,  0,  0,  0],
+                                  [ 0,  0, C5,  0,  0,  0],
+                                  [ 0,  0,  0, C3,  0,  0],
+                                  [ 0,  0,  0,  0, C4,  0],
+                                  [ 0,  0,  0,  0,  0, C5]]
+                                )
+           
         return m_e
         
     def elementConnectivityMatrix(self, element, theta):
@@ -280,6 +296,46 @@ class PyFEA(object):
         
         return (U_nPlus, Udot_nPlus, UdotDot_nPlus)
         
+    def DTRAPEZOIDAL(self, Fext_nPlus, fixedNodes, U_n, Udot_n, UdotDot_n):
+        """
+        Solves for the system dynamics using the trapezoidal rule.
+        
+        Args:
+            Fext_nPlus (float): Force exterted at the end of the time-step.
+            fixedNodes (int): Number of nodes with a zero dispacement condition.
+            U_n (float): NumPy array of initial displacements.
+            Udot_n (float): NumPy array of initial velocities.
+            UdotDot_n (float): NumPy array of initial accelerations.
+        
+        Returns:
+            U_nPlus (float): NumPy array of final displacements.
+            Udot_nPlus (float): NumPy array of final velocities.
+            UdotDot_nPlus (float): NumPy array of final accelerations.
+        """
+        
+        C = 1.28 * self.K + 6.4 * self.M        
+        
+        temp = 3 * fixedNodes
+        
+        # Form the 'A' matrix
+        A = (self.K[temp:,temp:] + (2 / self.deltaT)**2 * self.M[temp:,temp:] + (2 / self.deltaT) *  C[temp:,temp:])
+        
+        # Form the 'B' matrix
+
+        B = (Fext_nPlus[temp:,:] + np.dot(self.M[temp:,temp:],((2 / self.deltaT)**2 * U_n[temp:,:] + \
+            (4 / self.deltaT) * Udot_n[temp:,:] + UdotDot_n)) + np.dot(C[temp:,temp:], ((2 / self.deltaT)*U_n[temp:,:] + Udot_n[temp:,:])))
+            
+        # Solve the system to get the displacements
+        U_nPlus = np.linalg.solve(A, B)
+        
+        # Solve for the velocities
+        Udot_nPlus = 2 * (U_nPlus - U_n[temp:,:]) / self.deltaT - Udot_n[temp:,:]
+        
+        # Solve for the accelerations
+        UdotDot_nPlus = 2 * (Udot_nPlus - Udot_n[temp:,:]) / self.deltaT - UdotDot_n
+        
+        return (U_nPlus, Udot_nPlus, UdotDot_nPlus)
+        
     def solve(self, Body, Solid, outerCorr, mType, method, alpha, beta, gamma):
         """
         Solves an unsteady finite element system of equations.
@@ -338,6 +394,8 @@ class PyFEA(object):
             (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.NEWMARK(beta, gamma, Fext_n, Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
         elif (method == 'TRAPEZOIDAL'):
             (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.TRAPEZOIDAL(Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n)
+        elif(method == 'DTRAPEZOIDAL'):
+            (U_nPlus, Udot_nPlus, UdotDot_nPlus) = self.DTRAPEZOIDAL(Fext_nPlus, Solid.fixedCounter, U_n, Udot_n, UdotDot_n) 
         else:
             # Throw exception and hault execuition
             print 'ERROR! Invalid integration scheme "%s".' % method
@@ -346,6 +404,12 @@ class PyFEA(object):
             print '    NEWMARK'
             print '    TRAPEZOIDAL'
             raise ValueError('Invalid integration scheme')
+            
+        # Let's check to make sure that the calculated quantities obey the governing equation
+#        temp = 3 * Solid.fixedCounter
+#        residual = np.dot(self.M[temp:,temp:],UdotDot_nPlus) + np.dot(self.K[temp:,temp:],U_n[temp:,:]) - Fext_nPlus[temp:,:]
+#        print np.absolute(residual).min()
+#        print np.absolute(residual).max()
                 
         # Store the final displacements, velocities, and accelerations     
         self.U_nPlus = np.copy(U_nPlus)

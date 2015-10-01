@@ -1,12 +1,24 @@
 import os
 import sys
 import numpy as np
-from scipy.interpolate import interp1d
-from scipy import arange, array, exp
-#from swimmer_class import Swimmer
+from scipy import array
 
     # x,z components of each panel's tangential and normal vectors
 def panel_vectors(x,z):
+    """
+    Calculates the normal and tangential unit vectors for 2D body panel.
+    
+    Args:
+        x (float: 1 x N): x panel endpoint coordinates
+        z (float: 1 x N): z panel endpoint coordinates
+        
+    Returns:
+        tx (float: 1 x N-1): x unit vector component of the panel's tangent vector
+        tz (float: 1 x N-1): z unit vector component of the panel's tangent vector
+        nx (float: 1 x N-1): x unit vector component of the panel's normal vector
+        nz (float: 1 x N-1): z unit vector component of the panel's normal vector
+        lpanel (float: 1 x N-1): length of each panel
+    """
     lpanel = np.sqrt((x[1:]-x[:-1])**2 + (z[1:]-z[:-1])**2)
     tx = (x[1:]-x[:-1])/lpanel
     tz = (z[1:]-z[:-1])/lpanel

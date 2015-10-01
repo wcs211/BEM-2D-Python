@@ -5,6 +5,110 @@ import numpy as np
 from functions_general import point_vectors, panel_vectors
 import parameter_classes as PC
 
+def second_order_for_diff(mu, lpanel, Pan):
+    s_p2 = 0.5 * lpanel[Pan[2]] + 0.5 * lpanel[Pan[1]]
+    s_p1 = 0.5 * lpanel[Pan[1]] + 0.5 * lpanel[Pan[0]]
+    
+    mu_p2 = mu[Pan[2]]
+    mu_p1 = mu[Pan[1]]
+    mu_0  = mu[Pan[0]]
+    
+    A = np.array([[(s_p1 + s_p2), 0.5*(s_p1 + s_p2)**2],[s_p1, 0.5*s_p1**2]])
+    b = np.array([[mu_p2 - mu_0],[mu_p1 - mu_0]])
+    
+    phi = np.linalg.solve(A, b)
+    
+    return (-phi[0])
+    
+def second_order_back_diff(mu, lpanel, Pan):
+    s_m1 = 0.5 * lpanel[Pan[1]] + 0.5 * lpanel[Pan[2]]
+    s_m2 = 0.5 * lpanel[Pan[0]] + 0.5 * lpanel[Pan[1]]
+    
+    mu_0  = mu[Pan[2]]
+    mu_m1 = mu[Pan[1]]
+    mu_m2 = mu[Pan[0]]
+    
+    A = np.array([[-s_m1, 0.5*s_m1**2],[-(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2]])
+    b = np.array([[mu_m1 - mu_0],[mu_m2 - mu_0]])
+    
+    phi = np.linalg.solve(A, b)
+    
+    return (-phi[0])
+    
+def second_order_cen_diff(mu, lpanel, Pan):
+    s_p1 = 0.5 * lpanel[Pan[3]] + 0.5 * lpanel[Pan[2]]
+    s_m1 = 0.5 * lpanel[Pan[1]] + 0.5 * lpanel[Pan[2]]
+    
+    mu_p1 = mu[Pan[3]]
+    mu_m1 = mu[Pan[1]]
+    
+    A = np.array([[1, s_p1],[1, -s_m1]])
+    b = np.array([[mu_p1],[mu_m1]])
+    
+    phi = np.linalg.solve(A, b)
+    
+    return (-phi[1])
+    
+def fourth_order_cen_diff(mu, lpanel, Pan):
+    s_p2 = 0.5 * lpanel[Pan[4]] + 0.5 * lpanel[Pan[3]]
+    s_p1 = 0.5 * lpanel[Pan[3]] + 0.5 * lpanel[Pan[2]]
+    s_m1 = 0.5 * lpanel[Pan[1]] + 0.5 * lpanel[Pan[2]]
+    s_m2 = 0.5 * lpanel[Pan[0]] + 0.5 * lpanel[Pan[1]]
+    
+    mu_p2 = mu[Pan[4]]
+    mu_p1 = mu[Pan[3]]
+    mu_m1 = mu[Pan[1]]
+    mu_m2 = mu[Pan[0]]
+    
+    A = np.array([[1,  (s_p1 + s_p2), 0.5*(s_p1 + s_p2)**2,  1/6*(s_p1 + s_p2)**3],
+                  [1,           s_p1,          0.5*s_p1**2,           1/6*s_p1**3],
+                  [1,          -s_m1,          0.5*s_m1**2,          -1/6*s_m1**3],
+                  [1, -(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2, -1/6*(s_m1 + s_m2)**3]])
+    b = np.array([[mu_p2], [mu_p1], [mu_m1], [mu_m2]])
+    
+    phi = np.linalg.solve(A, b)
+    
+    return (-phi[1])
+    
+def second_order_cen_for_diff(mu, lpanel, Pan):
+    s_p2 = 0.5*lpanel[Pan[3]] + 0.5*lpanel[Pan[2]]
+    s_p1 = 0.5*lpanel[Pan[2]] + 0.5*lpanel[Pan[1]]
+    s_m1 = 0.5*lpanel[Pan[0]] + 0.5*lpanel[Pan[1]]
+    
+    mu_p2 = mu[Pan[3]]
+    mu_p1 = mu[Pan[2]]
+    mu_0  = mu[Pan[1]]
+    mu_m1 = mu[Pan[0]]
+    
+    A = np.array([[(s_p1 + s_p2), 0.5*(s_p1 + s_p2)**2, 1/6*(s_p1 + s_p2)**3],
+                  [         s_p1,          0.5*s_p1**2,          1/6*s_p1**3],
+                  [        -s_m1,          0.5*s_m1**2,         -1/6*s_m1**3]])
+    b = np.array([[mu_p2 - mu_0], [mu_p1 - mu_0], [mu_m1 - mu_0]])
+    
+    phi = np.linalg.solve(A, b)
+    
+    return (-phi[0])
+    
+def second_order_cen_back_diff(mu, lpanel, Pan):
+    s_p1 = 0.5*lpanel[Pan[3]] + 0.5*lpanel[Pan[2]]
+    s_m1 = 0.5*lpanel[Pan[1]] + 0.5*lpanel[Pan[2]]
+    s_m2 = 0.5*lpanel[Pan[0]] + 0.5*lpanel[Pan[1]]
+    
+    mu_p1 = mu[Pan[3]]
+    mu_0  = mu[Pan[2]]
+    mu_m1 = mu[Pan[1]]
+    mu_m2 = mu[Pan[0]]
+    
+    A = np.array([[          s_p1,          0.5*s_p1**2,           1/6*s_p1**3],
+                  [         -s_m1,          0.5*s_m1**2,          -1/6*s_m1**3],
+                  [-(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2, -1/6*(s_m1 + s_m2)**3]])
+    b = np.array([[mu_p1 - mu_0], [mu_m1 - mu_0], [mu_m2 - mu_0]])
+    
+    phi = np.linalg.solve(A, b)
+    
+    return (-phi[0])
+    
+
 class Edge(object):
     """An edge doublet panel located where separation occurs on a body.
 
@@ -90,11 +194,13 @@ class Body(object):
 
         self.p = np.zeros(N)
         self.cp = np.zeros(N)
-        self.mu_past = np.zeros((2,N))
+        self.mu_past = np.zeros((4,N))
         
         self.Cf = 0.
         self.Cl = 0.
         self.Ct = 0.
+        self.Ct_net = 0.
+        self.Cd_visc = 0.
         self.Cpow = 0.
         self.forceData = np.zeros((0,6))
 
@@ -280,7 +386,7 @@ class Body(object):
         """Finds a body's neutral axis for a given time.
 
         The neutral axis is the axis which coincides with the chord line and
-        divides the symmetric airfoil into two. CURRENTLY PITCHING MOTION ONLY.
+        divides the symmetric airfoil into two.
 
         The axis that it finds is in an absolute frame of reference.
 
@@ -313,18 +419,12 @@ class Body(object):
         """
         bfx = self.BF.x
         bfz = self.BF.z
-        bfz_col = self.BF.z_col
         V0 = self.V0 # Used only for x_le
+        
+        afx = bfx * np.cos(THETA) - bfz * np.sin(THETA) + self.V0*T
+        afz = bfx * np.sin(THETA) + bfz * np.cos(THETA) + HEAVE
 
         (x_neut, z_neut) = self.neutral_axis(bfx, T, THETA, HEAVE)
-
-        # Infinitesimal differences on the neutral axis to calculate the tangential and normal vectors
-        (xdp_s, zdp_s) = self.neutral_axis(bfx, T, THETA, HEAVE, DSTEP)
-        (xdm_s, zdm_s) = self.neutral_axis(bfx, T, THETA, HEAVE, -DSTEP)
-
-        # Absolute-frame panel endpoint positions for time t
-        afx = x_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[2]*bfz
-        afz = z_neut + point_vectors(xdp_s, xdm_s, zdp_s, zdm_s)[3]*bfz
 
         # Absolute-frame panel midpoint positions
         x_mid = (afx[:-1]+afx[1:])/2
@@ -384,36 +484,30 @@ class Body(object):
 
             x_col = self.BF.x_col
             z_col = self.BF.z_col
-
-            # Panel midpoint velocity calculations
-            # Calculating the surface positions at tplus(tp) and tminus(tm)
-            (xtpneut, ztpneut) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, 0)
-            (xtpdp, ztpdp) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, DSTEP)
-            (xtpdm, ztpdm) = self.neutral_axis(x_col, T, THETA_PLUS, HEAVE_PLUS, -DSTEP)
-            (xtmneut, ztmneut) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, 0)
-            (xtmdp, ztmdp) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, DSTEP)
-            (xtmdm, ztmdm) = self.neutral_axis(x_col, T, THETA_MINUS, HEAVE_MINUS, -DSTEP)
-
-            # Displaced airfoil's panel midpoints for times tplus(tp) and tminus(tm)
-            xctp = xtpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[2]*z_col
-            xctm = xtmneut + point_vectors(xtmdp, xtmdm, ztmdp, ztmdm)[2]*z_col
-
-            zctp = ztpneut + point_vectors(xtpdp, xtpdm, ztpdp, ztpdm)[3]*z_col
-            zctm = ztmneut + point_vectors(xtmdp, xtmdm, ztmdp, ztmdm)[3]*z_col
-
-            # Velocity calculations on the surface panel midpoints
-            self.vx = (xctp - xctm)/(2*TSTEP)
-            self.vz = (zctp - zctm)/(2*TSTEP)
+            
+            xp = x_col * np.cos(THETA_PLUS) - z_col * np.sin(THETA_PLUS) + self.V0*(T+TSTEP)
+            zp = x_col * np.sin(THETA_PLUS) + z_col * np.cos(THETA_PLUS)
+            
+            xm = x_col * np.cos(THETA_MINUS) - z_col * np.sin(THETA_MINUS) + self.V0*(T-TSTEP)
+            zm = x_col * np.sin(THETA_MINUS) + z_col * np.cos(THETA_MINUS)
+            
+            self.vx = (xp - xm) / (2. * TSTEP) - self.V0
+            self.vz = (zp - zm) / (2. * TSTEP)
 
         elif i == 1:
             # First-order backwards differencing of body collocation point positions
             self.vx = (self.AF.x_mid[0,:]-self.AF.x_mid[1,:])/DEL_T - self.V0
             self.vz = (self.AF.z_mid[0,:]-self.AF.z_mid[1,:])/DEL_T
-
-        else:
+            
+        elif i == 2 or i == 3:
             # Second-order backwards differencing of body collocation point positions
             self.vx = (3*self.AF.x_mid[0,:]-4*self.AF.x_mid[1,:]+self.AF.x_mid[2,:])/(2*DEL_T) - self.V0
             self.vz = (3*self.AF.z_mid[0,:]-4*self.AF.z_mid[1,:]+self.AF.z_mid[2,:])/(2*DEL_T)
+
+        else:
+            # Fourth-order backwards differencing of body collocation point positions
+            self.vx = (25/12*self.AF.x_mid[0,:] - 4*self.AF.x_mid[1,:] + 3*self.AF.x_mid[2,:] - 4/3*self.AF.x_mid[3,:] + 1/4*self.AF.x_mid[4,:]) / DEL_T - self.V0
+            self.vz = (25/12*self.AF.z_mid[0,:] - 4*self.AF.z_mid[1,:] + 3*self.AF.z_mid[2,:] - 4/3*self.AF.z_mid[3,:] + 1/4*self.AF.z_mid[4,:]) / DEL_T
 
         # Body source strengths with normal vector pointing outward (overall sigma pointing outward)
         (nx,nz) = panel_vectors(self.AF.x,self.AF.z)[2:4]
@@ -430,20 +524,14 @@ class Body(object):
 
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
 
-        # Tangential panel velocity dmu/dl, second-order differencing
-        
+        # Tangential panel velocity dmu/dl, second/fourth-order differencing
         dmu_dl = np.empty(self.N)
-#        ddmu_dl[0] = (-self.mu[2] + 4.*self.mu[1] - 3.*self.mu[0]) / (0.5*lpanel[0] + lpanel[1] + 0.5*lpanel[2])
-#        dmu_dl[1:-1] = (self.mu[:-2]-self.mu[2:]) / (lpanel[:-2]/2 + lpanel[1:-1] + lpanel[2:]/2)
-#        dmu_dl[-1] = (3.*self.mu[-3] - 4.*self.mu[-2] + self.mu[-1]) / (0.5*lpanel[-1] + lpanel[-2] + 0.5*lpanel[-3])
-        
-        # Tangential panel velocity dmu/dl, fourth-order differencing
-        dmu_dl[0] = (25.*self.mu[0] - 48.*self.mu[1] + 36.*self.mu[2] -16.*self.mu[3] + 3.*self.mu[4]) / (3.*(0.5*lpanel[0] + lpanel[1] + lpanel[2] + lpanel[3] + 0.5*lpanel[4]))
-        dmu_dl[1] = (-3.*self.mu[0] - 10.*self.mu[1] + 18.*self.mu[2] - 6.*self.mu[3] + self.mu[4]) / (3.*(0.5*lpanel[0] + lpanel[1] + lpanel[2] + lpanel[3] + 0.5*lpanel[4]))
-        dmu_dl[2:-2] = (-self.mu[4:] + 8.*self.mu[3:-1] - 8.*self.mu[1:-3] + self.mu[:-4]) / (3.*(0.5*lpanel[:-4] + lpanel[1:-3] + lpanel[2:-2] + lpanel[3:-1] + 0.5*lpanel[4:]))
-        dmu_dl[-2] = (-self.mu[-5] + 6.*self.mu[-4] - 18.*self.mu[-3] + 10.*self.mu[-2] + 3.*self.mu[-1]) / (3.*(0.5*lpanel[-5] + lpanel[-4] + lpanel[-3] + lpanel[-2] + 0.5*lpanel[-1]))
-        dmu_dl[-1] = (-3.*self.mu[-5] + 16.*self.mu[-4] - 36.*self.mu[-3] + 48.*self.mu[-2] - 25.*self.mu[-1]) / (3.*(0.5*lpanel[-5] + lpanel[-4] + lpanel[-3] + lpanel[-2] + 0.5*lpanel[-1]))   
-        
+        dmu_dl[0]  = second_order_for_diff( self.mu, lpanel, np.array([ 0,  1,  2]))
+        dmu_dl[1]  = second_order_cen_for_diff(self.mu, lpanel, np.array([0, 1, 2, 3]))
+        for j in xrange(self.N-4):
+            dmu_dl[j+2] = fourth_order_cen_diff(self.mu, lpanel, np.array([j, j+1, j+2, j+3, j+4]))
+        dmu_dl[-2]  = second_order_cen_back_diff(self.mu, lpanel, np.array([-4, -3, -2, -1]))
+        dmu_dl[-1] = second_order_back_diff(self.mu, lpanel, np.array([-3, -2, -1]))
 
         # Potential change dmu/dt, second-order differencing after first time step
         if i == 0:
@@ -460,6 +548,17 @@ class Body(object):
         self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
         self.cp = self.p / (0.5*RHO*self.V0**2)
 
+    def visc_drag(self, RHO):
+        """
+        Estimates viscous drag using a flat plate solution.
+        """
+        
+        (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
+        
+        Re_D = RHO * np.absolute(self.sigma) * lpanel / 0.001003
+        
+        self.Cd_visc = np.sum(1.3282 / np.sqrt(Re_D) * nx)
+        
     def force(self, THETA, RHO, V0, C, B, i, SW_SV_FORCES):
         """Calculates drag and lift forces acting on the body.
 
@@ -476,10 +575,12 @@ class Body(object):
         force = np.sum(delF,1)
         lift = force[1]
         thrust = -force[0]
-#        lift = force[1] * np.cos(THETpythonforce[0] * np.cos(THETA))
         power = np.sum(delP, 0)
+        
+        self.visc_drag(RHO)
         
         self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Cl = lift /(0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Ct = thrust / (0.5 * RHO * np.abs(V0)**2 * C * B)
+        self.Ct_net = self.Ct - self.Cd_visc
         self.Cpow = power /  (0.5 * RHO * np.abs(V0)**3 * C * B)

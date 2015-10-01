@@ -49,6 +49,7 @@ class solid(object):
             FLEX_RATIO (float): Percent of the body to remain rigid as measured
                 from the leading edge.
         """
+        tmax = 0.1 * tmax
         for i in xrange(self.Nelements):
             if self.nodes[i,0] <= 0.5*tmax:
                 self.tBeam[i,0] = np.copy(tmax)

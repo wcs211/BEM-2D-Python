@@ -58,18 +58,58 @@ def body_wake_plot(Swimmers):
     
     n_fig += 1
     
-def cp_plot(Body):
+def cp_plot(Swimmers, i, SW_PLOT_FIG):
     
     global n_fig
-    figure = plt.figure(n_fig)
-    figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
-    plt.gca().set_aspect('equal')
-    plt.gca().invert_yaxis()
-    
-    plt.plot(Body.AF.x_col[:Body.N/2], Body.cp[:Body.N/2], 'g')
-    plt.plot(Body.AF.x_col[Body.N/2:], Body.cp[Body.N/2:], 'b')
-    plt.plot(Body.AF.x, -Body.AF.z, 'k')
-    plt.plot(Body.AF.x_col, -Body.AF.z_col, 'r')
+    if SW_PLOT_FIG:
+        cp_scale = 100
+        figure = plt.figure(1)
+        figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
+        plt.gca().set_aspect('equal')
+        plt.gca().invert_yaxis()
+        maxpercentile = 95 # For truncating outliers
+        
+        if (i > 1):
+            # Gather circulations of all swimmers into a color array
+            color = []
+            for Swim in Swimmers:
+                Swim.n_color = len(Swim.Wake.gamma[1:i])
+                color = np.append(color, Swim.Wake.gamma[1:i])
+                Swim.i_color = len(color)-Swim.n_color
+            
+            # Make color map based on vorticity
+            # Take a look at positive and negative circulations separately
+            if np.min(color) < 0: # Check if negative circulations exist (in case of short simulations)
+                # Truncate any negative outliers
+                color[color < np.percentile(color[color < 0], 100-maxpercentile)] = np.percentile(color[color < 0], 100-maxpercentile)
+                # Normalize negative circulations to [-1,0)
+                color[color < 0] = -color[color < 0]/np.min(color)
+            if np.max(color) > 0: # Check if positive circulations exist (in case of short simulations)
+                # Truncate any positive outliers
+                color[color > np.percentile(color[color > 0], maxpercentile)] = np.percentile(color[color > 0], maxpercentile)
+                # Normalize positive circulations to (0,1]
+                color[color > 0] = color[color > 0]/np.max(color)
+            
+        for Swim in Swimmers:
+            if (i > 1):
+                # Extract color map for the individual Swim
+                c = color[Swim.i_color:Swim.i_color+Swim.n_color]
+                # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
+    #            for idx in xrange(i):
+                plt.scatter(Swim.Wake.x[1:i], Swim.Wake.z[1:i], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
+    #            plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
+            plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
+            plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
+            plt.plot(Swim.Body.AF.x_col[:Swim.Body.N/2], Swim.Body.cp[:Swim.Body.N/2]/cp_scale, 'g')
+            plt.plot(Swim.Body.AF.x_col[Swim.Body.N/2:], Swim.Body.cp[Swim.Body.N/2:]/cp_scale, 'b')
+
+        plt.axis([np.min(Swim.Body.AF.x)-0.01, np.min(Swim.Body.AF.x)+0.13, -0.06, 0.06])
+        plt.xlabel('$X$ $[m]$', fontsize=14)
+        plt.ylabel('$Z$ $[m]$ $or$ $C_p$ x$10^{-2}$ $[-]$', fontsize=14)
+        
+        figure.savefig('./movies/%05i.png' % (n_fig), format='png')
+            
+        plt.clf()
     
     n_fig += 1
     
@@ -108,7 +148,7 @@ def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
         figure.set_size_inches(16, 9)
         plt.gca().set_aspect('equal')
         plt.tick_params(labelsize=28)
-        plt.xticks(np.arange(-15.0, 15.0, 0.2))
+        plt.xticks(np.arange(-15.00, 15.00, 0.20))
         maxpercentile = 95 # For truncating outliers
         
         if (i > 1):
@@ -156,9 +196,14 @@ def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
         plt.gca().set_aspect('equal')
         plt.gca().axes.get_xaxis().set_visible(False)
         plt.gca().axes.get_yaxis().set_visible(False)
-        plt.axis([np.min(Swim.Body.AF.x)-0.05, np.min(Swim.Body.AF.x)+0.15, -0.06, 0.06])
+        plt.axis([np.min(Swim.Body.AF.x)+0.06, np.min(Swim.Body.AF.x)+0.16, -0.03, 0.03])
 #        plt.axis([np.min(Swim.Body.AF.x)-0.75, np.min(Swim.Body.AF.x)+2.25, -0.9, 0.9])
         for Swim in Swimmers:
+            if (i > 1):
+                # Extract color map for the individual Swim
+                c = color[Swim.i_color:Swim.i_color+Swim.n_color]
+                # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
+                plt.scatter(Swim.Wake.x[1:i], Swim.Wake.z[1:i], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
             plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
             plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
             
