@@ -157,7 +157,7 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
             if (P['SW_GEOMETRY'] == 'FP'):
                 SolidP[i].initThinPlate(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
             elif (P['SW_GEOMETRY'] == 'TD'):
-                SolidP[i].initTearDrop(P['T_MAX'],P['C'],P['SWITCH_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
+                SolidP[i].initTearDrop(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
             else:
                 print 'ERROR! Invalid geometry type.'
 

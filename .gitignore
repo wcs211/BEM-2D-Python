@@ -1,6 +1,7 @@
 *.pyc
 movies
 data
+debug
 log.*
 err.*
 *.csv

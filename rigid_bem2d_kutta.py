@@ -26,6 +26,7 @@ TSTEP = P['TSTEP']
 T = P['T']
 RHO = P['RHO']
 RE = P['RE']
+P['SW_KUTTA'] = True
 
 (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers) = simulation_startup(P, DIO, PC, Swimmer)[0:6]
 
@@ -47,7 +48,6 @@ for i in xrange(START_COUNTER, COUNTER):
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
         graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
-#        graph.body_plot(Swim.Edge, Swim.Body)
 #        graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
@@ -70,7 +70,6 @@ for i in xrange(START_COUNTER, COUNTER):
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
         graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
-#        graph.body_plot(Swim.Edge, Swim.Body)
 #        graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 

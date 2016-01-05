@@ -337,7 +337,7 @@ class Body(object):
         S = GeoTDParameters.S
         C = GeoTDParameters.C
         D = GeoTDParameters.D
-
+        
         # Stepping through each spanwise position to calculate the positions of
         # the fin neutral plane at the given time step.
         xb = np.linspace(np.pi, 0., (N+2.)/2)
@@ -445,7 +445,7 @@ class Body(object):
         self.AF.z_mid[0,:] = z_mid
         self.AF.x_neut = x_neut
         self.AF.z_neut = z_neut
-        # Location of leading edge (currently pitching motion only)
+        # Location of leading edge
         self.AF.x_le = V0*T
         self.AF.z_le = HEAVE
         
@@ -481,7 +481,8 @@ class Body(object):
             THETA_PLUS: Pitching angle plus a small time difference (TSTEP)
         """
         if i == 0:
-
+            # Use the prescribed kinematics to do a central difference over a 
+            # small period of time
             x_col = self.BF.x_col
             z_col = self.BF.z_col
             
@@ -548,6 +549,19 @@ class Body(object):
         self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
         self.cp = self.p / (0.5*RHO*self.V0**2)
 
+#        print self.vx[0]
+#        print self.vz[0]
+#        print self.AF.x[1] - self.AF.x[0]
+#        print self.AF.z[1] - self.AF.z[0]
+
+#        c = np.absolute(self.V0+self.vx) * DEL_T / np.absolute(self.AF.x[1:]-self.AF.x[:-1]) + np.absolute(self.vz) * DEL_T / np.absolute(self.AF.z[1:]-self.AF.z[:-1])
+        
+#        np.save('./cfl/python_%05i.npy' % i, c)
+#        np.save('./position2/python_%05i.npy' % i, self.BF.x_col)
+#        np.save('./pressure/python_%05i.npy' % i, self.cp)
+#        np.save('./mu/python_%05i.npy' % i, self.mu)
+#        np.save('./sigma/python_%05i.npy' % i, self.sigma)
+
     def visc_drag(self, RHO):
         """
         Estimates viscous drag using a flat plate solution.
@@ -577,7 +591,7 @@ class Body(object):
         thrust = -force[0]
         power = np.sum(delP, 0)
         
-        self.visc_drag(RHO)
+#        self.visc_drag(RHO)
         
         self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * np.abs(V0)**2 * C * B)
         self.Cl = lift /(0.5 * RHO * np.abs(V0)**2 * C * B)

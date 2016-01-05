@@ -160,7 +160,7 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
             # First mu_guess (from explicit Kutta)
             for Swim in Swimmers:
                 Swim.mu_guess = np.empty(2) # [0] is current guess, [1] is previous
-                Swim.delta_cp = np.empty(2) # [0] is current delta_cp, [1] is previous
+                Swim.delta_p = np.empty(2) # [0] is current delta_p, [1] is previous
                 Swim.Body.mu[:] = mu_b_all[Swim.i_b:Swim.i_b+Swim.Body.N]
                 Swim.mu_guess[0] = Swim.Body.mu[-1]-Swim.Body.mu[0]
 
@@ -170,15 +170,16 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
                 a = np.copy(a_b)
 
                 Swimmers[0].mu_guess[1] = Swimmers[0].mu_guess[0]
-                Swimmers[0].delta_cp[1] = Swimmers[0].delta_cp[0]
-                Swimmers[0].mu_guess[0] = 0.99999*Swimmers[0].mu_guess[1] # Multiply first (explicit) guess by arbitrary constant to get second guess
+                Swimmers[0].delta_p[1] = Swimmers[0].delta_p[0]
+                Swimmers[0].mu_guess[0] = 1.01*Swimmers[0].mu_guess[1] # Multiply first (explicit) guess by arbitrary constant to get second guess
 
-            else: # Newton method to get delta_cp == 0
-                # Get slope, which is change in delta_cp divided by change in mu_guess
-                slope = (Swimmers[0].delta_cp[0]-Swimmers[0].delta_cp[1])/(Swimmers[0].mu_guess[0]-Swimmers[0].mu_guess[1])
+            else: # Newton method to get delta_p == 0
+                # Get slope, which is change in delta_p divided by change in mu_guess
+                if n_iter == 3:
+                    slope = (Swimmers[0].delta_p[0]-Swimmers[0].delta_p[1])/(Swimmers[0].mu_guess[0]-Swimmers[0].mu_guess[1])
                 Swimmers[0].mu_guess[1] = Swimmers[0].mu_guess[0]
-                Swimmers[0].delta_cp[1] = Swimmers[0].delta_cp[0]
-                Swimmers[0].mu_guess[0] = Swimmers[0].mu_guess[1] - Swimmers[0].delta_cp[0]/slope
+                Swimmers[0].delta_p[1] = Swimmers[0].delta_p[0]
+                Swimmers[0].mu_guess[0] = Swimmers[0].mu_guess[1] - Swimmers[0].delta_p[0]/slope
 
             # Form right-hand side including mu_guess as an influence
             if i == 0:
@@ -186,36 +187,35 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
             else:
                 rhs = -np.dot(b_b, sigma_all) - np.dot(np.insert(b_w, 0, b_e[:,0], axis=1), np.insert(Swimmers[0].Wake.mu[:i], 0, Swimmers[0].mu_guess[0]))
 
-#            Swimmers[0].Body.mu = np.dot(a_inv, rhs)
             Swimmers[0].Body.mu = np.linalg.solve(a, rhs)
-
+            
         for Swim in Swimmers:
             Swim.Body.pressure(RHO, DEL_T, i)
         # Extrapolate pressure as it approaches the top and bottom of the trailing edge panel
-        if len(Swimmers) > 1 or Swimmers[0].SW_KUTTA == 0:
+        if len(Swimmers) > 1 or Swimmers[0].SW_KUTTA == False:
             break
-        Swimmers[0].delta_cp[0] = np.absolute(Swimmers[0].Body.cp[-1]-Swimmers[0].Body.cp[0])
+        Swimmers[0].delta_p[0] = Swimmers[0].Body.p[0] - Swimmers[0].Body.p[-1]
 
         # wcs211: Added a max iteration break for the implicit Kutta loop
-        if Swimmers[0].delta_cp[0] < 0.0000001 or n_iter >= 1000:
+        if Swimmers[0].delta_p[0] < 0.0000001 or n_iter >= 1000:
             if n_iter >= 1000:
                 print 'WARNING! Max iterations reached in Implicit Kutta solve!'
             break
 
     for Swim in Swimmers:  
-        if (outerCorr <= 1):
+#        if (outerCorr <= 1):
 #            # mu_past used in differencing for pressure
 #            Swim.Body.mu_past[1,:] = Swim.Body.mu_past[0,:]
 #            Swim.Body.mu_past[0,:] = Swim.Body.mu
 
-            Swim.Edge.mu = Swim.mu_guess[0]
-            Swim.Edge.gamma[0] = -Swim.Edge.mu
-            Swim.Edge.gamma[1] = Swim.Edge.mu
+        Swim.Edge.mu = Swim.mu_guess[0]
+        Swim.Edge.gamma[0] = -Swim.Edge.mu
+        Swim.Edge.gamma[1] = Swim.Edge.mu
 
-            # Get gamma of body panels for use in wake rollup
-            Swim.Body.gamma[0] = -Swim.Body.mu[0]
-            Swim.Body.gamma[1:-1] = Swim.Body.mu[:-1]-Swim.Body.mu[1:]
-            Swim.Body.gamma[-1] = Swim.Body.mu[-1]
+        # Get gamma of body panels for use in wake rollup
+        Swim.Body.gamma[0] = -Swim.Body.mu[0]
+        Swim.Body.gamma[1:-1] = Swim.Body.mu[:-1]-Swim.Body.mu[1:]
+        Swim.Body.gamma[-1] = Swim.Body.mu[-1]
 
 def wake_rollup(Swimmers, DEL_T, i, P):
     """Performs wake rollup on the swimmers' wake panels.

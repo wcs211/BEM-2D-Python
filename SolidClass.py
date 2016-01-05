@@ -49,7 +49,7 @@ class solid(object):
             FLEX_RATIO (float): Percent of the body to remain rigid as measured
                 from the leading edge.
         """
-        tmax = 0.1 * tmax
+#        tmax = 0.265 * tmax
         for i in xrange(self.Nelements):
             if self.nodes[i,0] <= 0.5*tmax:
                 self.tBeam[i,0] = np.copy(tmax)
@@ -98,14 +98,17 @@ class solid(object):
                 if i == self.Nelements-1:
                     self.tBeam[i,0] = 0.5 * self.ttemp[i,0]
                     self.tBeamStruct[i,0] = np.copy(self.tBeam[i,0])
-                    if (SW_CNST_THK_BM == 1 and self.nodes[i,2] >= tConst):
+                    if (SW_CNST_THK_BM == True and self.nodes[i,2] >= tConst):
                         self.tBeamStruct[i,0] = np.copy(self.tBeamStruct[i-1,0])
-                if (SW_CNST_THK_BM == 1 and  self.nodes[i,2] >= tConst):
+                if (SW_CNST_THK_BM == True and  self.nodes[i,2] >= tConst):
                     self.tBeamStruct[i,0] = np.copy(self.tBeamStruct[i-1,0])
                 else:
                     self.tBeamStruct[i-1,0] = np.copy(self.tBeam[i-1,0])
                 if (self.nodes[i,2] <= FLEX_RATIO):
                     self.fixedCounter += 1
+                    
+        #Temporary fix to specify constant thickness beam throughout
+        self.tBeamStruct[:,0] = np.copy(tmax)                        
 
     def initMesh(self):
         """

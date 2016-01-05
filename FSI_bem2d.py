@@ -56,8 +56,9 @@ for i in xrange(START_COUNTER, COUNTER):
         archive(Swimmers[0].Body.AF.z_mid)
         SolidP[0].nodes[:,0] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.cos(P['THETA'][i])
         SolidP[0].nodes[:,1] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.sin(P['THETA'][i])
-#        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
-        graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
+        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
+#        graph.body_plot(Swim.Edge, Swim.Body)
+#        graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
     else:
         if np.fmod(i,P['VERBOSITY']) == 0:
@@ -88,7 +89,8 @@ for i in xrange(START_COUNTER, COUNTER):
 
             #TODO: Replace '0' with viscous drag component when available
             FSIP[0].setInterfaceForce(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], outerCorr, P['SW_VISC_DRAG'], 0, P['SW_INTERP_MTD'], P['C'], i)
-            PyFEAP[0].solve(Swimmers[0].Body, SolidP[0], outerCorr, P['M_TYPE'], P['INT_METHOD'], P['ALPHA'], P['BETA'], P['GAMMA'])
+            PyFEAP[0].dynamicSolve(Swimmers[0].Body, SolidP[0], outerCorr, P['M_TYPE'])
+#            PyFEAP[0].solve(Swimmers[0].Body, SolidP[0], outerCorr, P['THETA_DOT'][i], P['THETA_DOT_DOT'][i], P['M_TYPE'], P['INT_METHOD'], P['ALPHA'], P['BETA'], P['GAMMA'])
             FSIP[0].getDisplacements(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], P['SW_INTERP_MTD'], P['FLEX_RATIO'])
             FSIP[0].calcFSIResidual(SolidP[0], outerCorr)
 
@@ -107,8 +109,9 @@ for i in xrange(START_COUNTER, COUNTER):
                 absoluteToBody(Swimmers[0].Body, SolidP[0], P['THETA'][i], P['HEAVE'][i])
                 archive(Swimmers[0].Body.AF.x_mid)
                 archive(Swimmers[0].Body.AF.z_mid)
-#                graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
-                graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
+                graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
+#                graph.body_plot(Swim.Edge, Swim.Body)
+#                graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
                 DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
                 break
 

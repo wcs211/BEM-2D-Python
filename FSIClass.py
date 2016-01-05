@@ -266,7 +266,8 @@ class FSI(object):
         # Get the absolute x and z displacements
         nodeDisplacements = np.zeros((Solid.Nnodes-Solid.fixedCounter,2))
         nodeDisplacements[:,1] =  np.copy(PyFEA.U_nPlus[1::3].T)
-        nodeDisplacements[:,0] =  (Solid.nodes_0[Solid.fixedCounter:,1] + nodeDisplacements[:,1]) * np.sin(-PyFEA.U_nPlus[2::3].T) 
+#        nodeDisplacements[:,0] =  (Solid.nodes_0[Solid.fixedCounter:,1] + nodeDisplacements[:,1]) * np.sin(-PyFEA.U_nPlus[2::3].T)
+        nodeDisplacements[:,0] =  np.copy(PyFEA.U_nPlus[0::3].T)
         
         # Calculate the new structural locations
         tempNodes = np.copy(Solid.nodes_0)
