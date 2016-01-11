@@ -19,19 +19,19 @@ P = PARAMETERS = {
 # Geometry Definition                                                         #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'SW_GEOMETRY':        'TD'
-, 'N_BODY':             2000
+, 'N_BODY':             500
 , 'C':                  0.10
 , 'K':                  2.-(12.4/180)
 , 'EPSILON':            0.075
-, 'T_MAX':              0.00025
+, 'T_MAX':              0.0001
 , 'CE':                 0.40
 , 'S':                  0.15
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'N_STEP':             250
-, 'N_CYC':              3
+, 'N_STEP':             500
+, 'N_CYC':              10
 , 'DSTEP':              1e-5
 , 'TSTEP':              1e-5
 , 'VERBOSITY':          1
@@ -41,7 +41,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'V0':                 -0.05
 , 'THETA_MAX':          0.00
-, 'HEAVE_MAX':          0.005
+, 'HEAVE_MAX':          0.00005
 , 'F':                  0.7
 #, 'PHI':                -3.0*np.pi/8.0
 , 'PHI':                -1.0*np.pi/2.
@@ -73,7 +73,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             True
+, 'SW_FSI':             False
 , 'N_OUTERCORR_MAX':    200
 , 'OUTER_CORR_TOL':     1e-7
 , 'FIXED_PT_RELAX':     1e-5

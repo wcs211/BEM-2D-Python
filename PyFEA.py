@@ -525,8 +525,9 @@ class PyFEA(object):
             Werr = np.linalg.norm(dt * np.dot(np.transpose(Udot_nPlus), Rerr), ord=2)
             if Werr < 1e-6 or innerCorr == 1000:
                 if innerCorr == 1000:
-                    print 'ERROR! Max iterations reached in structural solve'
-#                    raise ValueError('Maximum structural iterations reached')
+                    print '+-----------------------------------------------------------------------------+'
+                    print '| WARNING! Maximum iterations reached in structural solve                     |'
+                    print '+-----------------------------------------------------------------------------+'
                 break
             else:
                 U[temp:,:] = np.copy(U_nPlus)

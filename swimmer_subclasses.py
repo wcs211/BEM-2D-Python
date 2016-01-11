@@ -64,6 +64,12 @@ def fourth_order_cen_diff(mu, lpanel, Pan):
                   [1,           s_p1,          0.5*s_p1**2,           1/6*s_p1**3],
                   [1,          -s_m1,          0.5*s_m1**2,          -1/6*s_m1**3],
                   [1, -(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2, -1/6*(s_m1 + s_m2)**3]])
+                  
+#    A = np.array([[ (s_p1 + s_p2), 0.5*(s_p1 + s_p2)**2,  1/6*(s_p1 + s_p2)**3, 1/24*(s_p1 + s_p2)**4],
+#                  [          s_p1,          0.5*s_p1**2,           1/6*s_p1**3,          1/24*s_p1**4],
+#                  [         -s_m1,          0.5*s_m1**2,          -1/6*s_m1**3,          1/24*s_m1**4],
+#                  [-(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2, -1/6*(s_m1 + s_m2)**3, 1/24*(s_m1 + s_m2)**4]])
+    
     b = np.array([[mu_p2], [mu_p1], [mu_m1], [mu_m2]])
     
     phi = np.linalg.solve(A, b)
@@ -107,6 +113,73 @@ def second_order_cen_back_diff(mu, lpanel, Pan):
     phi = np.linalg.solve(A, b)
     
     return (-phi[0])
+    
+def finite_diff(mu, dL, stencil):
+    # Calculating arc lengths between stencil points
+    s = 0.5 * dL[:-1] + 0.5 * dL[1:]
+    
+    # Determine the number of minus and plus points
+    n_m = np.absolute(np.min(stencil))
+    n_p = np.absolute(np.max(stencil))
+    
+    # Method for generating arbitrary finite difference approximation based on the stencil
+    # Solving for the coefficients of the finite difference scheme (three-point stencil example):
+    #     1.) dphi/dx = a*phi_m1 + b*phi_0 + c*phi_p1
+    #     2.) Write out a Taylor series expansion of phi_m1 and phi_p1
+    #     3.) a*phi_m1 + b*phi_0 + c*phi_p1 = (a + b + c)*phi_0 + (-a*s_m1 + c*s_p1)*phi_x + ...
+    #               1/2*(-a*s_m1^2 + c*s_p1^2)*phi_xx + 1/6*(-a*s_m1^3 + c*s_p1^3)*phi_xxx + ...
+    #     4.) Set coefficient of phi and derivative of phi to 1 and 0.  For instance:               
+    #                        (a + b + c) = 0,          (-a*s_m1 + c*s_p1) = 1, 
+    #         1/2*(-a*s_m1^2 + c*s_p1^2) = 0,  1/6*(-a*s_m1^3 + c*s_p1^3) = 0
+    #     5.) Write out equations for the coefficients (a,b,c) in matrix form A*coeffs = b and solve.
+    #     6.) Construct finite difference scheme for the gradient
+    
+    # Calculating the arc length vector from the zero stencil point to the
+    # other stencil points.  Breaking up the arc length vector into the minus
+    # and plus arc length vectors relative to the zero stencil point
+    s_m = np.zeros(n_m)
+    for i in xrange(n_m):
+        s_m[i] = np.sum(s[i:n_m])
+        
+    s_p = np.zeros(n_p)
+    for i in xrange(n_p):
+        s_p[i] = np.sum(s[n_m: n_m + i + 1])
+        
+    # Building submatrices of A for up to a 5-point stencil
+    numel = stencil.shape[0]
+    A = np.zeros((numel, n_m + n_p + 1))
+    if (n_m > 0):
+        A_m = np.zeros((numel, n_m))
+        A_m[0,:] = np.ones((1,n_m))
+        A_m[1,:] = -s_m
+        A_m[2,:] = 0.5*s_m**2
+        A_m[3,:] = -1./6.*s_m**3
+        A_m[4,:] = 1./24.*s_m**4
+        A[:numel,:n_m] = A_m[:numel, :]
+
+    A[:numel,n_m ] = np.array([1., 0., 0., 0., 0.])
+
+    if (n_p > 0):
+        A_p = np.zeros((numel, n_p))
+        A_p[0,:] = np.ones((1,n_p))
+        A_p[1,:] = s_p
+        A_p[2,:] = 0.5*s_p**2
+        A_p[3,:] = 1./6.*s_p**3
+        A_p[4,:] = 1./24.*s_p**4
+        A[:numel, n_m + 1: n_p + n_m + 1] = A_p[:numel, :]
+        
+    # Determining the full vector b_full and vector b for specific stencil number of points
+    b_full = np.array([[0.], [1.], [0.], [0.], [0.]])
+    b = b_full[:numel]
+    
+    # Solving for finite difference approximation coefficients
+    coeffs = np.linalg.solve(A, b)
+    
+    # Finite difference approximation of the gradient
+    dmu_ds = np.dot(coeffs.T, mu)
+    
+    # Determining the pertubation velocity (Qp)
+    return(-dmu_ds)
     
 
 class Edge(object):
@@ -513,8 +586,66 @@ class Body(object):
         # Body source strengths with normal vector pointing outward (overall sigma pointing outward)
         (nx,nz) = panel_vectors(self.AF.x,self.AF.z)[2:4]
         self.sigma = nx*(self.V0 + self.vx) + nz*self.vz
+        
+    def velocity_calcs(self, stencil_npts):
+        """
+        Calculates the tangential and normal velocities over the elements and 
+        constructs the perturbation and total velocities.
+        
+        Args:
+            stencil_npts (int): Number of stencil points for finite difference scheme
+        """
+        
+        # Extracting panel element data from class
+        Npanels = self.N
+        sigma   = self.sigma
+        mu      = self.mu
+        
+        (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
+        vt = np.array([tx, tz])
+        vn = np.array([nx, nz])
+        
+        
+        # Defining stencils
+        if (stencil_npts == 5):
+            stencil_chordwise = np.array([[0, 1, 2, 3, 4], np.repeat(np.array([-2, -2, 0, 1, 2]), Npanels - 4, axis=0), [-3, -2, -1, 0, 1], [-4, -3, -2, -1, 0]])
+        else:
+            if (stencil_npts != 3):
+                print '+-----------------------------------------------------------------------------+'
+                print '| WARNING! There are only three- and five-point stencils available.           |'
+                print '|          Defaulting to the three-point stencil.                             |'
+                print '+-----------------------------------------------------------------------------+'
+            stencil_chordwise = np.array([[0, 1, 2], np.repeat(np.array([-1, 0, 1]), Npanels - 2, axis=0), [-2, -1, 0]])
+            
+        # Allocating matricies
+        qt = np.zeros((1, Npanels))
+        Qp = np.zeros((2, Npanels))
+        Qt = np.zeros((2, Npanels))
+        
+        # Calculating the normal velocity component
+        qn = sigma.T
+        
+        # Calculating tangent velocity component from the local doublet strength, mu
+        for k in xrange(Npanels):
+            # Defining stencil depending on chordwise element
+            stencil = stencil_chordwise[k, :]
+            pan_elem = k + stencil
+            
+            # Calling finite difference approximations based on stencil
+            qt[k] = finite_diff(mu[pan_elem], lpanel[pan_elem], stencil)
+            
+        # Assembling velocity components.
+        # Qp - pertubation velocity in the inertial, undisturbed fluid reference frame
+        # Qt - total velocity (perturbation plus body-fixed frame velocity plus panel 
+        #      velocity relative to body-fixed frame) in the panel's reference frames.
+        # Qt_tangent - total velocity tangent to the surface.
+            
+#        for k in xrange(Npanels):
+#            Qp[:,k] = np.sum(np.array([np.dot(qt[k], vt[k,:].T),  np.dot(qn[k], vn[k,:].T)]), axis=1)
+#            Qt[:,k] = np.transpose(np.array([qt[k], qn[k]]) - )
+        
 
-    def pressure(self, RHO, DEL_T, i):
+    def pressure(self, RHO, DEL_T, i, stencil_npts=5):
         """Calculates the pressure distribution along the body's surface.
 
         Args:
@@ -524,15 +655,42 @@ class Body(object):
         """
 
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
-
-        # Tangential panel velocity dmu/dl, second/fourth-order differencing
+        
+        # Defining stencil
+        if (stencil_npts == 5):
+            stencil_chordwise = np.zeros((self.N, 5),dtype=int)
+            stencil_chordwise[0:2,:] = np.array([[0, 1, 2, 3, 4], [-1, 0, 1, 2, 3]])
+            stencil_chordwise[2:-2,:] = np.tile(np.array([-2, -1, 0, 1, 2]), (self.N-4, 1))
+            stencil_chordwise[-2:,:] = np.array([[-3, -2, -1, 0, 1], [-4, -3, -2, -1, 0]])
+        else:
+            if (stencil_npts != 3):
+                print '+-----------------------------------------------------------------------------+'
+                print '| WARNING! There are only three- and five-point stencils available.           |'
+                print '|          Defaulting to the three-point stencil.                             |'
+                print '+-----------------------------------------------------------------------------+'
+            stencil_chordwise = np.zeros((self.N, 3))
+            stencil_chordwise[0,:] = np.array([0, 1, 2])
+            stencil_chordwise[1:-1,:] = np.repeat(np.array([-1, 0, 1]), self.N-2, axis=0)
+            stencil_chordwise[-1,:] = np.array([-2, -1, 0])
+        
+        # Tangential panel velocity dmu/dl
         dmu_dl = np.empty(self.N)
-        dmu_dl[0]  = second_order_for_diff( self.mu, lpanel, np.array([ 0,  1,  2]))
-        dmu_dl[1]  = second_order_cen_for_diff(self.mu, lpanel, np.array([0, 1, 2, 3]))
-        for j in xrange(self.N-4):
-            dmu_dl[j+2] = fourth_order_cen_diff(self.mu, lpanel, np.array([j, j+1, j+2, j+3, j+4]))
-        dmu_dl[-2]  = second_order_cen_back_diff(self.mu, lpanel, np.array([-4, -3, -2, -1]))
-        dmu_dl[-1] = second_order_back_diff(self.mu, lpanel, np.array([-3, -2, -1]))
+        for i in xrange(self.N):
+            # Defining stencil depending on chordwise element
+            stencil = np.copy(stencil_chordwise[i,:])
+            pan_elem = i + stencil
+            
+            # Calling finite difference approximations based on stencil (3-point and 5-point available)
+            dmu_dl[i] = finite_diff(self.mu[pan_elem], lpanel[pan_elem], stencil)
+
+#        # Tangential panel velocity dmu/dl, second/fourth-order differencing
+#        dmu_dl = np.empty(self.N)
+#        dmu_dl[0]  = second_order_for_diff( self.mu, lpanel, np.array([ 0,  1,  2]))
+#        dmu_dl[1]  = second_order_cen_for_diff(self.mu, lpanel, np.array([0, 1, 2, 3]))
+#        for j in xrange(self.N-4):
+#            dmu_dl[j+2] = fourth_order_cen_diff(self.mu, lpanel, np.array([j, j+1, j+2, j+3, j+4]))
+#        dmu_dl[-2]  = second_order_cen_back_diff(self.mu, lpanel, np.array([-4, -3, -2, -1]))
+#        dmu_dl[-1] = second_order_back_diff(self.mu, lpanel, np.array([-3, -2, -1]))
 
         # Potential change dmu/dt, second-order differencing after first time step
         if i == 0:
