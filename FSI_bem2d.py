@@ -89,6 +89,7 @@ for i in xrange(START_COUNTER, COUNTER):
 
             #TODO: Replace '0' with viscous drag component when available
             FSIP[0].setInterfaceForce(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], outerCorr, P['SW_VISC_DRAG'], 0, P['SW_INTERP_MTD'], P['C'], i)
+#            PyFEAP[0].steadySolve(Swimmers[0].Body, SolidP[0], 100)            
             PyFEAP[0].dynamicSolve(Swimmers[0].Body, SolidP[0], outerCorr, P['M_TYPE'])
 #            PyFEAP[0].solve(Swimmers[0].Body, SolidP[0], outerCorr, P['THETA_DOT'][i], P['THETA_DOT_DOT'][i], P['M_TYPE'], P['INT_METHOD'], P['ALPHA'], P['BETA'], P['GAMMA'])
             FSIP[0].getDisplacements(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], P['SW_INTERP_MTD'], P['FLEX_RATIO'])

@@ -4,117 +4,25 @@
 import numpy as np
 from functions_general import point_vectors, panel_vectors
 import parameter_classes as PC
-
-def second_order_for_diff(mu, lpanel, Pan):
-    s_p2 = 0.5 * lpanel[Pan[2]] + 0.5 * lpanel[Pan[1]]
-    s_p1 = 0.5 * lpanel[Pan[1]] + 0.5 * lpanel[Pan[0]]
-    
-    mu_p2 = mu[Pan[2]]
-    mu_p1 = mu[Pan[1]]
-    mu_0  = mu[Pan[0]]
-    
-    A = np.array([[(s_p1 + s_p2), 0.5*(s_p1 + s_p2)**2],[s_p1, 0.5*s_p1**2]])
-    b = np.array([[mu_p2 - mu_0],[mu_p1 - mu_0]])
-    
-    phi = np.linalg.solve(A, b)
-    
-    return (-phi[0])
-    
-def second_order_back_diff(mu, lpanel, Pan):
-    s_m1 = 0.5 * lpanel[Pan[1]] + 0.5 * lpanel[Pan[2]]
-    s_m2 = 0.5 * lpanel[Pan[0]] + 0.5 * lpanel[Pan[1]]
-    
-    mu_0  = mu[Pan[2]]
-    mu_m1 = mu[Pan[1]]
-    mu_m2 = mu[Pan[0]]
-    
-    A = np.array([[-s_m1, 0.5*s_m1**2],[-(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2]])
-    b = np.array([[mu_m1 - mu_0],[mu_m2 - mu_0]])
-    
-    phi = np.linalg.solve(A, b)
-    
-    return (-phi[0])
-    
-def second_order_cen_diff(mu, lpanel, Pan):
-    s_p1 = 0.5 * lpanel[Pan[3]] + 0.5 * lpanel[Pan[2]]
-    s_m1 = 0.5 * lpanel[Pan[1]] + 0.5 * lpanel[Pan[2]]
-    
-    mu_p1 = mu[Pan[3]]
-    mu_m1 = mu[Pan[1]]
-    
-    A = np.array([[1, s_p1],[1, -s_m1]])
-    b = np.array([[mu_p1],[mu_m1]])
-    
-    phi = np.linalg.solve(A, b)
-    
-    return (-phi[1])
-    
-def fourth_order_cen_diff(mu, lpanel, Pan):
-    s_p2 = 0.5 * lpanel[Pan[4]] + 0.5 * lpanel[Pan[3]]
-    s_p1 = 0.5 * lpanel[Pan[3]] + 0.5 * lpanel[Pan[2]]
-    s_m1 = 0.5 * lpanel[Pan[1]] + 0.5 * lpanel[Pan[2]]
-    s_m2 = 0.5 * lpanel[Pan[0]] + 0.5 * lpanel[Pan[1]]
-    
-    mu_p2 = mu[Pan[4]]
-    mu_p1 = mu[Pan[3]]
-    mu_m1 = mu[Pan[1]]
-    mu_m2 = mu[Pan[0]]
-    
-    A = np.array([[1,  (s_p1 + s_p2), 0.5*(s_p1 + s_p2)**2,  1/6*(s_p1 + s_p2)**3],
-                  [1,           s_p1,          0.5*s_p1**2,           1/6*s_p1**3],
-                  [1,          -s_m1,          0.5*s_m1**2,          -1/6*s_m1**3],
-                  [1, -(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2, -1/6*(s_m1 + s_m2)**3]])
-                  
-#    A = np.array([[ (s_p1 + s_p2), 0.5*(s_p1 + s_p2)**2,  1/6*(s_p1 + s_p2)**3, 1/24*(s_p1 + s_p2)**4],
-#                  [          s_p1,          0.5*s_p1**2,           1/6*s_p1**3,          1/24*s_p1**4],
-#                  [         -s_m1,          0.5*s_m1**2,          -1/6*s_m1**3,          1/24*s_m1**4],
-#                  [-(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2, -1/6*(s_m1 + s_m2)**3, 1/24*(s_m1 + s_m2)**4]])
-    
-    b = np.array([[mu_p2], [mu_p1], [mu_m1], [mu_m2]])
-    
-    phi = np.linalg.solve(A, b)
-    
-    return (-phi[1])
-    
-def second_order_cen_for_diff(mu, lpanel, Pan):
-    s_p2 = 0.5*lpanel[Pan[3]] + 0.5*lpanel[Pan[2]]
-    s_p1 = 0.5*lpanel[Pan[2]] + 0.5*lpanel[Pan[1]]
-    s_m1 = 0.5*lpanel[Pan[0]] + 0.5*lpanel[Pan[1]]
-    
-    mu_p2 = mu[Pan[3]]
-    mu_p1 = mu[Pan[2]]
-    mu_0  = mu[Pan[1]]
-    mu_m1 = mu[Pan[0]]
-    
-    A = np.array([[(s_p1 + s_p2), 0.5*(s_p1 + s_p2)**2, 1/6*(s_p1 + s_p2)**3],
-                  [         s_p1,          0.5*s_p1**2,          1/6*s_p1**3],
-                  [        -s_m1,          0.5*s_m1**2,         -1/6*s_m1**3]])
-    b = np.array([[mu_p2 - mu_0], [mu_p1 - mu_0], [mu_m1 - mu_0]])
-    
-    phi = np.linalg.solve(A, b)
-    
-    return (-phi[0])
-    
-def second_order_cen_back_diff(mu, lpanel, Pan):
-    s_p1 = 0.5*lpanel[Pan[3]] + 0.5*lpanel[Pan[2]]
-    s_m1 = 0.5*lpanel[Pan[1]] + 0.5*lpanel[Pan[2]]
-    s_m2 = 0.5*lpanel[Pan[0]] + 0.5*lpanel[Pan[1]]
-    
-    mu_p1 = mu[Pan[3]]
-    mu_0  = mu[Pan[2]]
-    mu_m1 = mu[Pan[1]]
-    mu_m2 = mu[Pan[0]]
-    
-    A = np.array([[          s_p1,          0.5*s_p1**2,           1/6*s_p1**3],
-                  [         -s_m1,          0.5*s_m1**2,          -1/6*s_m1**3],
-                  [-(s_m1 + s_m2), 0.5*(s_m1 + s_m2)**2, -1/6*(s_m1 + s_m2)**3]])
-    b = np.array([[mu_p1 - mu_0], [mu_m1 - mu_0], [mu_m2 - mu_0]])
-    
-    phi = np.linalg.solve(A, b)
-    
-    return (-phi[0])
     
 def finite_diff(mu, dL, stencil):
+    """
+    Method for generating arbitrary finite difference approximation based on the stencil
+    Solving for the coefficients of the finite difference scheme (three-point stencil example):
+        1.) dphi/dx = a*phi_m1 + b*phi_0 + c*phi_p1
+        2.) Write out a Taylor series expansion of phi_m1 and phi_p1
+        3.) a*phi_m1 + b*phi_0 + c*phi_p1 = (a + b + c)*phi_0 + (-a*s_m1 + c*s_p1)*phi_x + ...
+                  1/2*(-a*s_m1^2 + c*s_p1^2)*phi_xx + 1/6*(-a*s_m1^3 + c*s_p1^3)*phi_xxx + ...
+        4.) Set coefficient of phi and derivative of phi to 1 and 0.  For instance:               
+                           (a + b + c) = 0,          (-a*s_m1 + c*s_p1) = 1, 
+            1/2*(-a*s_m1^2 + c*s_p1^2) = 0,  1/6*(-a*s_m1^3 + c*s_p1^3) = 0
+        5.) Write out equations for the coefficients (a,b,c) in matrix form A*coeffs = b and solve.
+        6.) Construct finite difference scheme for the gradient
+    
+    Calculating the arc length vector from the zero stencil point to the
+    other stencil points.  Breaking up the arc length vector into the minus
+    and plus arc length vectors relative to the zero stencil point
+    """
     # Calculating arc lengths between stencil points
     s = 0.5 * dL[:-1] + 0.5 * dL[1:]
     
@@ -122,21 +30,6 @@ def finite_diff(mu, dL, stencil):
     n_m = np.absolute(np.min(stencil))
     n_p = np.absolute(np.max(stencil))
     
-    # Method for generating arbitrary finite difference approximation based on the stencil
-    # Solving for the coefficients of the finite difference scheme (three-point stencil example):
-    #     1.) dphi/dx = a*phi_m1 + b*phi_0 + c*phi_p1
-    #     2.) Write out a Taylor series expansion of phi_m1 and phi_p1
-    #     3.) a*phi_m1 + b*phi_0 + c*phi_p1 = (a + b + c)*phi_0 + (-a*s_m1 + c*s_p1)*phi_x + ...
-    #               1/2*(-a*s_m1^2 + c*s_p1^2)*phi_xx + 1/6*(-a*s_m1^3 + c*s_p1^3)*phi_xxx + ...
-    #     4.) Set coefficient of phi and derivative of phi to 1 and 0.  For instance:               
-    #                        (a + b + c) = 0,          (-a*s_m1 + c*s_p1) = 1, 
-    #         1/2*(-a*s_m1^2 + c*s_p1^2) = 0,  1/6*(-a*s_m1^3 + c*s_p1^3) = 0
-    #     5.) Write out equations for the coefficients (a,b,c) in matrix form A*coeffs = b and solve.
-    #     6.) Construct finite difference scheme for the gradient
-    
-    # Calculating the arc length vector from the zero stencil point to the
-    # other stencil points.  Breaking up the arc length vector into the minus
-    # and plus arc length vectors relative to the zero stencil point
     s_m = np.zeros(n_m)
     for i in xrange(n_m):
         s_m[i] = np.sum(s[i:n_m])
@@ -171,6 +64,28 @@ def finite_diff(mu, dL, stencil):
     # Determining the full vector b_full and vector b for specific stencil number of points
     b_full = np.array([[0.], [1.], [0.], [0.], [0.]])
     b = b_full[:numel]
+    
+    # The A matrix and b vector need to be scaled so that the matrix isn't
+    # ill-conditioned.  The minimum arc length will be determined and each row 
+    # of A and b will be divided by the power of s_min that will scale that
+    # equation (row) to order 1.  This is get around the ill-conditioned matrix
+    # warning that we are getting.
+    if (s_m.shape[0] > 0):
+        s1 = np.min(s_m)
+    else:
+        s1 = np.nan
+    
+    if (s_p.shape[0] > 0):
+        s2 = np.min(s_p)
+    else:
+        s2 = np.nan
+    
+    s_min = np.nanmin(np.array([s1, s2]))
+    vec_scaling_full = np.array([[1.], [s_min], [s_min**2], [s_min**3], [s_min**4]])
+    b_vec_scaling = vec_scaling_full[:numel]
+    A_mat_scaling = np.repeat(b_vec_scaling, 1 + n_m + n_p, axis=1)
+    A = A / A_mat_scaling
+    b = b / b_vec_scaling
     
     # Solving for finite difference approximation coefficients
     coeffs = np.linalg.solve(A, b)

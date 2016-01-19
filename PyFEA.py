@@ -437,8 +437,8 @@ class PyFEA(object):
                     break
 
         # Store the final displacements
-        self.U_n = np.copy(U)
-        self.U_nPlus = np.copy(U)
+#        self.U_n = np.copy(U)
+        self.U_nPlus = np.copy(U[temp:,:])
         
     def dynamicSolve(self, Body, Solid, outerCorr, mType='consistent'):
         """
