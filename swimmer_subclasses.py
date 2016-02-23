@@ -171,6 +171,7 @@ class Body(object):
         # Prescribed motion
         self.MP = MotionParameters
         self.V0 = MotionParameters.V0
+        self.V  = np.copy(self.V0)
 
         self.vx = np.zeros(N)
         self.vz = np.zeros(N)
@@ -194,7 +195,7 @@ class Body(object):
         self.Cd_visc = 0.
         self.D_visc = 0.
         self.Cpow = 0.
-        self.forceData = np.zeros((0,6))
+        self.forceData = np.zeros((0,7))
 
     @classmethod
     def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
@@ -476,33 +477,33 @@ class Body(object):
             x_col = self.BF.x_col
             z_col = self.BF.z_col
             
-            xp = x_col * np.cos(THETA_PLUS) - z_col * np.sin(THETA_PLUS) + self.V0*(T+TSTEP)
+            xp = x_col * np.cos(THETA_PLUS) - z_col * np.sin(THETA_PLUS) + self.V*(T+TSTEP)
             zp = x_col * np.sin(THETA_PLUS) + z_col * np.cos(THETA_PLUS)
             
-            xm = x_col * np.cos(THETA_MINUS) - z_col * np.sin(THETA_MINUS) + self.V0*(T-TSTEP)
+            xm = x_col * np.cos(THETA_MINUS) - z_col * np.sin(THETA_MINUS) + self.V*(T-TSTEP)
             zm = x_col * np.sin(THETA_MINUS) + z_col * np.cos(THETA_MINUS)
             
-            self.vx = (xp - xm) / (2. * TSTEP) - self.V0
+            self.vx = (xp - xm) / (2. * TSTEP) - self.V
             self.vz = (zp - zm) / (2. * TSTEP)
 
         elif i == 1:
             # First-order backwards differencing of body collocation point positions
-            self.vx = (self.AF.x_mid[0,:]-self.AF.x_mid[1,:])/DEL_T - self.V0
+            self.vx = (self.AF.x_mid[0,:]-self.AF.x_mid[1,:])/DEL_T - self.V
             self.vz = (self.AF.z_mid[0,:]-self.AF.z_mid[1,:])/DEL_T
             
         elif i == 2 or i == 3:
             # Second-order backwards differencing of body collocation point positions
-            self.vx = (3*self.AF.x_mid[0,:]-4*self.AF.x_mid[1,:]+self.AF.x_mid[2,:])/(2*DEL_T) - self.V0
+            self.vx = (3*self.AF.x_mid[0,:]-4*self.AF.x_mid[1,:]+self.AF.x_mid[2,:])/(2*DEL_T) - self.V
             self.vz = (3*self.AF.z_mid[0,:]-4*self.AF.z_mid[1,:]+self.AF.z_mid[2,:])/(2*DEL_T)
 
         else:
             # Fourth-order backwards differencing of body collocation point positions
-            self.vx = (25/12*self.AF.x_mid[0,:] - 4*self.AF.x_mid[1,:] + 3*self.AF.x_mid[2,:] - 4/3*self.AF.x_mid[3,:] + 1/4*self.AF.x_mid[4,:]) / DEL_T - self.V0
+            self.vx = (25/12*self.AF.x_mid[0,:] - 4*self.AF.x_mid[1,:] + 3*self.AF.x_mid[2,:] - 4/3*self.AF.x_mid[3,:] + 1/4*self.AF.x_mid[4,:]) / DEL_T - self.V
             self.vz = (25/12*self.AF.z_mid[0,:] - 4*self.AF.z_mid[1,:] + 3*self.AF.z_mid[2,:] - 4/3*self.AF.z_mid[3,:] + 1/4*self.AF.z_mid[4,:]) / DEL_T
 
         # Body source strengths with normal vector pointing outward (overall sigma pointing outward)
         (nx,nz) = panel_vectors(self.AF.x,self.AF.z)[2:4]
-        self.sigma = nx*(self.V0 + self.vx) + nz*self.vz    
+        self.sigma = nx*(self.V + self.vx) + nz*self.vz    
 
     def pressure(self, RHO, DEL_T, i, stencil_npts=5):
         """Calculates the pressure distribution along the body's surface.
@@ -554,8 +555,8 @@ class Body(object):
         qpx_tot = dmu_dl*tx + self.sigma*nx
         qpz_tot = dmu_dl*tz + self.sigma*nz
 
-        self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
-        self.cp = self.p / (0.5*RHO*self.V0**2)
+        self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V+self.vx) + qpz_tot*self.vz)
+        self.cp = self.p / (0.5*RHO*self.V**2)
         
     def force(self, P, i):
         """Calculates drag and lift forces acting on the body.
@@ -589,9 +590,9 @@ class Body(object):
         
         if SW_ADDED_DRAG:
             if DRAG_LAW == 'FORM':
-                D_add = 0.5 * CD_BOD * RHO * S_W * self.V0**2
+                D_add = 0.5 * CD_BOD * RHO * S_W * self.V**2
             elif DRAG_LAW == 'BLASIUS':
-                D_add = CD_BOD * RHO * S_W * np.absolute(self.V0**1.5 * (NU / L_T)**0.5)
+                D_add = CD_BOD * RHO * S_W * np.absolute(self.V**1.5 * (NU / L_T)**0.5)
             else:
                 print 'ERROR: Invalid drag law "%s"' % DRAG_LAW
                 print 'Valid trag laws are:'
@@ -599,13 +600,13 @@ class Body(object):
                 print '    "BLASIUS"'
                 raise ValueError('Invalid drag law "%s"' % DRAG_LAW)
             
-            net_thrust = force[0] - np.sign(self.V0) * D_add
-            self.Ct_net = -net_thrust / (0.5 * RHO * np.absolute(self.V0)**2 * C * B)
+            net_thrust = force[0] - np.sign(self.V) * D_add
+            self.Ct_net = -net_thrust / (0.5 * RHO * np.absolute(self.V)**2 * C * B)
         
-        self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * np.absolute(self.V0)**2 * C * B)
-        self.Cl = lift /(0.5 * RHO * np.absolute(self.V0)**2 * C * B)
-        self.Ct = thrust / (0.5 * RHO * np.absolute(self.V0)**2 * C * B)
-        self.Cpow = power /  (0.5 * RHO * np.absolute(self.V0)**3 * C * B)
+        self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * np.absolute(self.V)**2 * C * B)
+        self.Cl = lift /(0.5 * RHO * np.absolute(self.V)**2 * C * B)
+        self.Ct = thrust / (0.5 * RHO * np.absolute(self.V)**2 * C * B)
+        self.Cpow = power /  (0.5 * RHO * np.absolute(self.V)**3 * C * B)
         
     def free_swimming(self, T, HEAVE, DEL_T, RHO, C, B, M, SW_FREE_SWIM, i):
         """Determines the free-swimming velocity.
@@ -621,16 +622,16 @@ class Body(object):
             SW_FREE_SWIM (bool): free swimming (True) or fixed swimming (False)
         """
         if SW_FREE_SWIM:
-            Fx = -self.Ct_net * 0.5 * RHO * np.absolute(self.V0)**2 * C * B
+            Fx = -self.Ct_net * 0.5 * RHO * np.absolute(self.V)**2 * C * B
             a_b = Fx / M
-            V0_old = np.copy(self.V0)
-            self.V0 = a_b * DEL_T + self.V0
+            V0_old = np.copy(self.V)
+            self.V = a_b * DEL_T + self.V
             # Location of leading edge
-            self.AF.x_le = 0.5 * (self.V0 + V0_old) * DEL_T + self.AF.x_le
+            self.AF.x_le = 0.5 * (self.V + V0_old) * DEL_T + self.AF.x_le
             self.AF.z_le = HEAVE
         else:
             # Location of leading edge
-            self.AF.x_le = self.V0*T
+            self.AF.x_le = self.V*T
             self.AF.z_le = HEAVE
             
-#        np.save('./x_le/%05i.npy' % i, self.V0)
+#        np.save('./x_le/%05i.npy' % i, self.V)

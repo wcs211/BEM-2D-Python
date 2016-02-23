@@ -2,10 +2,9 @@ import os
 import sys
 import numpy as np
 from scipy import array
-from scipy.interpolate import PchipInterpolator, splrep
+from scipy.interpolate import PchipInterpolator
 
-    # x,z components of each panel's tangential and normal vectors
-def panel_vectors(x,z):
+def panel_vectors(x, z):
     """
     Calculates the normal and tangential unit vectors for 2D body panel.
     
@@ -27,8 +26,23 @@ def panel_vectors(x,z):
     nz = tx
     return (tx,tz,nx,nz,lpanel)
 
-    # x,z components of each midpoint's/collocation point's tangential and normal vectors
-def point_vectors(xdp,xdm,zdp,zdm):
+def point_vectors(xdp, xdm, zdp, zdm):
+    """
+    Calculates the normal and tangential unit vectors for each midpoint or 
+    collocation point.
+    
+    Args:
+        xdp (float): 
+        xdm (float):
+        zdp (float):
+        zdm (float):
+        
+    Returns:
+        tx (float):
+        tz (float):
+        nx (float):
+        nz (float):
+    """
     tx = (xdp-xdm)/np.sqrt((xdp-xdm)**2 + (zdp-zdm)**2)
     tz = (zdp-zdm)/np.sqrt((xdp-xdm)**2 + (zdp-zdm)**2)
     nx = -tz
@@ -53,14 +67,26 @@ def archive(array, axis=0):
         else:
             array[:,1:] = array[:,:-1]
 
-# Velocity and velocity potential equations are defined in panel coordinates so a transformation should be done
-# Each row of xp1/xp2/zp is a target, and each column is an influence
-# NI is N influences, NT is N targets
-# xi/zi is x/z of influences, xt/zt is x/z of target points
 def transformation(xt,zt,xi,zi):
-# Returns xp1, xp2, zp
-# Others: NT, NI, tx, tz, nx, nz, dummy, x_tile, z_tile, tx_tile, tz_tile
-
+    """
+    Transforms points into a panel's reference frame.
+    
+    Velocity and velocity potential equations are defined in panel coordinates 
+    so a transformation should be done. Each row of xp1/xp2/zp is a target, and 
+    each column is an influence.
+    
+    Args:
+        xt (float): x coordinate of target points
+        zt (float): z coordinate of target points
+        xi (float): x coordinate of influences
+        zi (float): z coordinate of influences
+        
+    Returns:
+        xp1 (float):
+        xp2 (float):
+        zp (float):
+    """
+    # NI is N influences, NT is N targets
     NT = np.size(xt)
     NI = np.size(xi)-1
 
@@ -84,7 +110,16 @@ def transformation(xt,zt,xi,zi):
     return(xp1,xp2,zp)
 
 def absoluteToBody(Body, Solid, THETA, HEAVE):
-    """Transforms absolute reference frame to body reference frame"""
+    """
+    Transforms absolute reference frame to body reference frame. Needed in 
+    FSI simulations after solid displacements are determined.
+    
+    Args:
+        Body (object):
+        Solid (object):
+        THETA (float):
+        HEAVE (float):
+    """
     Body.BF.x = ((Body.AF.x - Body.AF.x_le) * np.cos(-1*THETA) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*THETA))
     Body.BF.z = ((Body.AF.z - Body.AF.z_le) * np.cos(-1*THETA) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*THETA))
     Body.BF.x_col = ((Body.BF.x[1:] + Body.BF.x[:-1])/2)
@@ -126,6 +161,25 @@ def ramp(t, slope, startTime):
     return (r)
 
 def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
+    """
+    Creates new objects need to start a new simulation.
+    
+    Args:
+        P (dict):
+        PC (object):
+        solid (object, optional):
+        FSI (object, optional):
+        PyFEA (object, optional):
+    
+    Returns:
+        SwiP (list):
+        GeoP (list):
+        MotP (list):
+        Swimmers (list):
+        SolidP (list):
+        FSIP (list):
+        PyFEAP (list):
+    """
     SwiP     = [None for x in xrange(P['N_SWIMMERS'])]
     GeoP     = [None for x in xrange(P['N_SWIMMERS'])]
     MotP     = [None for x in xrange(P['N_SWIMMERS'])]
@@ -165,6 +219,32 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
     return (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
 
 def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
+    """
+    Handles starting a simulation. This will either start a new simulation or 
+    start a simulation from a previous save.
+    
+    Args:
+        P (dict):
+        DIO (object):
+        Swimmer (object):
+        solid (object, optional):
+        FSI (object, optional):
+        PyFEA (object, optional):
+        
+    Returns:
+        START_COUNTER (int):
+        COUNTER (int):
+        SwiP (list):
+        GeoP (list):
+        MotP (list):
+        Swimmers (list):
+        SolidP (list):
+        FSIP (list):
+        PyFEAP (list):
+        
+    Raises:
+    
+    """
     if (os.path.exists(P['OUTPUT_DIR']) == False or os.listdir(P['OUTPUT_DIR']) == []):
         P['START_FROM'] = 'zeroTime'
 
@@ -194,7 +274,8 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
 
         (sP, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
         if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
-            print 'ERROR! Inconsistent input parameters with starting data file.'
+            raise ValueError('ERROR! Inconsistent input parameters with starting data file.')
+
 
         if (Swimmers[0].Wake.x.shape[0] < P['COUNTER']):
             for Swim in Swimmers:
@@ -218,6 +299,7 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         print '    latestTime'
         print '    firstTime'
         print '    zeroTime'
+        raise ValueError('ERROR! Invalid START_FROM.')
 
     return (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
 
@@ -351,29 +433,6 @@ def multi_kinematics(P, PHI=0., scale=None, rate=50):
     sineFracPlus  = [scale[0] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
     
     # Square Wave Input
-#    tt = [P['DEL_T'] * i for i in xrange(P['N_STEP'] / 2 + 1)]
-#    alpha = 2. + (2. / 3.)
-#    A = 1.0
-#    u_tip = 2. * np.pi * alpha * P['F'] * A
-#    off = 0.25 * P['F']
-#    a = -u_tip / 2. / off**3 + A / off**4
-#    b = -2. * A / off**2 + u_tip / 2. / off
-#    sqr_sig       = [a * (tt[i]              - off)**4 + b * (tt[i]              - off)**2 + A for i in xrange(P['N_STEP'] / 2 + 1)]
-#    sqr_sig_minus = [a * (tt[i] - P['TSTEP'] - off)**4 + b * (tt[i] - P['TSTEP'] - off)**2 + A for i in xrange(P['N_STEP'] / 2 + 1)]
-#    sqr_sig_plus  = [a * (tt[i] + P['TSTEP'] - off)**4 + b * (tt[i] + P['TSTEP'] - off)**2 + A for i in xrange(P['N_STEP'] / 2 + 1)]
-#    squareFrac      = [0.]
-#    squareFracMinus = [0.]
-#    squareFracPlus  = [0.]
-#    for j in xrange(2 * P['N_CYC']):
-#        if np.mod(j+1,2) == 0:
-#            squareFrac      = squareFrac      + [-sqr_sig[i+1] for i in xrange(P['N_STEP'] / 2)]
-#            squareFracMinus = squareFracMinus + [-sqr_sig_minus[i+1] for i in xrange(P['N_STEP'] / 2)]
-#            squareFracPlus  = squareFracPlus  + [-sqr_sig_plus[i+1] for i in xrange(P['N_STEP'] / 2)]
-#        else:
-#            squareFrac      = squareFrac      + sqr_sig[1:]
-#            squareFracMinus = squareFracMinus + sqr_sig_minus[1:]
-#            squareFracPlus  = squareFracPlus  + sqr_sig_plus[1:]
-    
     squareFrac      = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
     squareFracMinus = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
     squareFracPlus  = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
@@ -411,53 +470,77 @@ def multi_kinematics(P, PHI=0., scale=None, rate=50):
     
     return(signal, signalMinus, signalPlus)
 
-def accel_multi_kinematics(P, PHI=0., scale=None, rate=50):
-    delta = 1. / rate
-    if (scale == None):
-        x = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-        y = [2.1790849673, 1.5669799009, 1.3790259591, 1.2876797596, 1.2332922318, 1.1968681428, 1.1709601874, 1.1512761466, 1.136077986, 1.1238710886]
-        scaleSig = PchipInterpolator(x, y)
-        scale = [scaleSig(rate), scaleSig(rate), scaleSig(rate), scaleSig(rate)]
+def accel_multi_kinematics(P, sig):
+    signal       = sig[0]
+    signal_minus = sig[1]
+    signal_plus  = sig[2]
+    accell       = [0. for i in xrange(P['COUNTER'])]
+    accell_minus = [0. for i in xrange(P['COUNTER'])]
+    accell_plus  = [0. for i in xrange(P['COUNTER'])]
     
-    # Sine Wave Input
-    sineFrac      = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * P['T'][i] + PHI) for i in xrange(P['COUNTER'])]
-    sineFracMinus = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
-    sineFracPlus  = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
-    
-    # Square Wave Input  
-    squareFrac      = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * P['T'][i]                + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * P['T'][i]                + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
-    squareFracMinus = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
-    squareFracPlus  = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
-    
-    # Triangle wave
-    triangleFrac      = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * P['T'][i]                + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-    triangleFracMinus = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-    triangleFracPlus  = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-    
-    # Saw-tooth Wave
-    xt  = [0.25 * (2. * P['F'] * P['T'][i]                - 1.) for i in xrange(P['COUNTER'])]
-    xtm = [0.25 * (2. * P['F'] * (P['T'][i] - P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
-    xtp = [0.25 * (2. * P['F'] * (P['T'][i] + P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
-    
-    xs  = [0.5 * P['F'] * P['T'][i]                for i in xrange(P['COUNTER'])]
-    xsm = [0.5 * P['F'] * (P['T'][i] - P['TSTEP']) for i in xrange(P['COUNTER'])]
-    xsp = [0.5 * P['F'] * (P['T'][i] + P['TSTEP']) for i in xrange(P['COUNTER'])]
-    
-    trg  = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xt[i] ) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xt[i] )) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-    trgM = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xtm[i]) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xtm[i])) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-    trgP = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xtp[i]) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xtp[i])) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-    
-    sqr  = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xs[i] ) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xs[i] ) + 1.)**2 for i in xrange(P['COUNTER'])]
-    sqrM = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xsm[i]) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xsm[i]) + 1.)**2 for i in xrange(P['COUNTER'])]
-    sqrP = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xsp[i]) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xsp[i]) + 1.)**2 for i in xrange(P['COUNTER'])]
-    
-    sawFrac      = [scale[3] * trg[i]  * sqr[i]  for i in xrange(P['COUNTER'])]
-    sawFracMinus = [scale[3] * trgM[i] * sqrM[i] for i in xrange(P['COUNTER'])]
-    sawFracPlus  = [scale[3] * trgP[i] * sqrP[i] for i in xrange(P['COUNTER'])]
+    for i in [1, 2, 3]:
+        accell[i]       = (15. / 4.) * signal[i]       - (77. / 6.) * signal[i+1]       + (107. / 6.) * signal[i+2] - 13. * signal[i+3]       + (61. / 12.) * signal[i+4]       - (5. / 6.) * signal[i+5]
+        accell_minus[i] = (15. / 4.) * signal_minus[i] - (77. / 6.) * signal_minus[i+1] + (107. / 6.) * signal[i+2] - 13. * signal_minus[i+3] + (61. / 12.) * signal_minus[i+4] - (5. / 6.) * signal_minus[i+5]
+        accell_plus[i]  = (15. / 4.) * signal_plus[i]  - (77. / 6.) * signal_plus[i+1]  + (107. / 6.) * signal[i+2] - 13. * signal_plus[i+3]  + (61. / 12.) * signal_plus[i+4]  - (5. / 6.) * signal_plus[i+5]
 
-    # Form composite signal
-    signal      = [P['SIG_WEIGHT'][0] * sineFrac[i]      + P['SIG_WEIGHT'][1] * squareFrac[i]      + P['SIG_WEIGHT'][2] * triangleFrac[i]      + P['SIG_WEIGHT'][3] * sawFrac[i]      for i in xrange(P['COUNTER'])]
-    signalMinus = [P['SIG_WEIGHT'][0] * sineFracMinus[i] + P['SIG_WEIGHT'][1] * squareFracMinus[i] + P['SIG_WEIGHT'][2] * triangleFracMinus[i] + P['SIG_WEIGHT'][3] * sawFracMinus[i] for i in xrange(P['COUNTER'])]
-    signalPlus  = [P['SIG_WEIGHT'][0] * sineFracPlus[i]  + P['SIG_WEIGHT'][1] * squareFracPlus[i]  + P['SIG_WEIGHT'][2] * triangleFracPlus[i]  + P['SIG_WEIGHT'][3] * sawFracPlus[i]  for i in xrange(P['COUNTER'])]
-    
-    return(signal, signalMinus, signalPlus)
+    for i in xrange(P['COUNTER']-6):
+        accell[i+4]       = (-1. / 12.) * signal[i+2]       + (4. / 3.) * signal[i+3]       - (5. / 2.) * signal[i+4]       + (4. / 3.) * signal[i+5]       - (1. / 12.) * signal[i+6]
+        accell_minus[i+4] = (-1. / 12.) * signal_minus[i+2] + (4. / 3.) * signal_minus[i+3] - (5. / 2.) * signal_minus[i+4] + (4. / 3.) * signal_minus[i+5] - (1. / 12.) * signal_minus[i+6]
+        accell_plus[i+4]  = (-1. / 12.) * signal_plus[i+2]  + (4. / 3.) * signal_plus[i+3]  - (5. / 2.) * signal_plus[i+4]  + (4. / 3.) * signal_plus[i+5]  - (1. / 12.) * signal_plus[i+6]
+        
+    for i in [-1, -2, -3]:
+        accell[i]       = (15. / 4.) * signal[i]       - (77. / 6.) * signal[i-1]       + (107. / 6.) * signal[i-2]       - 13. * signal[i-3]       + (61. / 12.) * signal[i-4]       - (5. / 6.) * signal[i-5]
+        accell_minus[i] = (15. / 4.) * signal_minus[i] - (77. / 6.) * signal_minus[i-1] + (107. / 6.) * signal_minus[i-2] - 13. * signal_minus[i-3] + (61. / 12.) * signal_minus[i-4] - (5. / 6.) * signal_minus[i-5]
+        accell_plus[i]  = (15. / 4.) * signal_plus[i]  - (77. / 6.) * signal_plus[i-1]  + (107. / 6.) * signal_plus[i-2]  - 13. * signal_plus[i-3]  + (61. / 12.) * signal_plus[i-4]  - (5. / 6.) * signal_plus[i-5]
+
+    return(accell, accell_minus, accell_plus)
+      
+#    delta = 1. / rate
+#    if (scale == None):
+#        x = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+#        y = [2.1790849673, 1.5669799009, 1.3790259591, 1.2876797596, 1.2332922318, 1.1968681428, 1.1709601874, 1.1512761466, 1.136077986, 1.1238710886]
+#        scaleSig = PchipInterpolator(x, y)
+#        scale = [scaleSig(rate), scaleSig(rate), scaleSig(rate), scaleSig(rate)]
+#    
+#    # Sine Wave Input
+#    sineFrac      = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * P['T'][i] + PHI) for i in xrange(P['COUNTER'])]
+#    sineFracMinus = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
+#    sineFracPlus  = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
+#    
+#    # Square Wave Input  
+#    squareFrac      = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * P['T'][i]                + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * P['T'][i]                + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
+#    squareFracMinus = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
+#    squareFracPlus  = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
+#    
+#    # Triangle wave
+#    triangleFrac      = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * P['T'][i]                + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+#    triangleFracMinus = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+#    triangleFracPlus  = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+#    
+#    # Saw-tooth Wave
+#    xt  = [0.25 * (2. * P['F'] * P['T'][i]                - 1.) for i in xrange(P['COUNTER'])]
+#    xtm = [0.25 * (2. * P['F'] * (P['T'][i] - P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
+#    xtp = [0.25 * (2. * P['F'] * (P['T'][i] + P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
+#    
+#    xs  = [0.5 * P['F'] * P['T'][i]                for i in xrange(P['COUNTER'])]
+#    xsm = [0.5 * P['F'] * (P['T'][i] - P['TSTEP']) for i in xrange(P['COUNTER'])]
+#    xsp = [0.5 * P['F'] * (P['T'][i] + P['TSTEP']) for i in xrange(P['COUNTER'])]
+#    
+#    trg  = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xt[i] ) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xt[i] )) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+#    trgM = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xtm[i]) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xtm[i])) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+#    trgP = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xtp[i]) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xtp[i])) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+#    
+#    sqr  = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xs[i] ) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xs[i] ) + 1.)**2 for i in xrange(P['COUNTER'])]
+#    sqrM = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xsm[i]) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xsm[i]) + 1.)**2 for i in xrange(P['COUNTER'])]
+#    sqrP = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xsp[i]) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xsp[i]) + 1.)**2 for i in xrange(P['COUNTER'])]
+#    
+#    sawFrac      = [scale[3] * trg[i]  * sqr[i]  for i in xrange(P['COUNTER'])]
+#    sawFracMinus = [scale[3] * trgM[i] * sqrM[i] for i in xrange(P['COUNTER'])]
+#    sawFracPlus  = [scale[3] * trgP[i] * sqrP[i] for i in xrange(P['COUNTER'])]
+#
+#    # Form composite signal
+#    signal      = [P['SIG_WEIGHT'][0] * sineFrac[i]      + P['SIG_WEIGHT'][1] * squareFrac[i]      + P['SIG_WEIGHT'][2] * triangleFrac[i]      + P['SIG_WEIGHT'][3] * sawFrac[i]      for i in xrange(P['COUNTER'])]
+#    signalMinus = [P['SIG_WEIGHT'][0] * sineFracMinus[i] + P['SIG_WEIGHT'][1] * squareFracMinus[i] + P['SIG_WEIGHT'][2] * triangleFracMinus[i] + P['SIG_WEIGHT'][3] * sawFracMinus[i] for i in xrange(P['COUNTER'])]
+#    signalPlus  = [P['SIG_WEIGHT'][0] * sineFracPlus[i]  + P['SIG_WEIGHT'][1] * squareFracPlus[i]  + P['SIG_WEIGHT'][2] * triangleFracPlus[i]  + P['SIG_WEIGHT'][3] * sawFracPlus[i]  for i in xrange(P['COUNTER'])]
+#    
+#    return(signal, signalMinus, signalPlus)

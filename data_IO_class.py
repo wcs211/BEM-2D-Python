@@ -42,8 +42,8 @@ class DataIO(object):
         """
         # Determine if a csv file containg force information should be written
         if P['SW_SV_FORCES']:
-            Swimmers[0].Body.forceData = np.append(Swimmers[0].Body.forceData, np.array([[i, Swimmers[0].Body.Cf, Swimmers[0].Body.Cl, Swimmers[0].Body.Ct, Swimmers[0].Body.Cpow, Swimmers[0].Body.AF.z[0]]]), axis=0)
-            np.savetxt("forces.csv", Swimmers[0].Body.forceData, delimiter=",", header="i [-], Cf [-], Cl [-], Ct [-], Cpow [-], TE_A [-]")
+            Swimmers[0].Body.forceData = np.append(Swimmers[0].Body.forceData, np.array([[i, Swimmers[0].Body.Cf, Swimmers[0].Body.Cl, Swimmers[0].Body.Ct, Swimmers[0].Body.Cpow, Swimmers[0].Body.AF.z[0], Swimmers[0].Body.V/Swimmers[0].Body.V0]]), axis=0)
+            np.savetxt("forces.csv", Swimmers[0].Body.forceData, delimiter=",", header="i [-], Cf [-], Cl [-], Ct [-], Cpow [-], TE_A [-], V/V0 [-]")
 #            np.savetxt("forces.csv", Swimmers[0].Body.forceData, delimiter=",")   
         
         # Determine if a save-state file should be written

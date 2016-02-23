@@ -11,7 +11,10 @@ from data_IO_class import DataIO
 from input_parameters import PARAMETERS as P
 from swimmer_class import Swimmer
 import parameter_classes as PC
-from functions_influence import solve_phi, wake_rollup
+if P['SW_FMM']:
+    from functions_fmm import solve_phi, wake_rollup
+else:
+    from functions_influence import solve_phi, wake_rollup
 from terminal_output import print_output as po
 import functions_graphics as graph
 from SolidClass import solid

@@ -31,8 +31,8 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Time-step and Misc. Parameters                                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'N_STEP':             250
-, 'N_CYC':              10
+, 'N_STEP':             25
+, 'N_CYC':              50
 , 'DSTEP':              1e-5
 , 'TSTEP':              1e-5
 , 'VERBOSITY':          1
@@ -41,11 +41,11 @@ P = PARAMETERS = {
 # Fluid Body Constants                                                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'V0':                 -0.05
-, 'THETA_MAX':          0.00
+, 'THETA_MAX':          0.15
 , 'HEAVE_MAX':          0.0125
 , 'F':                  0.3
 , 'DC':                 0.5
-, 'SIG_WEIGHT':         [0., 1., 0., 0.] # [sine, square, triangle, sawtooth]
+, 'SIG_WEIGHT':         [1., 0., 0., 0.] # [sine, square, triangle, sawtooth]
 , 'PHI':                np.pi/2.
 , 'RHO':                1000.
 , 'NU':                 1.003e-6
@@ -78,7 +78,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             True
+, 'SW_FSI':             False
 , 'SW_SPRING':          True
 , 'N_OUTERCORR_MAX':    200
 , 'OUTER_CORR_TOL':     1e-7
@@ -100,13 +100,14 @@ P = PARAMETERS = {
 , 'SW_MULTI':           True
 , 'SW_ROLLUP':          True
 , 'SW_FLAT_WAKE':       False
-, 'SW_FREE_SWIM':       False
-, 'SW_INTERMITTENT':    False
+, 'SW_FREE_SWIM':       True
+, 'SW_INTERMITTENT':    True
 , 'SW_VISC_DRAG':       False
 , 'SW_INTERP_MTD':      True
 , 'SW_CNST_THK_BM':     True
 , 'SW_RAMP':            False
-, 'SW_PLOT_FIG':        True
+, 'SW_FMM':             False
+, 'SW_PLOT_FIG':        False
 }
 
 
@@ -114,7 +115,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Virtual Body Properties                                                     #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-P['SW_ADDED_DRAG'] =    False
+P['SW_ADDED_DRAG'] =    True
 P['DRAG_LAW']      =    'FORM'
 P['S_WP']          =    10.
 P['M_STAR']        =    0.5
@@ -182,9 +183,7 @@ elif P['SW_MULTI']:
     P['HEAVE_MINUS'] = [P['HEAVE_MAX'] * sigHeaveMinus[i] * P['RAMP_M'][i] for i in xrange(P['COUNTER'])]
     P['HEAVE_PLUS']  = [P['HEAVE_MAX'] * sigHeavePlus[i]  * P['RAMP_P'][i] for i in xrange(P['COUNTER'])]
     
-    inertia = accel_multi_kinematics(P, P['PHI'], scale=[1.0, 1.143727574, 1.693954952, 2.690184034], rate=5)[0]
-    P['INERTIA']     = [P['HEAVE_MAX'] * inertia[i] * P['RAMP'][i] for i in xrange(P['COUNTER'])]
-    
+#    inertia = accel_multi_kinematics(P, P['PHI'], scale=[1.0, 1.143727574, 1.693954952, 2.690184034], rate=5)[0]
 else:
     # Zero attack angle motions
     P['HEAVE']       = [P['HEAVE_MAX'] * np.sin(2 * np.pi * P['F'] * P['T'][i] + P['PHI'])  * P['RAMP'][i] for i in xrange(P['COUNTER'])]
@@ -196,6 +195,9 @@ else:
     P['THETA']       = [np.arctan(H_DOT[i] / P['V0']) for i in xrange(P['COUNTER'])]
     P['THETA_MINUS'] = [np.arctan(H_DOT_MINUS[i] / P['V0']) for i in xrange(P['COUNTER'])]
     P['THETA_PLUS']  = [np.arctan(H_DOT_PLUS[i] / P['V0']) for i in xrange(P['COUNTER'])]
+    
+#inertia = accel_multi_kinematics(P, [P['HEAVE'], P['HEAVE_MINUS'], P['HEAVE_PLUS']])[0]
+#P['INERTIA']     = [P['HEAVE_MAX'] * inertia[i] * P['RAMP'][i] for i in xrange(P['COUNTER'])]
 
 # Constants dependent on declared parameters
 #P['DELTA_CORE']  = (0.005*P['THETA_MAX']+0.09)*P['C']
