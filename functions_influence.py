@@ -71,7 +71,7 @@ def influence_matrices(Swimmers, i):
         b_wakedoublet: Wake panels' influence matrix.
         a_explicit: Augments the a_bodydoublet matrix when doing explicit Kutta.
     """
-    ep = 2.2204460492503131e-16
+    ep = 1e-10
     n_b = 0
     n_e = 0
     n_w = 0
@@ -203,11 +203,6 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
             break
 
     for Swim in Swimmers:  
-#        if (outerCorr <= 1):
-#            # mu_past used in differencing for pressure
-#            Swim.Body.mu_past[1,:] = Swim.Body.mu_past[0,:]
-#            Swim.Body.mu_past[0,:] = Swim.Body.mu
-
         Swim.Edge.mu = Swim.mu_guess[0]
         Swim.Edge.gamma[0] = -Swim.Edge.mu
         Swim.Edge.gamma[1] = Swim.Edge.mu

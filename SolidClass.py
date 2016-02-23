@@ -24,6 +24,7 @@ class solid(object):
         self.Nnodes = self.Nelements + 1
         self.xp_0 = np.copy(Body.BF.x)
         self.zp_0 = np.copy(Body.BF.z)
+        self.tmax = tmax
         self.pivotPoint = (0.5*tmax) / (max(self.xp_0) - min(self.xp_0))
         self.nodes = np.zeros((self.Nnodes,3))
         self.nodesNew = np.zeros((self.Nnodes,3))
@@ -108,7 +109,7 @@ class solid(object):
                     self.fixedCounter += 1
                     
         #Temporary fix to specify constant thickness beam throughout
-        self.tBeamStruct[:,0] = np.copy(tmax)                        
+        self.tBeamStruct[:,0] = np.copy(tmax)
 
     def initMesh(self):
         """

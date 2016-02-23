@@ -1,8 +1,12 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""Module for the Body, Edge, and Wake classes."""
+"""
+BEM-2D
+A 2D boundary element method code. Module for the Body, Edge, and Wake classes.
 
+"""
 import numpy as np
-from functions_general import point_vectors, panel_vectors
+from functions_general import panel_vectors
 import parameter_classes as PC
     
 def finite_diff(mu, dL, stencil):
@@ -95,7 +99,6 @@ def finite_diff(mu, dL, stencil):
     
     # Determining the pertubation velocity (Qp)
     return(-dmu_ds)
-    
 
 class Edge(object):
     """An edge doublet panel located where separation occurs on a body.
@@ -189,6 +192,7 @@ class Body(object):
         self.Ct = 0.
         self.Ct_net = 0.
         self.Cd_visc = 0.
+        self.D_visc = 0.
         self.Cpow = 0.
         self.forceData = np.zeros((0,6))
 
@@ -407,9 +411,10 @@ class Body(object):
         """
         bfx = self.BF.x
         bfz = self.BF.z
-        V0 = self.V0 # Used only for x_le
         
-        afx = bfx * np.cos(THETA) - bfz * np.sin(THETA) + self.V0*T
+#        afx = bfx * np.cos(THETA) - bfz * np.sin(THETA) + self.V0*T
+        afx = bfx * np.cos(THETA) - bfz * np.sin(THETA) + self.AF.x_le
+        
         afz = bfx * np.sin(THETA) + bfz * np.cos(THETA) + HEAVE
 
         (x_neut, z_neut) = self.neutral_axis(bfx, T, THETA, HEAVE)
@@ -433,9 +438,6 @@ class Body(object):
         self.AF.z_mid[0,:] = z_mid
         self.AF.x_neut = x_neut
         self.AF.z_neut = z_neut
-        # Location of leading edge
-        self.AF.x_le = V0*T
-        self.AF.z_le = HEAVE
         
     def fsi_panel_positions(self, FSI, T, THETA, HEAVE):
         self.AF.x = self.AF.x + (FSI.fluidNodeDispl[:,0] - FSI.fluidNodeDisplOld[:,0])
@@ -500,65 +502,7 @@ class Body(object):
 
         # Body source strengths with normal vector pointing outward (overall sigma pointing outward)
         (nx,nz) = panel_vectors(self.AF.x,self.AF.z)[2:4]
-        self.sigma = nx*(self.V0 + self.vx) + nz*self.vz
-        
-    def velocity_calcs(self, stencil_npts):
-        """
-        Calculates the tangential and normal velocities over the elements and 
-        constructs the perturbation and total velocities.
-        
-        Args:
-            stencil_npts (int): Number of stencil points for finite difference scheme
-        """
-        
-        # Extracting panel element data from class
-        Npanels = self.N
-        sigma   = self.sigma
-        mu      = self.mu
-        
-        (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
-        vt = np.array([tx, tz])
-        vn = np.array([nx, nz])
-        
-        
-        # Defining stencils
-        if (stencil_npts == 5):
-            stencil_chordwise = np.array([[0, 1, 2, 3, 4], np.repeat(np.array([-2, -2, 0, 1, 2]), Npanels - 4, axis=0), [-3, -2, -1, 0, 1], [-4, -3, -2, -1, 0]])
-        else:
-            if (stencil_npts != 3):
-                print '+-----------------------------------------------------------------------------+'
-                print '| WARNING! There are only three- and five-point stencils available.           |'
-                print '|          Defaulting to the three-point stencil.                             |'
-                print '+-----------------------------------------------------------------------------+'
-            stencil_chordwise = np.array([[0, 1, 2], np.repeat(np.array([-1, 0, 1]), Npanels - 2, axis=0), [-2, -1, 0]])
-            
-        # Allocating matricies
-        qt = np.zeros((1, Npanels))
-        Qp = np.zeros((2, Npanels))
-        Qt = np.zeros((2, Npanels))
-        
-        # Calculating the normal velocity component
-        qn = sigma.T
-        
-        # Calculating tangent velocity component from the local doublet strength, mu
-        for k in xrange(Npanels):
-            # Defining stencil depending on chordwise element
-            stencil = stencil_chordwise[k, :]
-            pan_elem = k + stencil
-            
-            # Calling finite difference approximations based on stencil
-            qt[k] = finite_diff(mu[pan_elem], lpanel[pan_elem], stencil)
-            
-        # Assembling velocity components.
-        # Qp - pertubation velocity in the inertial, undisturbed fluid reference frame
-        # Qt - total velocity (perturbation plus body-fixed frame velocity plus panel 
-        #      velocity relative to body-fixed frame) in the panel's reference frames.
-        # Qt_tangent - total velocity tangent to the surface.
-            
-#        for k in xrange(Npanels):
-#            Qp[:,k] = np.sum(np.array([np.dot(qt[k], vt[k,:].T),  np.dot(qn[k], vn[k,:].T)]), axis=1)
-#            Qt[:,k] = np.transpose(np.array([qt[k], qn[k]]) - )
-        
+        self.sigma = nx*(self.V0 + self.vx) + nz*self.vz    
 
     def pressure(self, RHO, DEL_T, i, stencil_npts=5):
         """Calculates the pressure distribution along the body's surface.
@@ -598,15 +542,6 @@ class Body(object):
             # Calling finite difference approximations based on stencil (3-point and 5-point available)
             dmu_dl[i] = finite_diff(self.mu[pan_elem], lpanel[pan_elem], stencil)
 
-#        # Tangential panel velocity dmu/dl, second/fourth-order differencing
-#        dmu_dl = np.empty(self.N)
-#        dmu_dl[0]  = second_order_for_diff( self.mu, lpanel, np.array([ 0,  1,  2]))
-#        dmu_dl[1]  = second_order_cen_for_diff(self.mu, lpanel, np.array([0, 1, 2, 3]))
-#        for j in xrange(self.N-4):
-#            dmu_dl[j+2] = fourth_order_cen_diff(self.mu, lpanel, np.array([j, j+1, j+2, j+3, j+4]))
-#        dmu_dl[-2]  = second_order_cen_back_diff(self.mu, lpanel, np.array([-4, -3, -2, -1]))
-#        dmu_dl[-1] = second_order_back_diff(self.mu, lpanel, np.array([-3, -2, -1]))
-
         # Potential change dmu/dt, second-order differencing after first time step
         if i == 0:
             dmu_dt = self.mu / DEL_T
@@ -621,53 +556,81 @@ class Body(object):
 
         self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V0+self.vx) + qpz_tot*self.vz)
         self.cp = self.p / (0.5*RHO*self.V0**2)
-
-#        print self.vx[0]
-#        print self.vz[0]
-#        print self.AF.x[1] - self.AF.x[0]
-#        print self.AF.z[1] - self.AF.z[0]
-
-#        c = np.absolute(self.V0+self.vx) * DEL_T / np.absolute(self.AF.x[1:]-self.AF.x[:-1]) + np.absolute(self.vz) * DEL_T / np.absolute(self.AF.z[1:]-self.AF.z[:-1])
         
-#        np.save('./cfl/python_%05i.npy' % i, c)
-#        np.save('./position2/python_%05i.npy' % i, self.BF.x_col)
-#        np.save('./pressure/python_%05i.npy' % i, self.cp)
-#        np.save('./mu/python_%05i.npy' % i, self.mu)
-#        np.save('./sigma/python_%05i.npy' % i, self.sigma)
-
-    def visc_drag(self, RHO):
-        """
-        Estimates viscous drag using a flat plate solution.
-        """
-        
-        (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
-        
-        Re_D = RHO * np.absolute(self.sigma) * lpanel / 0.001003
-        
-        self.Cd_visc = np.sum(1.3282 / np.sqrt(Re_D) * nx)
-        
-    def force(self, THETA, RHO, V0, C, B, i, SW_SV_FORCES):
+    def force(self, P, i):
         """Calculates drag and lift forces acting on the body.
 
         Args:
+            RHO (float): Fluid density
+            C (float): Body's chord length
+            B (float): Body's Span length
             i: Time step number.
         """
+        C   = P['C']
+        B   = P['B']
+        RHO = P['RHO']
+        CD_BOD = P['CD_BOD']
+        S_W = P['S_W']
+        NU = P['NU']
+        L_T = P['L_T']
+        SW_ADDED_DRAG = P['SW_ADDED_DRAG']
+        DRAG_LAW = P['DRAG_LAW']
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x, self.AF.z)
 
         delFx = -self.p * lpanel * B * nx
         delFz = -self.p * lpanel * B * nz
         delF = np.array([delFx, delFz])
         delP = np.sum(-delF * np.array([self.vx.T, self.vz.T]), 1)
-
+        
         force = np.sum(delF,1)
         lift = force[1]
         thrust = -force[0]
         power = np.sum(delP, 0)
         
-#        self.visc_drag(RHO)
+        if SW_ADDED_DRAG:
+            if DRAG_LAW == 'FORM':
+                D_add = 0.5 * CD_BOD * RHO * S_W * self.V0**2
+            elif DRAG_LAW == 'BLASIUS':
+                D_add = CD_BOD * RHO * S_W * np.absolute(self.V0**1.5 * (NU / L_T)**0.5)
+            else:
+                print 'ERROR: Invalid drag law "%s"' % DRAG_LAW
+                print 'Valid trag laws are:'
+                print '    "FORM"'
+                print '    "BLASIUS"'
+                raise ValueError('Invalid drag law "%s"' % DRAG_LAW)
+            
+            net_thrust = force[0] - np.sign(self.V0) * D_add
+            self.Ct_net = -net_thrust / (0.5 * RHO * np.absolute(self.V0)**2 * C * B)
         
-        self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * np.abs(V0)**2 * C * B)
-        self.Cl = lift /(0.5 * RHO * np.abs(V0)**2 * C * B)
-        self.Ct = thrust / (0.5 * RHO * np.abs(V0)**2 * C * B)
-        self.Ct_net = self.Ct - self.Cd_visc
-        self.Cpow = power /  (0.5 * RHO * np.abs(V0)**3 * C * B)
+        self.Cf = np.sqrt(force[0]**2 + force[1]**2) / (0.5 * RHO * np.absolute(self.V0)**2 * C * B)
+        self.Cl = lift /(0.5 * RHO * np.absolute(self.V0)**2 * C * B)
+        self.Ct = thrust / (0.5 * RHO * np.absolute(self.V0)**2 * C * B)
+        self.Cpow = power /  (0.5 * RHO * np.absolute(self.V0)**3 * C * B)
+        
+    def free_swimming(self, T, HEAVE, DEL_T, RHO, C, B, M, SW_FREE_SWIM, i):
+        """Determines the free-swimming velocity.
+        
+        Args:
+            T (float): Current simulation time
+            HAVE (float): Current heave position
+            DEL_T (float): Time-step increment
+            RHO (float): Fluid density
+            C (float): Body's chord length
+            B (float): Body's Span length
+            M (float): Body's mass
+            SW_FREE_SWIM (bool): free swimming (True) or fixed swimming (False)
+        """
+        if SW_FREE_SWIM:
+            Fx = -self.Ct_net * 0.5 * RHO * np.absolute(self.V0)**2 * C * B
+            a_b = Fx / M
+            V0_old = np.copy(self.V0)
+            self.V0 = a_b * DEL_T + self.V0
+            # Location of leading edge
+            self.AF.x_le = 0.5 * (self.V0 + V0_old) * DEL_T + self.AF.x_le
+            self.AF.z_le = HEAVE
+        else:
+            # Location of leading edge
+            self.AF.x_le = self.V0*T
+            self.AF.z_le = HEAVE
+            
+#        np.save('./x_le/%05i.npy' % i, self.V0)

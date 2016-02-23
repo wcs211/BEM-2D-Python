@@ -116,6 +116,82 @@ class FSI(object):
         self.fsiRelaxationFactor = np.copy(self.fsiRelaxationFactorMin)
         self.nOuterCorr = nOuterCorrMax
         
+    def setSpringForce(self, Body, Solid, PyFEA, P, outerCorr, delFs, i_t):
+        # Superposing the structural displacements
+        if (outerCorr > 1):
+            Solid.nodes[:,0] += (self.nodeDispl[:,0] - self.nodeDisplOld[:,0])
+            Solid.nodes[:,1] += (self.nodeDispl[:,1] - self.nodeDisplOld[:,1])         
+            
+        if (outerCorr <= 1):
+            # Updating the new kinematics
+            Solid.nodes[:,0] = (Solid.nodesNew[:,0] - Solid.nodesNew[0,0])*np.cos(P['THETA'][i_t])
+            Solid.nodes[:,1] = P['HEAVE'][i_t] + (Solid.nodesNew[:,0] - Solid.nodesNew[0,0])*np.sin(P['THETA'][i_t])
+            
+            # Calculating the shift in node positions with the swimming velocity
+            nodeDelxp = Body.AF.x_le * np.ones((Solid.Nelements + 1,1))
+#            nodeDelzp = Body.AF.z_le * np.ones((Solid.Nelements + 1,1))
+            
+            #Superposiing the kinematics and swimming translations
+            Solid.nodes[:,0] = Solid.nodes[:,0] + nodeDelxp.T
+#            Solid.nodes[:,1] = Solid.nodes[:,1] + nodeDelzp.T          
+            
+        # Determine the load conditons from the fluid solver
+        # Calculate the panel lengths and normal vectors
+        (nx,nz,lp) = panel_vectors(Body.AF.x,Body.AF.z)[2:5]
+        
+        # Calculate the force magnitude acting on the panel due to pressure,
+        # then calculate the x-z components of this force
+        magPF = Body.p * lp * 1.
+        pF = np.zeros((Body.N,3))
+        if P['SW_VISC_DRAG']:
+            pF[:,0] = (magPF.T * nx.T * -1.) + delFs[:,0]
+            pF[:,2] = (magPF.T * nz.T * -1.) + delFs[:,1]
+        else:
+            pF[:,0] = magPF.T * nx.T * -1.
+            pF[:,2] = magPF.T * nz.T * -1.
+        
+        # Calculating the moment about the leading edge
+        r = np.zeros((Body.N, 3))
+        r[:,0] = Body.AF.x_mid[0,:].T - Body.AF.x_le
+        r[:,2] = Body.AF.z_mid[0,:].T - Body.AF.z_le
+        delM_le = np.cross(r, pF)
+        Nf = -np.sum(delM_le[:,1])
+        
+        # Calculating the inertial torque resulting from the vertical 
+        # acceleration of the leading edge
+        Ni = -P['RHO_S'] * Solid.tmax * P['C']**2 * np.pi**2 * P['F']**2 * np.cos(PyFEA.theta_n) * P['INERTIA'][i_t]
+#        Ni = 8. * np.pi**2 * Solid.tmax * P['RHO_S'] / P['C']**2 / P['RHO'] * P['INERTIA'][i_t]
+#        Ni = -8. * np.pi**2 * Solid.tmax * P['RHO_S'] / P['C']**2 / P['RHO'] * P['HEAVE_MAX'] * 200. * P['F'] * np.min(np.array([np.cos(2. * np.pi * P['F'] * P['T'][i_t] + P['PHI']) / (2500. * np.sin(2. * np.pi * P['F'] * P['T'][i_t] + P['PHI'])**2 + 1.), 0.01]))
+#        Ni = -8. * np.pi**2 * Solid.tmax * P['RHO_S'] / P['C']**2 / P['RHO'] * P['HEAVE_MAX'] * np.cos(2. * np.pi * P['F'] * P['T'][i_t] + P['PHI'])
+        
+        # Calculating the moment of intertia about the leading edge
+        I = PyFEA.RHO_S * Solid.tmax * P['C']**3 / 3.
+        
+        # Define spring and dampening constants
+        kappa = P['KAPPA']
+        zeta  = P['ZETA']
+        
+        if (i_t <= 1 and outerCorr <= 1):
+            PyFEA.theta_n           = 0.
+            PyFEA.thetaDot_n        = 0.
+            PyFEA.thetaDotDot_n     = 0.
+            PyFEA.theta_nPlus       = 0.
+            PyFEA.thetaDot_nPlus    = 0.
+            PyFEA.thetaDotDot_nPlus = 0.            
+        elif (i_t > 0 and outerCorr <= 1):
+            PyFEA.theta_n           = 0.
+            PyFEA.thetaDot_n        = 0.
+            PyFEA.thetaDotDot_n     = 0.
+            PyFEA.theta_n           = np.copy(PyFEA.theta_nPlus)
+            PyFEA.thetaDot_n        = np.copy(PyFEA.thetaDot_nPlus)
+            PyFEA.thetaDotDot_n     = np.copy(PyFEA.thetaDotDot_nPlus)
+        
+        PyFEA.I     = np.copy(I)
+        PyFEA.kappa = np.copy(kappa)
+        PyFEA.zeta  = np.copy(zeta)
+        PyFEA.Nf    = np.copy(Nf)
+        PyFEA.Ni    = np.copy(Ni)
+        
     def setInterfaceForce(self, Solid, Body, PyFEA, THETA, HEAVE, outerCorr, 
                           SW_VISC_DRAG, delFs, SW_INTERP_MTD, C, i_t):
         """
@@ -211,7 +287,7 @@ class FSI(object):
         Fload = np.zeros((3*(Solid.Nnodes),1))
         Fload[0::3,0] = np.copy(nodalInput[:,0])
         Fload[1::3,0] = np.copy(nodalInput[:,1])
-        Fload[2::3,0] = np.copy(nodalInput[:,5])
+#        Fload[2::3,0] = np.copy(nodalInput[:,5])
         
         # Create element area matrix
         A = np.copy(Solid.tBeamStruct[:,0])
@@ -244,6 +320,31 @@ class FSI(object):
         PyFEA.A = np.copy(A)
         PyFEA.I = np.copy(I)
         PyFEA.l = l_0 * np.ones(Solid.Nelements)
+        
+    def getRotation(self, Solid, Body, PyFEA, SW_INTERP_MTD):
+        # Get the body rotation
+        theta = np.copy(PyFEA.theta_nPlus)
+        
+        # Calculate the new structural locations
+        tempNodes = np.copy(Solid.nodes_0)
+        (tempNodes[:,0], tempNodes[:,1]) = self.rotatePts(tempNodes[:,0], tempNodes[:,1], theta)
+        
+        # Calculating the shift in node positions with the swimming velocity
+        nodeDelxp = Body.AF.x_le * np.ones((Solid.Nnodes,1))
+        nodeDelzp = Body.AF.z_le * np.ones((Solid.Nnodes,1))
+
+        # Shift the nodes with the swimming
+        tempNodes[:,0] = tempNodes[:,0] + nodeDelxp.T
+        tempNodes[:,1] = tempNodes[:,1] + nodeDelzp.T
+        
+        (newxp, newzp) = s2f(Solid, tempNodes, SW_INTERP_MTD)
+        
+        # Store the absolute displacements and temporary nodes.
+        self.DU.fill(0.)        
+        self.DU[:,0] = newxp - Body.AF.x
+        self.DU[:,1] = newzp - Body.AF.z
+        self.maxDU = np.max(np.sqrt(self.DU[:,0]**2 + self.DU[:,1]**2))
+        Solid.tempNodes = np.copy(tempNodes)
             
     def getDisplacements(self, Solid, Body, PyFEA, THETA, HEAVE, SW_INTERP_MTD, FLEX_RATIO):
         """

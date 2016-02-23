@@ -80,7 +80,7 @@ class Swimmer(object):
         Edge.x[1] = Body.AF.x[0] + Edge.CE*tan_x*Body.V0*DEL_T
         Edge.z[1] = Body.AF.z[0] + Edge.CE*tan_z*Body.V0*DEL_T
 
-    def wake_shed(self, DEL_T, i):
+    def wake_shed(self, DEL_T, i, SW_FLAT_WAKE=False):
         """Updates the positions of the Wake panels.
 
         This should only be done once each time step for a swimmer.
@@ -101,6 +101,9 @@ class Swimmer(object):
 
             Wake.x[0] = Edge.x[-1]
             Wake.z[0] = Edge.z[-1]
+            
+            if SW_FLAT_WAKE:
+                Wake.z[0] = 0.
 
             Wake.x[1:] = Wake.x[0] + np.arange(1,np.size(Wake.x))*(-V0)*DEL_T
             Wake.z[1:] = Wake.z[0]
@@ -112,6 +115,10 @@ class Swimmer(object):
 
             Wake.x[0] = Edge.x[-1]
             Wake.z[0] = Edge.z[-1]
+            
+            if SW_FLAT_WAKE:
+                Wake.z[0] = 0.            
+            
             Wake.mu[0] = Edge.mu
 
             Wake.gamma[0] = -Wake.mu[0]

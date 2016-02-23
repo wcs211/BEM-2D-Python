@@ -140,16 +140,16 @@ def lift_vs_period(Body,RHO,t):
     n_fig += 1
     
 #def plot_n_go(Edge, Body, Solid, V0, T, HEAVE):
-def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
+def plot_n_go(Swimmers, i, P):
     global n_fig
     
-    if SW_PLOT_FIG:
+    if P['SW_PLOT_FIG']:
         figure = plt.figure(1)
         figure.add_subplot(1, 1, 1, axisbg='1') # Change background color here
         figure.set_size_inches(16, 9)
         plt.gca().set_aspect('equal')
         plt.tick_params(labelsize=28)
-        plt.xticks(np.arange(-15.00, 15.00, 0.20))
+        plt.xticks(np.arange(P['X_TICKS'][0], P['X_TICKS'][1], P['X_TICKS'][2]))
         maxpercentile = 95 # For truncating outliers
         
         if (i > 1):
@@ -178,9 +178,7 @@ def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
                 # Extract color map for the individual Swim
                 c = color[Swim.i_color:Swim.i_color+Swim.n_color]
                 # Scatter plot of wake points with red-white-blue colormap, as well as body outline and edge panel segment
-    #            for idx in xrange(i):
                 plt.scatter(Swim.Wake.x[1:i], Swim.Wake.z[1:i], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
-    #            plt.scatter(Swim.Wake.x[1:-1], Swim.Wake.z[1:-1], s=30, c=c, edgecolors='none', cmap=plt.get_cmap('bwr_r'))
             plt.plot(Swim.Body.AF.x, Swim.Body.AF.z, 'k')
             plt.plot(Swim.Edge.x, Swim.Edge.z, 'g')
     
@@ -188,9 +186,7 @@ def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
         if not os.path.exists('./movies'):
             os.makedirs('./movies')
         
-        plt.axis([np.min(Swim.Body.AF.x)-0.05, np.min(Swim.Body.AF.x)+1.75, -0.5, 0.5])
-#        plt.axis([np.min(Swim.Body.AF.x)-0.75, np.min(Swim.Body.AF.x)+25.5, -7.5, 7.5])
-#        plt.axis([np.min(Swim.Body.AF.x)-0.05, np.min(Swim.Body.AF.x)+0.75, -0.2, 0.2])
+        plt.axis([np.min(Swim.Body.AF.x)+P['X_FIELD'][0], np.min(Swim.Body.AF.x)+P['X_FIELD'][1], P['Z_FIELD'][0], P['Z_FIELD'][1]])
         plt.xlabel('$X$ $[m]$', fontsize=28)
         plt.ylabel('$Z$ $[m]$', fontsize=28)
         
@@ -198,8 +194,7 @@ def plot_n_go(Swimmers, V0, T, HEAVE, i, SW_PLOT_FIG):
         plt.gca().set_aspect('equal')
         plt.gca().axes.get_xaxis().set_visible(False)
         plt.gca().axes.get_yaxis().set_visible(False)
-#        plt.axis([np.min(Swim.Body.AF.x)+0.06, np.min(Swim.Body.AF.x)+0.16, -0.03, 0.03])
-        plt.axis([np.min(Swim.Body.AF.x)-0.04, np.min(Swim.Body.AF.x)+0.14, -0.05, 0.05])
+        plt.axis([np.min(Swim.Body.AF.x)+P['X_BODY'][0], np.min(Swim.Body.AF.x)+P['X_BODY'][1], P['Z_BODY'][0], P['Z_BODY'][1]])
         for Swim in Swimmers:
             if (i > 1):
                 # Extract color map for the individual Swim

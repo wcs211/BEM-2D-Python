@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 from scipy import array
+from scipy.interpolate import PchipInterpolator, splrep
 
     # x,z components of each panel's tangential and normal vectors
 def panel_vectors(x,z):
@@ -151,7 +152,7 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         if (P['SW_FSI'] == True):
             SolidP[i] = solid(Swimmers[i].Body, P['N_ELEMENTS_S'], P['T_MAX'])
             FSIP[i] = FSI(Swimmers[i].Body, SolidP[i])
-            PyFEAP[i] = PyFEA(SolidP[i], P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
+            PyFEAP[i] = PyFEA(SolidP[i], P['SW_SPRING'], P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
 
             SolidP[i].initMesh()
             if (P['SW_GEOMETRY'] == 'FP'):
@@ -236,3 +237,227 @@ def extrap1d(interpolator):
         return array(map(pointwise, array(xs)))
 
     return ufunclike
+    
+def intermittent_ref(HEAVE_MAX, THETA_MAX, phi, DC, mag):
+    # Constants
+    N = 5000      # Defines the number of points for the active and passive portions of the reference signal
+    Tstep = 1e-5
+    # Defining a smooth intermittent signal
+    # Modifying the slope of the envelope signal as DC --> 1
+    if (DC > 0.9):
+        a = mag / (1 - DC)
+    else:
+        a = 10 * mag
+    
+    # Defining the non-dimenional time for the active and passive portions of
+    # the cycle. t_T_active is the non-dimensional time over the active portion, 
+    # t is normalized by the active period. t_T_passive is the non-dimensional 
+    # time over the passive portion, t is normalized by the active period.
+    t_T_active = np.linspace(0.0, 1.0, N).T
+    if (DC < 1.0):
+        t_T_passive = np.linspace(1.0, 1. / DC, N).T
+#        t_T_passive = np.copy(t_T_passive[1:]) # Removing overlapping point
+    else:
+        t_T_passive = np.empty((N,1)) # For DC = 1 the passive time vector must be a null vector 
+    
+    # Creating the amplitude envelope and modifying the active portion of the
+    # signal
+    amp_env = -np.tanh(a * t_T_active) * np.tanh(a * (t_T_active - 1.0))
+    y_pitch_sin       = THETA_MAX * np.sin(2. * np.pi * t_T_active           + DC * phi)
+    y_pitch_sin_plus  = THETA_MAX * np.sin(2. * np.pi * (t_T_active + Tstep) + DC * phi)
+    y_pitch_sin_minus = THETA_MAX * np.sin(2. * np.pi * (t_T_active - Tstep) + DC * phi)
+    
+    y_heave_sin       = HEAVE_MAX * np.sin(2. * np.pi * t_T_active          )
+    y_heave_sin_plus  = HEAVE_MAX * np.sin(2. * np.pi * (t_T_active + Tstep))
+    y_heave_sin_minus = HEAVE_MAX * np.sin(2. * np.pi * (t_T_active - Tstep))
+    
+    sig_pitch_mod       = amp_env * y_pitch_sin
+    sig_pitch_mod_plus  = amp_env * y_pitch_sin_plus
+    sig_pitch_mod_minus = amp_env * y_pitch_sin_minus
+    
+    sig_heave_mod       = amp_env * y_heave_sin
+    sig_heave_mod_plus  = amp_env * y_heave_sin_plus
+    sig_heave_mod_minus = amp_env * y_heave_sin_minus
+    
+    # Assembling an intermittent reference signal for one full cycle
+    y_pitch       = np.hstack((sig_pitch_mod,       np.zeros(t_T_passive.size-1).T))
+    y_pitch_plus  = np.hstack((sig_pitch_mod_plus,  np.zeros(t_T_passive.size-1).T))
+    y_pitch_minus = np.hstack((sig_pitch_mod_minus, np.zeros(t_T_passive.size-1).T))
+    
+    y_heave       = np.hstack((sig_heave_mod,       np.zeros(t_T_passive.size-1).T))
+    y_heave_plus  = np.hstack((sig_heave_mod_plus,  np.zeros(t_T_passive.size-1).T))
+    y_heave_minus = np.hstack((sig_heave_mod_minus, np.zeros(t_T_passive.size-1).T))
+    
+    t_T = np.hstack((t_T_active, t_T_passive[1:]))
+    
+    return(t_T, y_pitch, y_pitch_plus, y_pitch_minus, y_heave, y_heave_plus, y_heave_minus)
+    
+def intermittent(HEAVE_MAX, THETA_MAX, phi, DC, f, N_STEP, N_CYC, s):
+    # Constants
+    mag = 3 # defines the slope of the hyperbolic tangent smoothing function inside of intermittent_ref
+    
+    # Defining an intermittent signal
+    (t_T_ref, y_pitch_ref, y_pitch_ref_plus, y_pitch_ref_minus, y_heave_ref, 
+     y_heave_ref_plus, y_heave_ref_minus) = intermittent_ref(HEAVE_MAX, THETA_MAX, phi, DC, mag)
+    
+    # Defining the time step spacing, delT/T_active, that is the time step
+    # normalized by the period of the active motion, which is T_active = 1/f
+    delT_T = 1.0 / DC / N_STEP / f
+    
+    # Creating time signal
+    t_T_single = np.arange(0., 1. / DC / f, delT_T).T
+
+    period = t_T_single[-1]
+    t_actual = t_T_ref / f
+    
+    # Sampling the pitch reference signal at t_T    
+    y_pitch_single       = PchipInterpolator(t_actual, y_pitch_ref      )(t_T_single)
+    y_pitch_single_plus  = PchipInterpolator(t_actual, y_pitch_ref_plus )(t_T_single)
+    y_pitch_single_minus = PchipInterpolator(t_actual, y_pitch_ref_minus)(t_T_single)
+    
+    # Sampling the heave reference signal at t_T
+    y_heave_single       = PchipInterpolator(t_actual, y_heave_ref      )(t_T_single)
+    y_heave_single_plus  = PchipInterpolator(t_actual, y_heave_ref_plus )(t_T_single)
+    y_heave_single_minus = PchipInterpolator(t_actual, y_heave_ref_minus)(t_T_single)
+    
+    # Copying the signal for Ncyc cycles
+    if (s == 0):
+        angle_pitch = np.hstack((y_pitch_single, np.tile(y_pitch_single, (N_CYC-1)))) # Full pitch signal for intermittent swimming
+    elif (s == 1):
+        angle_pitch = np.hstack((y_pitch_single_plus, np.tile(y_pitch_single_plus, (N_CYC-1))))
+    elif (s == -1):
+        angle_pitch = np.hstack((y_pitch_single_minus, np.tile(y_pitch_single_minus, (N_CYC-1))))
+    
+    if (s==0):
+        phase_heave = np.hstack((y_heave_single, np.tile(y_heave_single, (N_CYC-1)))) # Full heave signal for intermittent swimming
+    elif (s==1):
+        phase_heave = np.hstack((y_heave_single_plus, np.tile(y_heave_single_plus, (N_CYC-1))))
+    elif (s==-1):
+        phase_heave = np.hstack((y_heave_single_minus, np.tile(y_heave_single_minus, (N_CYC-1))))
+    
+    return(angle_pitch, phase_heave, period)
+
+def multi_kinematics(P, PHI=0., scale=None, rate=50):
+    delta = 1. / rate
+    if (scale == None):
+        x = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+        y = [2.1790849673, 1.5669799009, 1.3790259591, 1.2876797596, 1.2332922318, 1.1968681428, 1.1709601874, 1.1512761466, 1.136077986, 1.1238710886]
+        scaleSig = PchipInterpolator(x, y)
+        scale = [scaleSig(rate), scaleSig(rate), scaleSig(rate), scaleSig(rate)]
+    
+    # Sine Wave Input
+    sineFrac      = [scale[0] * np.sin(2 * np.pi * P['F'] * P['T'][i]                + PHI) for i in xrange(P['COUNTER'])]
+    sineFracMinus = [scale[0] * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
+    sineFracPlus  = [scale[0] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
+    
+    # Square Wave Input
+#    tt = [P['DEL_T'] * i for i in xrange(P['N_STEP'] / 2 + 1)]
+#    alpha = 2. + (2. / 3.)
+#    A = 1.0
+#    u_tip = 2. * np.pi * alpha * P['F'] * A
+#    off = 0.25 * P['F']
+#    a = -u_tip / 2. / off**3 + A / off**4
+#    b = -2. * A / off**2 + u_tip / 2. / off
+#    sqr_sig       = [a * (tt[i]              - off)**4 + b * (tt[i]              - off)**2 + A for i in xrange(P['N_STEP'] / 2 + 1)]
+#    sqr_sig_minus = [a * (tt[i] - P['TSTEP'] - off)**4 + b * (tt[i] - P['TSTEP'] - off)**2 + A for i in xrange(P['N_STEP'] / 2 + 1)]
+#    sqr_sig_plus  = [a * (tt[i] + P['TSTEP'] - off)**4 + b * (tt[i] + P['TSTEP'] - off)**2 + A for i in xrange(P['N_STEP'] / 2 + 1)]
+#    squareFrac      = [0.]
+#    squareFracMinus = [0.]
+#    squareFracPlus  = [0.]
+#    for j in xrange(2 * P['N_CYC']):
+#        if np.mod(j+1,2) == 0:
+#            squareFrac      = squareFrac      + [-sqr_sig[i+1] for i in xrange(P['N_STEP'] / 2)]
+#            squareFracMinus = squareFracMinus + [-sqr_sig_minus[i+1] for i in xrange(P['N_STEP'] / 2)]
+#            squareFracPlus  = squareFracPlus  + [-sqr_sig_plus[i+1] for i in xrange(P['N_STEP'] / 2)]
+#        else:
+#            squareFrac      = squareFrac      + sqr_sig[1:]
+#            squareFracMinus = squareFracMinus + sqr_sig_minus[1:]
+#            squareFracPlus  = squareFracPlus  + sqr_sig_plus[1:]
+    
+    squareFrac      = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
+    squareFracMinus = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
+    squareFracPlus  = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
+    
+    # Triangle wave
+    triangleFrac      = [scale[2] * (1. - 2. * np.arccos((1. - delta) * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI)) / np.pi) for i in xrange(P['COUNTER'])]
+    triangleFracMinus = [scale[2] * (1. - 2. * np.arccos((1. - delta) * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI)) / np.pi) for i in xrange(P['COUNTER'])]
+    triangleFracPlus  = [scale[2] * (1. - 2. * np.arccos((1. - delta) * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI)) / np.pi) for i in xrange(P['COUNTER'])]
+    
+    # Saw-tooth Wave
+    xt  = [0.25 * (2. * P['F'] * P['T'][i]                - 1.) for i in xrange(P['COUNTER'])]
+    xtm = [0.25 * (2. * P['F'] * (P['T'][i] - P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
+    xtp = [0.25 * (2. * P['F'] * (P['T'][i] + P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
+    
+    xs  = [0.5 * P['F'] * P['T'][i]                for i in xrange(P['COUNTER'])]
+    xsm = [0.5 * P['F'] * (P['T'][i] - P['TSTEP']) for i in xrange(P['COUNTER'])]
+    xsp = [0.5 * P['F'] * (P['T'][i] + P['TSTEP']) for i in xrange(P['COUNTER'])]
+    
+    trg  = [1. - 2. * np.arccos((1. - delta) * np.sin(2. * np.pi * xt[i] )) / np.pi for i in xrange(P['COUNTER'])]
+    trgM = [1. - 2. * np.arccos((1. - delta) * np.sin(2. * np.pi * xtm[i])) / np.pi for i in xrange(P['COUNTER'])]
+    trgP = [1. - 2. * np.arccos((1. - delta) * np.sin(2. * np.pi * xtp[i])) / np.pi for i in xrange(P['COUNTER'])]
+    
+    sqr  = [2. * np.arctan(np.sin(2. * np.pi * xs[i] ) / delta) / np.pi for i in xrange(P['COUNTER'])]
+    sqrM = [2. * np.arctan(np.sin(2. * np.pi * xsm[i]) / delta) / np.pi for i in xrange(P['COUNTER'])]
+    sqrP = [2. * np.arctan(np.sin(2. * np.pi * xsp[i]) / delta) / np.pi for i in xrange(P['COUNTER'])]
+    
+    sawFrac      = [scale[3] * trg[i]  * sqr[i]  for i in xrange(P['COUNTER'])]
+    sawFracMinus = [scale[3] * trgM[i] * sqrM[i] for i in xrange(P['COUNTER'])]
+    sawFracPlus  = [scale[3] * trgP[i] * sqrP[i] for i in xrange(P['COUNTER'])]
+
+    # Form composite signal
+    signal      = [P['SIG_WEIGHT'][0] * sineFrac[i]      + P['SIG_WEIGHT'][1] * squareFrac[i]      + P['SIG_WEIGHT'][2] * triangleFrac[i]      + P['SIG_WEIGHT'][3] * sawFrac[i]      for i in xrange(P['COUNTER'])]
+    signalMinus = [P['SIG_WEIGHT'][0] * sineFracMinus[i] + P['SIG_WEIGHT'][1] * squareFracMinus[i] + P['SIG_WEIGHT'][2] * triangleFracMinus[i] + P['SIG_WEIGHT'][3] * sawFracMinus[i] for i in xrange(P['COUNTER'])]
+    signalPlus  = [P['SIG_WEIGHT'][0] * sineFracPlus[i]  + P['SIG_WEIGHT'][1] * squareFracPlus[i]  + P['SIG_WEIGHT'][2] * triangleFracPlus[i]  + P['SIG_WEIGHT'][3] * sawFracPlus[i]  for i in xrange(P['COUNTER'])]
+    
+    return(signal, signalMinus, signalPlus)
+
+def accel_multi_kinematics(P, PHI=0., scale=None, rate=50):
+    delta = 1. / rate
+    if (scale == None):
+        x = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+        y = [2.1790849673, 1.5669799009, 1.3790259591, 1.2876797596, 1.2332922318, 1.1968681428, 1.1709601874, 1.1512761466, 1.136077986, 1.1238710886]
+        scaleSig = PchipInterpolator(x, y)
+        scale = [scaleSig(rate), scaleSig(rate), scaleSig(rate), scaleSig(rate)]
+    
+    # Sine Wave Input
+    sineFrac      = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * P['T'][i] + PHI) for i in xrange(P['COUNTER'])]
+    sineFracMinus = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
+    sineFracPlus  = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
+    
+    # Square Wave Input  
+    squareFrac      = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * P['T'][i]                + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * P['T'][i]                + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
+    squareFracMinus = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
+    squareFracPlus  = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
+    
+    # Triangle wave
+    triangleFrac      = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * P['T'][i]                + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+    triangleFracMinus = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+    triangleFracPlus  = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+    
+    # Saw-tooth Wave
+    xt  = [0.25 * (2. * P['F'] * P['T'][i]                - 1.) for i in xrange(P['COUNTER'])]
+    xtm = [0.25 * (2. * P['F'] * (P['T'][i] - P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
+    xtp = [0.25 * (2. * P['F'] * (P['T'][i] + P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
+    
+    xs  = [0.5 * P['F'] * P['T'][i]                for i in xrange(P['COUNTER'])]
+    xsm = [0.5 * P['F'] * (P['T'][i] - P['TSTEP']) for i in xrange(P['COUNTER'])]
+    xsp = [0.5 * P['F'] * (P['T'][i] + P['TSTEP']) for i in xrange(P['COUNTER'])]
+    
+    trg  = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xt[i] ) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xt[i] )) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+    trgM = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xtm[i]) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xtm[i])) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+    trgP = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xtp[i]) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xtp[i])) + 1.)**1.5 for i in xrange(P['COUNTER'])]
+    
+    sqr  = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xs[i] ) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xs[i] ) + 1.)**2 for i in xrange(P['COUNTER'])]
+    sqrM = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xsm[i]) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xsm[i]) + 1.)**2 for i in xrange(P['COUNTER'])]
+    sqrP = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xsp[i]) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xsp[i]) + 1.)**2 for i in xrange(P['COUNTER'])]
+    
+    sawFrac      = [scale[3] * trg[i]  * sqr[i]  for i in xrange(P['COUNTER'])]
+    sawFracMinus = [scale[3] * trgM[i] * sqrM[i] for i in xrange(P['COUNTER'])]
+    sawFracPlus  = [scale[3] * trgP[i] * sqrP[i] for i in xrange(P['COUNTER'])]
+
+    # Form composite signal
+    signal      = [P['SIG_WEIGHT'][0] * sineFrac[i]      + P['SIG_WEIGHT'][1] * squareFrac[i]      + P['SIG_WEIGHT'][2] * triangleFrac[i]      + P['SIG_WEIGHT'][3] * sawFrac[i]      for i in xrange(P['COUNTER'])]
+    signalMinus = [P['SIG_WEIGHT'][0] * sineFracMinus[i] + P['SIG_WEIGHT'][1] * squareFracMinus[i] + P['SIG_WEIGHT'][2] * triangleFracMinus[i] + P['SIG_WEIGHT'][3] * sawFracMinus[i] for i in xrange(P['COUNTER'])]
+    signalPlus  = [P['SIG_WEIGHT'][0] * sineFracPlus[i]  + P['SIG_WEIGHT'][1] * squareFracPlus[i]  + P['SIG_WEIGHT'][2] * triangleFracPlus[i]  + P['SIG_WEIGHT'][3] * sawFracPlus[i]  for i in xrange(P['COUNTER'])]
+    
+    return(signal, signalMinus, signalPlus)

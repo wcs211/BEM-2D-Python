@@ -9,7 +9,7 @@ import numpy as np
 import scipy.linalg as spla
 
 class PyFEA(object):
-    def __init__(self, Solid, FRAC_DELT, endTime, E, RHO_S):
+    def __init__(self, SW_SPRING, Solid, FRAC_DELT, endTime, E, RHO_S):
         """
         Iniitalizes object related variables needed for other class methods.
         
@@ -21,38 +21,52 @@ class PyFEA(object):
             E (float): Young's Modulus of thesolid object.
             RHO_S (float): Solid object's density.
         """
-        
-        self.Nelements = Solid.Nelements
-        self.M = np.zeros((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
-        self.K = np.zeros((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
-        self.deltaT = FRAC_DELT * endTime
-        self.endTime = endTime
-        self.E = E
-        self.I = np.zeros((Solid.Nelements,1))
-        self.A = np.zeros((Solid.Nelements,1))
-        self.l = np.zeros((Solid.Nelements,1))
-        self.RHO_S = RHO_S
-        self.Fload = np.zeros((3*Solid.Nnodes,1))
-        self.Fext_n = np.zeros((3*Solid.Nnodes,1))
-        self.Fext_nPlus = np.zeros((3*Solid.Nnodes,1))
-        self.Fint_n = np.zeros((3*Solid.Nnodes,1))
-        self.Fint_nPlus = np.zeros((3*Solid.Nnodes,1))
-        
-        # Initial Displacements
-        temp = 3 * Solid.fixedCounter
-        self.U_n = np.zeros((3*Solid.Nnodes,1))
-        self.Udot_n = np.zeros((3*Solid.Nnodes,1))
-        self.UdotDot_n = np.zeros((3*Solid.Nnodes-temp,1))
-        self.R_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
-        self.R_n = np.zeros((3*Solid.Nnodes-temp,1))
-        
-        # Final Displacements
-        self.U_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
-        self.Udot_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
-        self.UdotDot_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
-        
-        self.initU = np.zeros((3*Solid.Nnodes,1))
-        self.initUdot = np.zeros((3*Solid.Nnodes,1))
+        if SW_SPRING:
+            self.deltaT            = FRAC_DELT * endTime
+            self.I                 = 0.
+            self.kappa             = 0.
+            self.zeta              = 0.
+            self.Nf                = 0.
+            self.Ni                = 0.
+            self.RHO_S             = RHO_S
+            self.theta_n           = 0.
+            self.thetaDot_n        = 0.
+            self.thetaDotDot_n     = 0.
+            self.theta_nPlus       = 0.
+            self.thetaDot_nPlus    = 0.
+            self.thetaDotDot_nPlus = 0.
+        else:
+            self.Nelements = Solid.Nelements
+            self.M = np.zeros((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
+            self.K = np.zeros((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
+            self.deltaT = FRAC_DELT * endTime
+            self.endTime = endTime
+            self.E = E
+            self.I = np.zeros((Solid.Nelements,1))
+            self.A = np.zeros((Solid.Nelements,1))
+            self.l = np.zeros((Solid.Nelements,1))
+            self.RHO_S = RHO_S
+            self.Fload = np.zeros((3*Solid.Nnodes,1))
+            self.Fext_n = np.zeros((3*Solid.Nnodes,1))
+            self.Fext_nPlus = np.zeros((3*Solid.Nnodes,1))
+            self.Fint_n = np.zeros((3*Solid.Nnodes,1))
+            self.Fint_nPlus = np.zeros((3*Solid.Nnodes,1))
+            
+            # Initial Displacements
+            temp = 3 * Solid.fixedCounter
+            self.U_n = np.zeros((3*Solid.Nnodes,1))
+            self.Udot_n = np.zeros((3*Solid.Nnodes,1))
+            self.UdotDot_n = np.zeros((3*Solid.Nnodes-temp,1))
+            self.R_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
+            self.R_n = np.zeros((3*Solid.Nnodes-temp,1))
+            
+            # Final Displacements
+            self.U_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
+            self.Udot_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
+            self.UdotDot_nPlus = np.zeros((3*Solid.Nnodes-temp,1))
+            
+            self.initU = np.zeros((3*Solid.Nnodes,1))
+            self.initUdot = np.zeros((3*Solid.Nnodes,1))
         
     def elementTangentStiffnessMatrix(self, E, A, I, L, u_bar, theta_b1, theta_b2):
         """
@@ -537,3 +551,50 @@ class PyFEA(object):
         self.U_nPlus = np.copy(U_nPlus)
         self.Udot_nPlus = np.copy(Udot_nPlus)
         self.UdotDot_nPlus = np.copy(UdotDot_nPlus)
+        
+    def spring_solve(self):
+        """Solves passive pitching of the leading edge.
+        
+        Args:
+            Body (obj): A Body object that the fluid acts on
+            Solid (obj): A Solid mesh object
+            outerCorr (int): The FSI iteration number
+        """
+        dt = self.deltaT / 1000.
+        I = self.I
+        kappa = self.kappa
+        zeta = self.zeta
+        Nf = self.Nf
+        Ni = self.Ni
+        theta_n           = np.copy(self.theta_n)
+        thetaDot_n        = np.copy(self.thetaDot_n)
+        thetaDotDot_n     = np.copy(self.thetaDotDot_n)
+        theta_nPlus       = np.copy(self.theta_nPlus)
+        thetaDot_nPlus    = np.copy(self.thetaDot_nPlus)
+        thetaDotDot_nPlus = np.copy(self.thetaDotDot_nPlus)
+        
+        # Build linear system of equations
+        # Part 1: The left hand coefficient matrix
+        A = kappa + I * (2. / dt)**2 + zeta * (2. / dt)
+        
+        for i in xrange(1000):
+            # Part 2: The RHS
+            b = I * ((2. / dt)**2 * theta_n + (4. / dt) * thetaDot_n + thetaDotDot_n) + zeta * ((2. / dt) * theta_n + thetaDot_n) + Nf + Ni
+            
+            # Solve for pitching angle theta
+            theta_nPlus = b / A
+            
+            # Update angular velocity and acceleration
+            thetaDotDot_nPlus = (2. / dt)**2 * (theta_nPlus - theta_n) - (4. / dt) * thetaDot_n - thetaDotDot_n
+            thetaDot_nPlus = thetaDot_n + 0.5 * (thetaDotDot_n + thetaDotDot_nPlus) * dt
+            
+            # Update Inital angular position, velocity, and acceleration
+            theta_n       = np.copy(theta_nPlus)
+            thetaDot_n    = np.copy(thetaDot_nPlus)
+            thetaDotDot_n = np.copy(thetaDotDot_nPlus)
+            
+        
+        # Store final values
+        self.theta_nPlus = theta_nPlus
+        self.thetaDot_nPlus = thetaDot_nPlus
+        self.thetaDotDot_nPlus = thetaDotDot_nPlus

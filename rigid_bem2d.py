@@ -43,12 +43,11 @@ for i in xrange(START_COUNTER, COUNTER):
                 Swim.wake_shed(DEL_T, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         for Swim in Swimmers:
-            Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i, P['SW_SV_FORCES'])
+            Swim.Body.force(P, i)
+            Swim.Body.free_swimming(P['T'][i], P['HEAVE'][i], DEL_T, RHO, P['C'], P['B'], P['M'], P['SW_FREE_SWIM'], i)
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
-#        graph.body_plot(Swim.Edge, Swim.Body)
-#        graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
+        graph.plot_n_go(Swimmers, i, P)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
     else:
@@ -63,15 +62,14 @@ for i in xrange(START_COUNTER, COUNTER):
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         wake_rollup(Swimmers, DEL_T, i, P)
         for Swim in Swimmers:
-            Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i, P['SW_SV_FORCES'])
+            Swim.Body.force(P, i)
+            Swim.Body.free_swimming(P['T'][i], P['HEAVE'][i], DEL_T, RHO, P['C'], P['B'], P['M'], P['SW_FREE_SWIM'], i)
             if np.fmod(i,P['VERBOSITY']) == 0:
                 po().solution_output(Swim.Body.Cf, Swim.Body. Cl,Swim.Body.Ct,Swim.Body.Cpow)
                 po().solution_complete_output(i/float(COUNTER-1)*100.)
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
-        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
-#        graph.body_plot(Swim.Edge, Swim.Body)
-#        graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
+        graph.plot_n_go(Swimmers, i, P)
         DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
 
 total_time = time.time()-start_time
