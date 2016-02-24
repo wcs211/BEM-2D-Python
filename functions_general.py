@@ -606,6 +606,10 @@ def accel_multi_kinematics(P, sig):
         accell_minus[i] = (15. / 4.) * signal_minus[i] - (77. / 6.) * signal_minus[i-1] + (107. / 6.) * signal_minus[i-2] - 13. * signal_minus[i-3] + (61. / 12.) * signal_minus[i-4] - (5. / 6.) * signal_minus[i-5]
         accell_plus[i]  = (15. / 4.) * signal_plus[i]  - (77. / 6.) * signal_plus[i-1]  + (107. / 6.) * signal_plus[i-2]  - 13. * signal_plus[i-3]  + (61. / 12.) * signal_plus[i-4]  - (5. / 6.) * signal_plus[i-5]
 
+    accell       /= P['DEL_T']**2
+    accell_minus /= P['DEL_T']**2
+    accell_plus  /= P['DEL_T']**2
+
     return(accell, accell_minus, accell_plus)
       
 #    delta = 1. / rate
