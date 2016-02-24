@@ -9,7 +9,7 @@ import numpy as np
 import scipy.linalg as spla
 
 class PyFEA(object):
-    def __init__(self, SW_SPRING, Solid, FRAC_DELT, endTime, E, RHO_S):
+    def __init__(self, Solid, SW_SPRING, FRAC_DELT, endTime, E, RHO_S):
         """
         Iniitalizes object related variables needed for other class methods.
         
@@ -36,6 +36,7 @@ class PyFEA(object):
             self.thetaDot_nPlus    = 0.
             self.thetaDotDot_nPlus = 0.
         else:
+            print Solid.Nelements
             self.Nelements = Solid.Nelements
             self.M = np.zeros((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))
             self.K = np.zeros((3 * (Solid.Nnodes), 3 * (Solid.Nnodes)))

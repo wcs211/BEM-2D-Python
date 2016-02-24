@@ -23,57 +23,58 @@ from functions_general import archive, simulation_startup
 DIO = DataIO(P)
 start_time = time.time()
 
-DEL_T = P['DEL_T']
-DSTEP = P['DSTEP']
-TSTEP = P['TSTEP']
-T = P['T']
-RHO = P['RHO']
-RE = P['RE']
+# Defining local variables to minimize dictionary lookups
+DEL_T     = P['DEL_T']
+DSTEP     = P['DSTEP']
+TSTEP     = P['TSTEP']
+T         = P['T']
+RHO       = P['RHO']
+RE        = P['RE']
+VERBOSITY = P['VERBOSITY']
 
-(START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers) = simulation_startup(P, DIO, PC, Swimmer)[0:6]
+(START_COUNTER, COUNTER, SwiL, GeoL, MotL, Swimmers) = simulation_startup(P, DIO, PC, Swimmer)[0:6]
 
-po().calc_input(MotP[0].THETA_MAX/np.pi*180.,RE,MotP[0].THETA_MAX/np.pi*180.,DEL_T)
-po().initialize_output(P['T'][START_COUNTER])
+po().calc_input(MotL[0].THETA_MAX/np.pi*180.,RE,MotL[0].THETA_MAX/np.pi*180.,DEL_T)
+po().initialize_output(T[START_COUNTER])
 outerCorr = 1
 
-# Data points per cycle == 1/(F*DEL_T)
 for i in xrange(START_COUNTER, COUNTER):
     if i == 0:
         for Swim in Swimmers:
-                Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
-                Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
+                Swim.Body.panel_positions(P, i)
+                Swim.Body.surface_kinematics(P, i)
                 Swim.edge_shed(DEL_T, i)
                 Swim.wake_shed(DEL_T, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         for Swim in Swimmers:
             Swim.Body.force(P, i)
-            Swim.Body.free_swimming(P['T'][i], P['HEAVE'][i], DEL_T, RHO, P['C'], P['B'], P['M'], P['SW_FREE_SWIM'], i)
+            Swim.Body.free_swimming(P, i)
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
         graph.plot_n_go(Swimmers, i, P)
-        DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
+        DIO.write_data(P, i, DEL_T, SwiL, GeoL, MotL, Swimmers)
 
     else:
-        if np.fmod(i,P['VERBOSITY']) == 0:
+        if np.fmod(i, VERBOSITY) == 0:
             po().timestep_header(i,T[i])
 
         for Swim in Swimmers:
-            Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
-            Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
+            Swim.Body.panel_positions(P, i)
+            Swim.Body.surface_kinematics(P, i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         wake_rollup(Swimmers, DEL_T, i, P)
         for Swim in Swimmers:
             Swim.Body.force(P, i)
-            Swim.Body.free_swimming(P['T'][i], P['HEAVE'][i], DEL_T, RHO, P['C'], P['B'], P['M'], P['SW_FREE_SWIM'], i)
-            if np.fmod(i,P['VERBOSITY']) == 0:
+            Swim.Body.free_swimming(P, i)
+            if np.fmod(i, VERBOSITY) == 0:
                 po().solution_output(Swim.Body.Cf, Swim.Body. Cl,Swim.Body.Ct,Swim.Body.Cpow)
                 po().solution_complete_output(i/float(COUNTER-1)*100.)
             archive(Swim.Body.AF.x_mid)
             archive(Swim.Body.AF.z_mid)
         graph.plot_n_go(Swimmers, i, P)
-        DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers)
+        DIO.write_data(P, i, DEL_T, SwiL, GeoL, MotL, Swimmers)
 
 total_time = time.time()-start_time
 print "Simulation time:", np.round(total_time, 3), "seconds"

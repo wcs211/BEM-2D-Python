@@ -128,6 +128,10 @@ class solid(object):
             for j in xrange(self.Nelements):
                 if (self.xp_0[i] <= self.nodes_0[j+1,0] and self.xp_0[i] >= self.nodes_0[j,0]):
                     self.elemAsso[i] = np.copy(j)
+                    
+    def updateSolid(self, THETA):
+        self.nodes[:,0] = (self.nodesNew[:,0] - self.nodesNew[0,0]) * np.cos(THETA)
+        self.nodes[:,1] = (self.nodesNew[:,0] - self.nodesNew[0,0]) * np.sin(THETA)
     
     #TODO: This function exists in FSIClass.py. Remove it in a future release?    
     def rotatePts(x0, y0, theta):

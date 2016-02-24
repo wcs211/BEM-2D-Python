@@ -25,60 +25,63 @@ from functions_general import archive, absoluteToBody, simulation_startup
 # Turn on SIGFPE handling
 np.seterr(all='raise')
 
-#po().prog_title('1.0.0')
 DIO = DataIO(P)
 start_time = time.time()
 
-DEL_T = P['DEL_T']
-DSTEP = P['DSTEP']
-TSTEP = P['TSTEP']
-T = P['T']
-RHO = P['RHO']
-RE = P['RE']
+# Defining local variables to minimize dictionary lookups
+DEL_T           = P['DEL_T']
+DSTEP           = P['DSTEP']
+TSTEP           = P['TSTEP']
+T               = P['T']
+RHO             = P['RHO']
+RE              = P['RE']
+VERBOSITY       = P['VERBOSITY']
+COUPLING_SCHEME = P['COUPLING_SCHEME']
+M_TYPE          = P['M_TYPE']
+OUTER_CORR_TOL  = P['OUTER_CORR_TOL']
+N_OUTERCORR_MAX = P['N_OUTERCORR_MAX']
 
-(START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = simulation_startup(P, DIO, PC, Swimmer, solid, FSI, PyFEA)
+(START_COUNTER, COUNTER, SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL) = simulation_startup(P, DIO, PC, Swimmer, solid, FSI, PyFEA)
 
-po().calc_input(MotP[0].THETA_MAX/np.pi*180.,RE,MotP[0].THETA_MAX/np.pi*180.,DEL_T)
-po().initialize_output(P['T'][START_COUNTER])
+po().calc_input(MotL[0].THETA_MAX/np.pi*180.,RE,MotL[0].THETA_MAX/np.pi*180.,DEL_T)
+po().initialize_output(T[START_COUNTER])
 outerCorr = 2
 
 for i in xrange(START_COUNTER, COUNTER):
     if i == 0:
         for Swim in Swimmers:
-            Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
-            Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
+            Swim.Body.panel_positions(P, i)
+            Swim.Body.surface_kinematics(P, i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
         solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
         for Swim in Swimmers:        
-            Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i, P['SW_SV_FORCES'])
+            Swim.Body.force(P, i)
+            Swim.Body.free_swimming(P, i)
         wake_rollup(Swimmers, DEL_T, i, P)
         archive(Swimmers[0].Body.AF.x_mid)
         archive(Swimmers[0].Body.AF.z_mid)
-        SolidP[0].nodes[:,0] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.cos(P['THETA'][i])
-        SolidP[0].nodes[:,1] = (SolidP[0].nodesNew[:,0] - SolidP[0].nodesNew[0,0])*np.sin(P['THETA'][i])
-        graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
-#        graph.body_plot(Swim.Edge, Swim.Body)
-#        graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
-        DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
+        SolidL[0].updateSolid(P['THETA'][i])
+        graph.plot_n_go(Swimmers, i, P)
+        DIO.write_data(P, i, DEL_T, SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL)
     else:
-        if np.fmod(i,P['VERBOSITY']) == 0:
+        if np.fmod(i, VERBOSITY) == 0:
             po().timestep_header(i,T[i])
             po().fsi_header()
 
-        FSIP[0].readFsiControls(P['FIXED_PT_RELAX'], P['N_OUTERCORR_MAX'])       
-        FSIP[0].__init__(Swimmers[0].Body, SolidP[0])
+        FSIL[0].readFsiControls(P)       
+        FSIL[0].__init__(Swimmers[0].Body, SolidL[0])
         outerCorr = 0
         while True:
             outerCorr += 1
-            FSIP[0].setInterfaceDisplacemet(outerCorr, P['COUPLING_SCHEME'])
+            FSIL[0].setInterfaceDisplacemet(outerCorr, COUPLING_SCHEME)
             for Swim in Swimmers:
                 if (outerCorr == 1):
-                    Swim.Body.panel_positions(DSTEP, T[i], P['THETA'][i], P['HEAVE'][i])
+                    Swim.Body.panel_positions(P, i)
                 else:
-                    Swim.Body.fsi_panel_positions(FSIP[0], P['T'][i], P['THETA'][i], P['HEAVE'][i])
+                    Swim.Body.fsi_panel_positions(FSIL[0], P, i)
                     
-                Swim.Body.surface_kinematics(DSTEP, TSTEP, P['THETA_MINUS'][i], P['THETA_PLUS'][i], P['HEAVE_MINUS'][i], P['HEAVE_PLUS'][i], DEL_T, T[i], i)
+                Swim.Body.surface_kinematics(P, i)
                 Swim.edge_shed(DEL_T, i)
                 if (outerCorr == 1):
                     Swim.wake_shed(DEL_T, i)
@@ -86,35 +89,32 @@ for i in xrange(START_COUNTER, COUNTER):
             solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
             
             for Swim in Swimmers:        
-                Swim.Body.force(P['THETA'][i], RHO, P['V0'], P['C'], 1.0, i, P['SW_SV_FORCES'])
+                Swim.Body.force(P, i)
+                Swim.Body.free_swimming(P, i)
 
             #TODO: Replace '0' with viscous drag component when available
-            FSIP[0].setInterfaceForce(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], outerCorr, P['SW_VISC_DRAG'], 0, P['SW_INTERP_MTD'], P['C'], i)
-#            PyFEAP[0].steadySolve(Swimmers[0].Body, SolidP[0], 100)            
-            PyFEAP[0].dynamicSolve(Swimmers[0].Body, SolidP[0], outerCorr, P['M_TYPE'])
-#            PyFEAP[0].solve(Swimmers[0].Body, SolidP[0], outerCorr, P['THETA_DOT'][i], P['THETA_DOT_DOT'][i], P['M_TYPE'], P['INT_METHOD'], P['ALPHA'], P['BETA'], P['GAMMA'])
-            FSIP[0].getDisplacements(SolidP[0], Swimmers[0].Body, PyFEAP[0], P['THETA'][i], P['HEAVE'][i], P['SW_INTERP_MTD'], P['FLEX_RATIO'])
-            FSIP[0].calcFSIResidual(SolidP[0], outerCorr)
+            FSIL[0].setInterfaceForce(SolidL[0], Swimmers[0].Body, PyFEAL[0], 0., P, outerCorr, i)
+            PyFEAL[0].dynamicSolve(Swimmers[0].Body, SolidL[0], outerCorr, M_TYPE)
+            FSIL[0].getDisplacements(SolidL[0], Swimmers[0].Body, PyFEAL[0], P, i)
+            FSIL[0].calcFSIResidual(SolidL[0], outerCorr)
 
-            if np.fmod(i,P['VERBOSITY']) == 0:
-                po().fsi_iter_out(outerCorr,FSIP[0].fsiRelaxationFactor,FSIP[0].maxDU,FSIP[0].maxMagFsiResidual,FSIP[0].fsiResidualNorm,FSIP[0].maxFsiResidualNorm)
+            if np.fmod(i, VERBOSITY) == 0:
+                po().fsi_iter_out(outerCorr,FSIL[0].fsiRelaxationFactor,FSIL[0].maxDU,FSIL[0].maxMagFsiResidual,FSIL[0].fsiResidualNorm,FSIL[0].maxFsiResidualNorm)
 
-            if (FSIP[0].fsiResidualNorm <= P['OUTER_CORR_TOL'] or outerCorr >= P['N_OUTERCORR_MAX']):
-                if (FSIP[0].fsiResidualNorm <= P['OUTER_CORR_TOL']):
+            if (FSIL[0].fsiResidualNorm <= OUTER_CORR_TOL or outerCorr >= N_OUTERCORR_MAX):
+                if (FSIL[0].fsiResidualNorm <= OUTER_CORR_TOL):
                     po().fsi_converged()
                 else:
                     po().fsi_not_converged()
-                if np.fmod(i,P['VERBOSITY']) == 0:
+                if np.fmod(i, VERBOSITY) == 0:
                     po().solution_output(Swimmers[0].Body.Cf, Swimmers[0].Body. Cl,Swimmers[0].Body.Ct,Swimmers[0].Body.Cpow)
                     po().solution_complete_output(i/float(COUNTER-1)*100.)
                 wake_rollup(Swimmers, DEL_T, i, P)
-                absoluteToBody(Swimmers[0].Body, SolidP[0], P['THETA'][i], P['HEAVE'][i])
+                absoluteToBody(Swimmers[0].Body, SolidL[0], P, i)
                 archive(Swimmers[0].Body.AF.x_mid)
                 archive(Swimmers[0].Body.AF.z_mid)
-                graph.plot_n_go(Swimmers, P['V0'], P['T'][i], P['HEAVE'][i], i, P['SW_PLOT_FIG'])
-#                graph.body_plot(Swim.Edge, Swim.Body)
-#                graph.cp_plot(Swimmers, i, P['SW_PLOT_FIG'])
-                DIO.write_data(P, i, DEL_T, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
+                graph.plot_n_go(Swimmers, i, P)
+                DIO.write_data(P, i, DEL_T, SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL)
                 break
 
 total_time = time.time()-start_time

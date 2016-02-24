@@ -401,7 +401,7 @@ class Body(object):
 
         return(x_neut, z_neut)
 
-    def panel_positions(self, DSTEP, T, THETA, HEAVE):
+    def panel_positions(self, P, i):
         """Updates all the absolute-frame coordinates of the body.
 
         Args:
@@ -410,6 +410,9 @@ class Body(object):
             THETA: Current pitching angle.
 
         """
+        T = P['T'][i]
+        THETA = P['THETA'][i]
+        HEAVE = P['HEAVE'][i]
         bfx = self.BF.x
         bfz = self.BF.z
         
@@ -440,7 +443,11 @@ class Body(object):
         self.AF.x_neut = x_neut
         self.AF.z_neut = z_neut
         
-    def fsi_panel_positions(self, FSI, T, THETA, HEAVE):
+    def fsi_panel_positions(self, FSI, P, i):
+        T     = P['T'][i]
+        THETA = P['THETA'][i]
+        HEAVE = P['HEAVE'][i]
+        
         self.AF.x = self.AF.x + (FSI.fluidNodeDispl[:,0] - FSI.fluidNodeDisplOld[:,0])
         self.AF.z = self.AF.z + (FSI.fluidNodeDispl[:,1] - FSI.fluidNodeDisplOld[:,1])                 
 
@@ -457,7 +464,7 @@ class Body(object):
         self.AF.x_col = self.AF.x_mid[0,:] - self.S*panel_vectors(self.AF.x, self.AF.z)[2]*np.absolute(self.zcval) #self.BF.z_col
         self.AF.z_col = self.AF.z_mid[0,:] - self.S*panel_vectors(self.AF.x, self.AF.z)[3]*np.absolute(self.zcval)
 
-    def surface_kinematics(self, DSTEP, TSTEP, THETA_MINUS, THETA_PLUS, HEAVE_MINUS, HEAVE_PLUS, DEL_T, T, i):
+    def surface_kinematics(self, P, i):
         """Calculates the body-frame surface velocities of body panels.
 
         Also finds the body panel source strengths based on these surface
@@ -471,6 +478,14 @@ class Body(object):
             THETA_MINUS: Pitching angle minus a small time difference (TSTEP)
             THETA_PLUS: Pitching angle plus a small time difference (TSTEP)
         """
+        TSTEP       = P['TSTEP']
+        THETA_MINUS = P['THETA_MINUS'][i]
+        THETA_PLUS  = P['THETA_PLUS'][i]
+        HEAVE_MINUS = P['HEAVE_MINUS'][i]
+        HEAVE_PLUS  = P['HEAVE_PLUS'][i]
+        DEL_T       = P['DEL_T']
+        T           = P['T'][i]     
+        
         if i == 0:
             # Use the prescribed kinematics to do a central difference over a 
             # small period of time
@@ -478,10 +493,10 @@ class Body(object):
             z_col = self.BF.z_col
             
             xp = x_col * np.cos(THETA_PLUS) - z_col * np.sin(THETA_PLUS) + self.V*(T+TSTEP)
-            zp = x_col * np.sin(THETA_PLUS) + z_col * np.cos(THETA_PLUS)
+            zp = x_col * np.sin(THETA_PLUS) + z_col * np.cos(THETA_PLUS) + HEAVE_PLUS
             
             xm = x_col * np.cos(THETA_MINUS) - z_col * np.sin(THETA_MINUS) + self.V*(T-TSTEP)
-            zm = x_col * np.sin(THETA_MINUS) + z_col * np.cos(THETA_MINUS)
+            zm = x_col * np.sin(THETA_MINUS) + z_col * np.cos(THETA_MINUS) + HEAVE_MINUS
             
             self.vx = (xp - xm) / (2. * TSTEP) - self.V
             self.vz = (zp - zm) / (2. * TSTEP)
@@ -608,7 +623,7 @@ class Body(object):
         self.Ct = thrust / (0.5 * RHO * np.absolute(self.V)**2 * C * B)
         self.Cpow = power /  (0.5 * RHO * np.absolute(self.V)**3 * C * B)
         
-    def free_swimming(self, T, HEAVE, DEL_T, RHO, C, B, M, SW_FREE_SWIM, i):
+    def free_swimming(self, P, i):
         """Determines the free-swimming velocity.
         
         Args:
@@ -621,6 +636,15 @@ class Body(object):
             M (float): Body's mass
             SW_FREE_SWIM (bool): free swimming (True) or fixed swimming (False)
         """
+        T            = P['T'][i]
+        HEAVE        = P['HEAVE'][i]
+        DEL_T        = P['DEL_T']
+        RHO          = P['RHO']
+        C            = P['C']
+        B            = P['B']
+        M            = P['M']
+        SW_FREE_SWIM = P['SW_FREE_SWIM']
+        
         if SW_FREE_SWIM:
             Fx = -self.Ct_net * 0.5 * RHO * np.absolute(self.V)**2 * C * B
             a_b = Fx / M

@@ -65,7 +65,7 @@ P = PARAMETERS = {
 , 'ALPHA':              0.03
 , 'BETA':               0.25*(1+0.03)**2
 , 'GAMMA':              0.5+0.03
-, 'N_ELEMENTS_S':       1
+, 'N_ELEMENTS_S':       10
 , 'MATERIAL':           'Synthesized'
 , 'E':                  2.0e9
 , 'RHO_S':              1000.
@@ -78,7 +78,7 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FSI Coupling Constants                                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-, 'SW_FSI':             False
+, 'SW_FSI':             True
 , 'SW_SPRING':          True
 , 'N_OUTERCORR_MAX':    200
 , 'OUTER_CORR_TOL':     1e-7
@@ -100,8 +100,8 @@ P = PARAMETERS = {
 , 'SW_MULTI':           True
 , 'SW_ROLLUP':          True
 , 'SW_FLAT_WAKE':       False
-, 'SW_FREE_SWIM':       True
-, 'SW_INTERMITTENT':    True
+, 'SW_FREE_SWIM':       False
+, 'SW_INTERMITTENT':    False
 , 'SW_VISC_DRAG':       False
 , 'SW_INTERP_MTD':      True
 , 'SW_CNST_THK_BM':     True
@@ -196,8 +196,8 @@ else:
     P['THETA_MINUS'] = [np.arctan(H_DOT_MINUS[i] / P['V0']) for i in xrange(P['COUNTER'])]
     P['THETA_PLUS']  = [np.arctan(H_DOT_PLUS[i] / P['V0']) for i in xrange(P['COUNTER'])]
     
-#inertia = accel_multi_kinematics(P, [P['HEAVE'], P['HEAVE_MINUS'], P['HEAVE_PLUS']])[0]
-#P['INERTIA']     = [P['HEAVE_MAX'] * inertia[i] * P['RAMP'][i] for i in xrange(P['COUNTER'])]
+inertia = accel_multi_kinematics(P, [P['HEAVE'], P['HEAVE_MINUS'], P['HEAVE_PLUS']])[0]
+P['INERTIA']     = [P['HEAVE_MAX'] * inertia[i] * P['RAMP'][i] for i in xrange(P['COUNTER'])]
 
 # Constants dependent on declared parameters
 #P['DELTA_CORE']  = (0.005*P['THETA_MAX']+0.09)*P['C']

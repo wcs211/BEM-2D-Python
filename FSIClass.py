@@ -104,7 +104,7 @@ class FSI(object):
             print '    "Fixed Relaxation"'
             print '    "Aitken"'
                    
-    def readFsiControls(self, fixedPtRelax, nOuterCorrMax):
+    def readFsiControls(self, P):
         """
         Initializes FSI relaxation coupling variables.
         
@@ -112,9 +112,9 @@ class FSI(object):
         fixedPtRelax (float): Fixed-point relaxation value for Newton iteration
         nOutCorrMax (int): Maximum allowed FSI coupling subiterations
         """
-        self.fsiRelaxationFactorMin = fixedPtRelax
+        self.fsiRelaxationFactorMin = P['FIXED_PT_RELAX']
         self.fsiRelaxationFactor = np.copy(self.fsiRelaxationFactorMin)
-        self.nOuterCorr = nOuterCorrMax
+        self.nOuterCorr = P['N_OUTERCORR_MAX']
         
     def setSpringForce(self, Body, Solid, PyFEA, P, outerCorr, delFs, i_t):
         # Superposing the structural displacements
@@ -192,8 +192,7 @@ class FSI(object):
         PyFEA.Nf    = np.copy(Nf)
         PyFEA.Ni    = np.copy(Ni)
         
-    def setInterfaceForce(self, Solid, Body, PyFEA, THETA, HEAVE, outerCorr, 
-                          SW_VISC_DRAG, delFs, SW_INTERP_MTD, C, i_t):
+    def setInterfaceForce(self, Solid, Body, PyFEA, delFs, P, outerCorr, i_t):
         """
         Updates the structural mesh position, calculates the traction forces on
         the free nodes, and determines the initial condisitons for the timestep.
@@ -212,7 +211,13 @@ class FSI(object):
                 interpolation between fluid and solid domains should be used.
             C (float): Body chord length.
             i_t (int): Current time-step number.       
-        """        
+        """
+        THETA         = P['THETA'][i_t]
+        HEAVE         = P['HEAVE'][i_t]
+        SW_VISC_DRAG  = P['SW_VISC_DRAG']
+        SW_INTERP_MTD = P['SW_INTERP_MTD']
+        C             = P['C']
+        
         # Superposing the structural displacements
         if (outerCorr > 1):
             Solid.nodes[:,0] += (self.nodeDispl[:,0] - self.nodeDisplOld[:,0])
@@ -346,7 +351,7 @@ class FSI(object):
         self.maxDU = np.max(np.sqrt(self.DU[:,0]**2 + self.DU[:,1]**2))
         Solid.tempNodes = np.copy(tempNodes)
             
-    def getDisplacements(self, Solid, Body, PyFEA, THETA, HEAVE, SW_INTERP_MTD, FLEX_RATIO):
+    def getDisplacements(self, Solid, Body, PyFEA, P, i):
         """
         Calculates the new position of the fluid body based on the displacements
         calculated by the structural body. This is used to calculate the FSI 
@@ -363,11 +368,14 @@ class FSI(object):
                 interpolation between fluid and solid domains should be used.
             FLEX_RATIO (float): Percent of the body to remain rigid as measured
                 from the leading edge.
-        """          
+        """  
+        THETA = P['THETA'][i]
+        SW_INTERP_MTD = P['SW_INTERP_MTD']
+        FLEX_RATIO = P['FLEX_RATIO']
+        
         # Get the absolute x and z displacements
         nodeDisplacements = np.zeros((Solid.Nnodes-Solid.fixedCounter,2))
         nodeDisplacements[:,1] =  np.copy(PyFEA.U_nPlus[1::3].T)
-#        nodeDisplacements[:,0] =  (Solid.nodes_0[Solid.fixedCounter:,1] + nodeDisplacements[:,1]) * np.sin(-PyFEA.U_nPlus[2::3].T)
         nodeDisplacements[:,0] =  np.copy(PyFEA.U_nPlus[0::3].T)
         
         # Calculate the new structural locations
@@ -377,7 +385,6 @@ class FSI(object):
         
         # Transform the structural mesh into the fluid body absolute reference frame.
         tempNodes[:,0], tempNodes[:,1] = self.rotatePts(tempNodes[:,0], tempNodes[:,1], THETA)
-#        tempNodes[:,1] = tempNodes[:,1] + HEAVE
         
         # Calculating the shift in node positions with the swimming velocity
         nodeDelxp = Body.AF.x_le * np.ones((Solid.Nnodes,1))

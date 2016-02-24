@@ -109,7 +109,7 @@ def transformation(xt,zt,xi,zi):
 
     return(xp1,xp2,zp)
 
-def absoluteToBody(Body, Solid, THETA, HEAVE):
+def absoluteToBody(Body, Solid, P, i):
     """
     Transforms absolute reference frame to body reference frame. Needed in 
     FSI simulations after solid displacements are determined.
@@ -117,9 +117,11 @@ def absoluteToBody(Body, Solid, THETA, HEAVE):
     Args:
         Body (object):
         Solid (object):
-        THETA (float):
-        HEAVE (float):
+        P (dict):
+        i (int):
     """
+    THETA = P['THETA'][i]
+    
     Body.BF.x = ((Body.AF.x - Body.AF.x_le) * np.cos(-1*THETA) - (Body.AF.z - Body.AF.z_le) * np.sin(-1*THETA))
     Body.BF.z = ((Body.AF.z - Body.AF.z_le) * np.cos(-1*THETA) + (Body.AF.x - Body.AF.x_le) * np.sin(-1*THETA))
     Body.BF.x_col = ((Body.BF.x[1:] + Body.BF.x[:-1])/2)
@@ -172,35 +174,35 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         PyFEA (object, optional):
     
     Returns:
-        SwiP (list):
-        GeoP (list):
-        MotP (list):
+        SwiL (list):
+        GeoL (list):
+        MotL (list):
         Swimmers (list):
-        SolidP (list):
-        FSIP (list):
-        PyFEAP (list):
+        SolidL (list):
+        FSIL (list):
+        PyFEAL (list):
     """
     # Initialize lists of objects 
-    SwiP     = [None for x in xrange(P['N_SWIMMERS'])]
-    GeoP     = [None for x in xrange(P['N_SWIMMERS'])]
-    MotP     = [None for x in xrange(P['N_SWIMMERS'])]
+    SwiL     = [None for x in xrange(P['N_SWIMMERS'])]
+    GeoL     = [None for x in xrange(P['N_SWIMMERS'])]
+    MotL     = [None for x in xrange(P['N_SWIMMERS'])]
     Swimmers = [None for x in xrange(P['N_SWIMMERS'])]
-    SolidP   = [None for x in xrange(P['N_SWIMMERS'])]
-    FSIP     = [None for x in xrange(P['N_SWIMMERS'])]
-    PyFEAP   = [None for x in xrange(P['N_SWIMMERS'])]
+    SolidL   = [None for x in xrange(P['N_SWIMMERS'])]
+    FSIL     = [None for x in xrange(P['N_SWIMMERS'])]
+    PyFEAL   = [None for x in xrange(P['N_SWIMMERS'])]
 
     for i in xrange(P['N_SWIMMERS']):
         # Add the Swimmer's parameter class to the list
-        SwiP[i] = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
+        SwiL[i] = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
         
         # Determine which geometry parameter list to create and add it to the 
         # list. If the geometry parameter does not exist, raise a value error.
         if (P['SW_GEOMETRY'] == 'FP'):
-            GeoP[i] = PC.GeoFPParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
+            GeoL[i] = PC.GeoFPParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
         elif (P['SW_GEOMETRY'] == 'TD'):
-            GeoP[i] = PC.GeoTDParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
+            GeoL[i] = PC.GeoTDParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
         elif (P['SW_GEOMETRY'] == 'VDV'):
-            GeoP[i] = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
+            GeoL[i] = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
         else:
             print "ERROR! Invalid geometry type. Valid geometry types are:'"
             print "    'FP'"
@@ -209,39 +211,39 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
             raise ValueError('ERROR! Invalid geometry type.')
 
         # Add the Swimmer's motion parameters to the motion parameter list.
-        MotP[i] = PC.MotionParameters(P['X_START'][i], P['Z_START'][i], P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
+        MotL[i] = PC.MotionParameters(P['X_START'][i], P['Z_START'][i], P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
 
         # Create a Swimmer object and add it to the Swimmer object list.
-        Swimmers[i] = Swimmer(SwiP[i], GeoP[i], MotP[i], P['COUNTER']-1)
+        Swimmers[i] = Swimmer(SwiL[i], GeoL[i], MotL[i], P['COUNTER']-1)
 
         # Create more objects if this is an FSI simulation.
         if P['SW_FSI']:
             # Create a solid mesh object and add it to the solid mesh list.
-            SolidP[i] = solid(Swimmers[i].Body, P['N_ELEMENTS_S'], P['T_MAX'])
+            SolidL[i] = solid(Swimmers[i].Body, P['N_ELEMENTS_S'], P['T_MAX'])
             
             # Create an FSI object and add it to the FSI list.
-            FSIP[i] = FSI(Swimmers[i].Body, SolidP[i])
+            FSIL[i] = FSI(Swimmers[i].Body, SolidL[i])
             
             # Create an FEA object and add it to the list.
-            PyFEAP[i] = PyFEA(SolidP[i], P['SW_SPRING'], P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
+            PyFEAL[i] = PyFEA(SolidL[i], P['SW_SPRING'], P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
 
             # Initialize the mesh for the solid object.
-            SolidP[i].initMesh()
+            SolidL[i].initMesh()
             
             # Create the appropriate solid properties base on the input 
             # geometry. If it does not exist, raise a value error and inform 
             # the user of valid choices.
             if (P['SW_GEOMETRY'] == 'FP'):
-                SolidP[i].initThinPlate(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
+                SolidL[i].initThinPlate(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
             elif (P['SW_GEOMETRY'] == 'TD'):
-                SolidP[i].initTearDrop(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
+                SolidL[i].initTearDrop(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
             else:
                 print "ERROR! Invalid geometry type. Valid geometry types are:'"
                 print "    'FP'"
                 print "    'TD'"
                 raise ValueError('ERROR! Invalid geometry type.')
 
-    return (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
+    return (SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL)
 
 def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
     """
@@ -259,13 +261,13 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
     Returns:
         START_COUNTER (int):
         COUNTER (int):
-        SwiP (list):
-        GeoP (list):
-        MotP (list):
+        SwiL (list):
+        GeoL (list):
+        MotL (list):
         Swimmers (list):
-        SolidP (list):
-        FSIP (list):
-        PyFEAP (list):
+        SolidL (list):
+        FSIL (list):
+        PyFEAL (list):
         
     Raises:
     
@@ -284,7 +286,7 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         for file in os.listdir(''.join((P['OUTPUT_DIR'], '/'))):
             startTime = max(float(file), startTime)
 
-        (sP, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
+        (sP, i, FLOWTIME, SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
         if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
             print 'ERROR! Inconsistent input parameters with starting data file.'
 
@@ -305,7 +307,7 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         for file in os.listdir(''.join((P['OUTPUT_DIR'], '/'))):
             startTime = max(float(file), startTime)
 
-        (sP, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
+        (sP, i, FLOWTIME, SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
         if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
             raise ValueError('ERROR! Inconsistent input parameters with starting data file.')
 
@@ -323,7 +325,7 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
     # setup function to create new objects for a fresh simulation.
     elif (P['START_FROM'] == 'zeroTime'):
         startTime = '0.00000000'
-        (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = geom_setup(P, PC, Swimmer, solid, FSI, PyFEA)
+        (SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL) = geom_setup(P, PC, Swimmer, solid, FSI, PyFEA)
 
         START_COUNTER = 0
         COUNTER = P['COUNTER']
@@ -337,7 +339,7 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         print '    zeroTime'
         raise ValueError('ERROR! Invalid START_FROM.')
 
-    return (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
+    return (START_COUNTER, COUNTER, SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL)
 
 def extrap1d(interpolator):
     """
@@ -584,6 +586,7 @@ def accel_multi_kinematics(P, sig):
         accell_plus (float):
     
     """
+    DEL_T = P['DEL_T']
     signal       = sig[0]
     signal_minus = sig[1]
     signal_plus  = sig[2]
@@ -606,9 +609,9 @@ def accel_multi_kinematics(P, sig):
         accell_minus[i] = (15. / 4.) * signal_minus[i] - (77. / 6.) * signal_minus[i-1] + (107. / 6.) * signal_minus[i-2] - 13. * signal_minus[i-3] + (61. / 12.) * signal_minus[i-4] - (5. / 6.) * signal_minus[i-5]
         accell_plus[i]  = (15. / 4.) * signal_plus[i]  - (77. / 6.) * signal_plus[i-1]  + (107. / 6.) * signal_plus[i-2]  - 13. * signal_plus[i-3]  + (61. / 12.) * signal_plus[i-4]  - (5. / 6.) * signal_plus[i-5]
 
-    accell       /= P['DEL_T']**2
-    accell_minus /= P['DEL_T']**2
-    accell_plus  /= P['DEL_T']**2
+    accell       = [accell[i]       / DEL_T**2 for i in xrange(P['COUNTER'])]
+    accell_minus = [accell_minus[i] / DEL_T**2 for i in xrange(P['COUNTER'])]
+    accell_plus  = [accell_plus[i]  / DEL_T**2 for i in xrange(P['COUNTER'])]
 
     return(accell, accell_minus, accell_plus)
       
