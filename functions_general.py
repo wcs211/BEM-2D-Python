@@ -180,6 +180,7 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         FSIP (list):
         PyFEAP (list):
     """
+    # Initialize lists of objects 
     SwiP     = [None for x in xrange(P['N_SWIMMERS'])]
     GeoP     = [None for x in xrange(P['N_SWIMMERS'])]
     MotP     = [None for x in xrange(P['N_SWIMMERS'])]
@@ -189,7 +190,11 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
     PyFEAP   = [None for x in xrange(P['N_SWIMMERS'])]
 
     for i in xrange(P['N_SWIMMERS']):
+        # Add the Swimmer's parameter class to the list
         SwiP[i] = PC.SwimmerParameters(P['CE'], P['DELTA_CORE'], P['SW_KUTTA'])
+        
+        # Determine which geometry parameter list to create and add it to the 
+        # list. If the geometry parameter does not exist, raise a value error.
         if (P['SW_GEOMETRY'] == 'FP'):
             GeoP[i] = PC.GeoFPParameters(P['N_BODY'], P['S'], P['C'], P['T_MAX'])
         elif (P['SW_GEOMETRY'] == 'TD'):
@@ -197,24 +202,44 @@ def geom_setup(P, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         elif (P['SW_GEOMETRY'] == 'VDV'):
             GeoP[i] = PC.GeoVDVParameters(P['N_BODY'], P['S'], P['C'], P['K'], P['EPSILON'])
         else:
-            print 'ERROR! Invalid geometry type.'
+            print "ERROR! Invalid geometry type. Valid geometry types are:'"
+            print "    'FP'"
+            print "    'TD'"
+            print "    'VDV'"
+            raise ValueError('ERROR! Invalid geometry type.')
 
+        # Add the Swimmer's motion parameters to the motion parameter list.
         MotP[i] = PC.MotionParameters(P['X_START'][i], P['Z_START'][i], P['V0'], P['THETA_MAX'], P['F'], P['PHI'])
 
+        # Create a Swimmer object and add it to the Swimmer object list.
         Swimmers[i] = Swimmer(SwiP[i], GeoP[i], MotP[i], P['COUNTER']-1)
 
-        if (P['SW_FSI'] == True):
+        # Create more objects if this is an FSI simulation.
+        if P['SW_FSI']:
+            # Create a solid mesh object and add it to the solid mesh list.
             SolidP[i] = solid(Swimmers[i].Body, P['N_ELEMENTS_S'], P['T_MAX'])
+            
+            # Create an FSI object and add it to the FSI list.
             FSIP[i] = FSI(Swimmers[i].Body, SolidP[i])
+            
+            # Create an FEA object and add it to the list.
             PyFEAP[i] = PyFEA(SolidP[i], P['SW_SPRING'], P['FRAC_DELT'], P['DEL_T'], P['E'], P['RHO_S'])
 
+            # Initialize the mesh for the solid object.
             SolidP[i].initMesh()
+            
+            # Create the appropriate solid properties base on the input 
+            # geometry. If it does not exist, raise a value error and inform 
+            # the user of valid choices.
             if (P['SW_GEOMETRY'] == 'FP'):
                 SolidP[i].initThinPlate(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
             elif (P['SW_GEOMETRY'] == 'TD'):
                 SolidP[i].initTearDrop(P['T_MAX'],P['C'],P['SW_CNST_THK_BM'],P['T_CONST'],P['FLEX_RATIO'])
             else:
-                print 'ERROR! Invalid geometry type.'
+                print "ERROR! Invalid geometry type. Valid geometry types are:'"
+                print "    'FP'"
+                print "    'TD'"
+                raise ValueError('ERROR! Invalid geometry type.')
 
     return (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
 
@@ -245,9 +270,15 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
     Raises:
     
     """
+    
+    # Check if the specified data output directory exists. If it does not, then
+    # create a new output directory with that same name and for the simulation 
+    # to start from zeroTime.
     if (os.path.exists(P['OUTPUT_DIR']) == False or os.listdir(P['OUTPUT_DIR']) == []):
         P['START_FROM'] = 'zeroTime'
 
+    # If the keyword for starting the simulation is latestTime, look in the 
+    # specified data output directory for the latest save state.
     if (P['START_FROM'] == 'latestTime'):
         startTime = 0.
         for file in os.listdir(''.join((P['OUTPUT_DIR'], '/'))):
@@ -267,6 +298,8 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         START_COUNTER = i + 1
         COUNTER = P['COUNTER']
 
+    # If the keyword for starting the simulation is firstTime, look in the 
+    # specified data output directory for the earliest save state.
     elif (P['START_FROM'] == 'firstTime'):
         startTime = sys.float_info.max
         for file in os.listdir(''.join((P['OUTPUT_DIR'], '/'))):
@@ -275,7 +308,6 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         (sP, i, FLOWTIME, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
         if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
             raise ValueError('ERROR! Inconsistent input parameters with starting data file.')
-
 
         if (Swimmers[0].Wake.x.shape[0] < P['COUNTER']):
             for Swim in Swimmers:
@@ -287,6 +319,8 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         START_COUNTER = i + 1
         COUNTER = P['COUNTER']
 
+    # If the keyword for starting the simulation is zeroTime, call the geometry
+    # setup function to create new objects for a fresh simulation.
     elif (P['START_FROM'] == 'zeroTime'):
         startTime = '0.00000000'
         (SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP) = geom_setup(P, PC, Swimmer, solid, FSI, PyFEA)
@@ -294,6 +328,8 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         START_COUNTER = 0
         COUNTER = P['COUNTER']
 
+    # If none of those keywords existed, raise a value error and tell the user
+    # acceptable values.
     else:
         print 'ERROR! Invalid START_FROM. Valid values are:'
         print '    latestTime'
@@ -304,6 +340,16 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
     return (START_COUNTER, COUNTER, SwiP, GeoP, MotP, Swimmers, SolidP, FSIP, PyFEAP)
 
 def extrap1d(interpolator):
+    """
+    A wrapper for numpy scipy interpolators that allows for linear extrapolation
+    beyond the provided interpolation set values.
+    
+    Args:
+        interpolator (struct):
+        
+    Returns:
+        ufunclike (struct):
+    """
     xs = interpolator.x
     ys = interpolator.y
 
@@ -321,6 +367,26 @@ def extrap1d(interpolator):
     return ufunclike
     
 def intermittent_ref(HEAVE_MAX, THETA_MAX, phi, DC, mag):
+    """
+    Reference intermittent signal function. This is used to interpolate the
+    signal for a smooth signal in the intermittent function.
+    
+    Args:
+        HEAVE_MAX (float):
+        THETA_MAX (float):
+        phi (float):
+        DC (float):
+        mag (float):
+        
+    Returns:
+        t_T (float):
+        y_pitch (float):
+        y_pitch_plus (float):
+        y_pitch_minus (float):
+        y_heave (float):
+        y_heave_plus (float):
+        y_heave_minus (float):
+    """
     # Constants
     N = 5000      # Defines the number of points for the active and passive portions of the reference signal
     Tstep = 1e-5
@@ -375,6 +441,24 @@ def intermittent_ref(HEAVE_MAX, THETA_MAX, phi, DC, mag):
     return(t_T, y_pitch, y_pitch_plus, y_pitch_minus, y_heave, y_heave_plus, y_heave_minus)
     
 def intermittent(HEAVE_MAX, THETA_MAX, phi, DC, f, N_STEP, N_CYC, s):
+    """
+    Creates an intermittent kinematic signal.
+    
+    Args:
+        HEAAVE_MAX (float):
+        THETA_MAX (float):
+        phi (float):
+        DC (float):
+        f (float):
+        N_STEP (float):
+        N_CYC (float):
+        s (float):
+        
+    Returns:
+        angle_pitch (float):
+        phase_heave (float):
+        period (float):
+    """
     # Constants
     mag = 3 # defines the slope of the hyperbolic tangent smoothing function inside of intermittent_ref
     
@@ -420,6 +504,21 @@ def intermittent(HEAVE_MAX, THETA_MAX, phi, DC, f, N_STEP, N_CYC, s):
     return(angle_pitch, phase_heave, period)
 
 def multi_kinematics(P, PHI=0., scale=None, rate=50):
+    """
+    Creates a sine, square, triangle, or sawtooth kinematic signal. The signal 
+    forms can be weighted for any superposition of the signals.
+    
+    Args:
+        P (dict):
+        PHI (float, optional):
+        scale (float, optional):
+        rate (float, optional):
+    
+    Returns:
+        signal (float):
+        signalMinus (float):
+        signalPlus (float):
+    """
     delta = 1. / rate
     if (scale == None):
         x = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
@@ -471,6 +570,20 @@ def multi_kinematics(P, PHI=0., scale=None, rate=50):
     return(signal, signalMinus, signalPlus)
 
 def accel_multi_kinematics(P, sig):
+    """
+    Creates an accelleration signal based on an input kinematic signal using 
+    fourth-order finite difference stencils (forward, backward, and central).
+    
+    Args:
+        P (dict):
+        sig (list, str):
+    
+    Returns:
+        accell (float):
+        accell_minus (float):
+        accell_plus (float):
+    
+    """
     signal       = sig[0]
     signal_minus = sig[1]
     signal_plus  = sig[2]
