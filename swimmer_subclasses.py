@@ -184,6 +184,8 @@ class Body(object):
         self.gamma = np.zeros(N+1)
         self.zcval = np.copy(self.BF.z_col)
 
+        self.p_s = np.zeros(N)
+        self.p_us = np.zeros(N)
         self.p = np.zeros(N)
         self.cp = np.zeros(N)
         self.mu_past = np.zeros((4,N))
@@ -196,7 +198,7 @@ class Body(object):
         self.D_visc = 0.
         self.Cpow = 0.
         self.forceData = np.zeros((0,7))
-
+        
     @classmethod
     def from_van_de_vooren(cls, GeoVDVParameters, MotionParameters):
         """Creates a Body object based on a Van de Vooren airfoil geometry.
@@ -416,9 +418,7 @@ class Body(object):
         bfx = self.BF.x
         bfz = self.BF.z
         
-#        afx = bfx * np.cos(THETA) - bfz * np.sin(THETA) + self.V0*T
         afx = bfx * np.cos(THETA) - bfz * np.sin(THETA) + self.AF.x_le
-        
         afz = bfx * np.sin(THETA) + bfz * np.cos(THETA) + HEAVE
 
         (x_neut, z_neut) = self.neutral_axis(bfx, T, THETA, HEAVE)
@@ -520,7 +520,7 @@ class Body(object):
         (nx,nz) = panel_vectors(self.AF.x,self.AF.z)[2:4]
         self.sigma = nx*(self.V + self.vx) + nz*self.vz    
 
-    def pressure(self, RHO, DEL_T, i, stencil_npts=5):
+    def pressure(self, P, i, stencil_npts=5):
         """Calculates the pressure distribution along the body's surface.
 
         Args:
@@ -528,6 +528,9 @@ class Body(object):
             DEL_T: Time step length.
             i: Time step number.
         """
+        RHO          = P['RHO']
+        DEL_T        = P['DEL_T']
+        SW_4PRESSURE = P['SW_4PRESSURE']
 
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x,self.AF.z)
         
@@ -550,28 +553,32 @@ class Body(object):
         
         # Tangential panel velocity dmu/dl
         dmu_dl = np.empty(self.N)
-        for i in xrange(self.N):
+        for j in xrange(self.N):
             # Defining stencil depending on chordwise element
-            stencil = np.copy(stencil_chordwise[i,:])
-            pan_elem = i + stencil
+            stencil = np.copy(stencil_chordwise[j,:])
+            pan_elem = j + stencil
             
             # Calling finite difference approximations based on stencil (3-point and 5-point available)
-            dmu_dl[i] = finite_diff(self.mu[pan_elem], lpanel[pan_elem], stencil)
+            dmu_dl[j] = finite_diff(self.mu[pan_elem], lpanel[pan_elem], stencil)
 
         # Potential change dmu/dt, second-order differencing after first time step
         if i == 0:
             dmu_dt = self.mu / DEL_T
-        if i == 1:
+        elif i == 1:
             dmu_dt = (self.mu - self.mu_past[0,:])/DEL_T
+        elif (i > 3 and SW_4PRESSURE):
+            dmu_dt = ((25. / 12.) * self.mu - 4. * self.mu_past[0,:] + 3. * self.mu_past[1,:] - (4. / 3.) * self.mu_past[2,:] + (1. / 4.) * self.mu_past[3,:]) / DEL_T
         else:
-            dmu_dt = (3*self.mu - 4*self.mu_past[0,:] + self.mu_past[1,:])/(2*DEL_T)
-
+            dmu_dt = (3.*self.mu - 4.*self.mu_past[0,:] + self.mu_past[1,:])/(2.*DEL_T)
+            
         # Unsteady pressure calculation (from Matlab code)
         qpx_tot = dmu_dl*tx + self.sigma*nx
         qpz_tot = dmu_dl*tz + self.sigma*nz
 
-        self.p = -RHO*(qpx_tot**2 + qpz_tot**2)/2. + RHO*dmu_dt + RHO*(qpx_tot*(self.V+self.vx) + qpz_tot*self.vz)
-        self.cp = self.p / (0.5*RHO*self.V**2)
+        self.p_s  = -RHO*(qpx_tot**2 + qpz_tot**2)/2.
+        self.p_us = RHO*dmu_dt + RHO*(qpx_tot*(self.V+self.vx) + qpz_tot*self.vz)
+        self.p    = self.p_s + self.p_us
+        self.cp   = self.p / (0.5*RHO*self.V**2)
         
     def force(self, P, i):
         """Calculates drag and lift forces acting on the body.
@@ -582,15 +589,17 @@ class Body(object):
             B (float): Body's Span length
             i: Time step number.
         """
-        C   = P['C']
-        B   = P['B']
-        RHO = P['RHO']
-        CD_BOD = P['CD_BOD']
-        S_W = P['S_W']
-        NU = P['NU']
-        L_T = P['L_T']
+        C             = P['C']
+        B             = P['B']
+        RHO           = P['RHO']
+        CD_BOD        = P['CD_BOD']
+        S_W           = P['S_W']
+        NU            = P['NU']
+        L_T           = P['L_T']
         SW_ADDED_DRAG = P['SW_ADDED_DRAG']
-        DRAG_LAW = P['DRAG_LAW']
+        DRAG_LAW      = P['DRAG_LAW']
+        SW_SPRING     = P['SW_SPRING']
+        H_DOT         = P['H_DOT'][i]
         (tx,tz,nx,nz,lpanel) = panel_vectors(self.AF.x, self.AF.z)
 
         delFx = -self.p * lpanel * B * nx
@@ -601,7 +610,10 @@ class Body(object):
         force = np.sum(delF,1)
         lift = force[1]
         thrust = -force[0]
-        power = np.sum(delP, 0)
+        if SW_SPRING:
+            power = -H_DOT * lift
+        else:
+            power = np.sum(delP, 0)
         
         if SW_ADDED_DRAG:
             if DRAG_LAW == 'FORM':
@@ -657,5 +669,3 @@ class Body(object):
             # Location of leading edge
             self.AF.x_le = self.V*T
             self.AF.z_le = HEAVE
-            
-#        np.save('./x_le/%05i.npy' % i, self.V)

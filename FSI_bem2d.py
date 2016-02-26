@@ -50,14 +50,15 @@ outerCorr = 2
 for i in xrange(START_COUNTER, COUNTER):
     if i == 0:
         for Swim in Swimmers:
+            Swim.Body.free_swimming(P, i)
             Swim.Body.panel_positions(P, i)
             Swim.Body.surface_kinematics(P, i)
             Swim.edge_shed(DEL_T, i)
             Swim.wake_shed(DEL_T, i)
-        solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
+        solve_phi(Swimmers, P, i, outerCorr)
         for Swim in Swimmers:        
             Swim.Body.force(P, i)
-            Swim.Body.free_swimming(P, i)
+            
         wake_rollup(Swimmers, DEL_T, i, P)
         archive(Swimmers[0].Body.AF.x_mid)
         archive(Swimmers[0].Body.AF.z_mid)
@@ -77,6 +78,7 @@ for i in xrange(START_COUNTER, COUNTER):
             FSIL[0].setInterfaceDisplacemet(outerCorr, COUPLING_SCHEME)
             for Swim in Swimmers:
                 if (outerCorr == 1):
+                    Swim.Body.free_swimming(P, i)
                     Swim.Body.panel_positions(P, i)
                 else:
                     Swim.Body.fsi_panel_positions(FSIL[0], P, i)
@@ -86,11 +88,11 @@ for i in xrange(START_COUNTER, COUNTER):
                 if (outerCorr == 1):
                     Swim.wake_shed(DEL_T, i)
                       
-            solve_phi(Swimmers, RHO, DEL_T, i, outerCorr)
+            solve_phi(Swimmers, P, i, outerCorr)
             
             for Swim in Swimmers:        
                 Swim.Body.force(P, i)
-                Swim.Body.free_swimming(P, i)
+                
 
             #TODO: Replace '0' with viscous drag component when available
             FSIL[0].setInterfaceForce(SolidL[0], Swimmers[0].Body, PyFEAL[0], 0., P, outerCorr, i)

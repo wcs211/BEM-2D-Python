@@ -270,7 +270,8 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
         PyFEAL (list):
         
     Raises:
-    
+        ValueError: If given an unsupported 'START_FROM' keyword.
+        ValueError: If input parameters are inconsistent with starting data.
     """
     
     # Check if the specified data output directory exists. If it does not, then
@@ -288,7 +289,7 @@ def simulation_startup(P, DIO, PC, Swimmer, solid=None, FSI=None, PyFEA=None):
 
         (sP, i, FLOWTIME, SwiL, GeoL, MotL, Swimmers, SolidL, FSIL, PyFEAL) = DIO.read_data(''.join((P['OUTPUT_DIR'], '/', '%.8f' % startTime)))
         if not (sP['DEL_T'] == P['DEL_T']) and (sP['N_SWIMMERS'] == P['N_SWIMMERS']) and (sP['N_BODY'] == P['N_BODY']):
-            print 'ERROR! Inconsistent input parameters with starting data file.'
+            raise ValueError('ERROR! Inconsistent input parameters with starting data file.')
 
         if (Swimmers[0].Wake.x.shape[0] < P['COUNTER']):
             for Swim in Swimmers:
@@ -505,6 +506,79 @@ def intermittent(HEAVE_MAX, THETA_MAX, phi, DC, f, N_STEP, N_CYC, s):
     
     return(angle_pitch, phase_heave, period)
 
+def squarewave_ref(a):
+    """
+    This function creates an squarewave reference signal that needs to be
+    sampled at specific times, scaled, and shifted to construct the actual  
+    signal to be used in the computations.
+    
+    Args:
+        a (float): Defines the slope of the hyperbolic tangent function.
+        
+    Returns:
+        t_T (float):
+        y (float):
+    """
+    # Constants
+    N = 1e5 # Defines the number of points for the half-period reference signal
+    
+    # Defining an smooth squarewave signal
+    # Defining the non-dimensional time for the cycle
+    t_T_h = np.linspace(0., N, 0.5).T # non-dimensional time, t is normalized by the period.
+    
+    # Creating the squarewave signal
+    y_h1 = -np.tanh(a * t_T_h) * np.tanh(a * (t_T_h - 0.5))
+    y_h2 = -(np.flipud(y_h1)) # Mirror and invert first half-wave to create second half
+    
+    # Assembling full wave
+    y_full = np.vstack((y_h1, y_h2[1:])) # Combine first and second half to create full wave
+    
+    # Final reference signal
+    y = (1. / np.max(y_full)) * y_full # Normalize the y-values to -1 <= y <= 1
+    t_T = np.vstack((t_T_h, t_T_h[1:] + 0.5)) # Create a full set of x values (0 to 1)
+    
+    return(t_T, y)
+
+def squarewave(f, A, a, N_STEP, N_CYC):
+    """
+    Args:
+        f (float):
+        A (float):
+        a (float):
+        N_STEP (int):
+        N_CYC (int):
+        
+    Returns:
+        t (float):
+        y (float):
+        t_T_ref (float):
+        y_ref (float):
+    """
+    (t_T_ref, y_ref) = squarewave_ref(a)
+    
+    # Defining the time step spacing, that is the time step
+    # normalized by the period of the motion, which is T = 1/f
+    delT_T = 1. / N_STEP
+    
+    # Creating time signal for a single cycle
+    t_T_single = np.linspace(0., 1., delT_T).T
+    
+    # Sampling the reference signal at t_T
+    y_single = PchipInterpolator(t_T_ref, y_ref)(t_T_single)
+    
+    # Copying the signal for Ncyc cycles
+    y = A * np.hstack((y_single, np.tile(y_single[1:], (N_CYC-1,1)))) # Full signal vector for squarewave signal ***************             
+    
+    # Calculate a shift to the time signal for each extra cycle beyond the first
+    shift  = t_T_single[-1]
+    shift_vec = np.tile(shift*np.arange(1,N_CYC), (np.size(t_T_single[1:]), 1))
+    (m, n) = np.shape(shift_vec)
+    shift_vec = shift_vec.reshape(m*n, 1,order='F').copy()
+    
+    t = 1. / f * np.vstack((t_T_single, shift_vec + np.tile(t_T_single[1:], (N_CYC-1, 1)))) # Full time vector for squarewave signal ***************
+
+    return(t, y, t_T_ref, y_ref)
+
 def multi_kinematics(P, PHI=0., scale=None, rate=50):
     """
     Creates a sine, square, triangle, or sawtooth kinematic signal. The signal 
@@ -534,9 +608,19 @@ def multi_kinematics(P, PHI=0., scale=None, rate=50):
     sineFracPlus  = [scale[0] * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
     
     # Square Wave Input
-    squareFrac      = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
-    squareFracMinus = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
-    squareFracPlus  = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
+    a = 9.117
+    squareFrac      = [np.tanh(a * P['T'][i]               ) for i in xrange(P['COUNTER'])]
+    squareFracMinus = [np.tanh(a * (P['T'][i] - P['TSTEP'])) for i in xrange(P['COUNTER'])]
+    squareFracPlus  = [np.tanh(a * (P['T'][i] + P['TSTEP'])) for i in xrange(P['COUNTER'])]
+    
+    for j in [i+1 for i in xrange(P['N_CYC'])]:
+        squareFrac      = [squareFrac[i]      * np.tanh(a * (P['T'][i]                - (j-0.5)/P['F'])) * np.tanh(a * (P['T'][i]                - j / P['F'])) for i in xrange(P['COUNTER'])]
+        squareFracMinus = [squareFracMinus[i] * np.tanh(a * ((P['T'][i] - P['TSTEP']) - (j-0.5)/P['F'])) * np.tanh(a * ((P['T'][i] - P['TSTEP']) - j / P['F'])) for i in xrange(P['COUNTER'])]
+        squareFracPlus  = [squareFracPlus[i]  * np.tanh(a * ((P['T'][i] + P['TSTEP']) - (j-0.5)/P['F'])) * np.tanh(a * ((P['T'][i] + P['TSTEP']) - j / P['F'])) for i in xrange(P['COUNTER'])]
+    
+#    squareFrac      = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
+#    squareFracMinus = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
+#    squareFracPlus  = [scale[1] * 2. * np.arctan(np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) / delta) / np.pi for i in xrange(P['COUNTER'])]
     
     # Triangle wave
     triangleFrac      = [scale[2] * (1. - 2. * np.arccos((1. - delta) * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI)) / np.pi) for i in xrange(P['COUNTER'])]
@@ -571,6 +655,50 @@ def multi_kinematics(P, PHI=0., scale=None, rate=50):
     
     return(signal, signalMinus, signalPlus)
 
+def vel_multi_kinematics(P, sig):
+    """
+    Creates an velcoity signal based on an input kinematic signal using 
+    fourth-order finite difference stencils (forward, backward, and central).
+    
+    Args:
+        P (dict):
+        sig (list, str):
+    
+    Returns:
+        accell (float):
+        accell_minus (float):
+        accell_plus (float):
+    
+    """
+    DEL_T = P['DEL_T']
+    signal       = sig[0]
+    signal_minus = sig[1]
+    signal_plus  = sig[2]
+    vel       = [0. for i in xrange(P['COUNTER'])]
+    vel_minus = [0. for i in xrange(P['COUNTER'])]
+    vel_plus  = [0. for i in xrange(P['COUNTER'])]
+    
+    for i in [0, 1]:
+        vel[i]       = (-25. / 12.) * signal[i]       + 4. * signal[i+1]       - 3. * signal[i+2] + (4. / 3.) * signal[i+3]       - (1. / 4.) * signal[i+4]
+        vel_minus[i] = (-25. / 12.) * signal_minus[i] + 4. * signal_minus[i+1] - 3. * signal[i+2] + (4. / 3.) * signal_minus[i+3] - (1. / 4.) * signal_minus[i+4]
+        vel_plus[i]  = (-25. / 12.) * signal_plus[i]  + 4. * signal_plus[i+1]  - 3. * signal[i+2] + (4. / 3.) * signal_plus[i+3]  - (1. / 4.) * signal_plus[i+4]
+
+    for i in xrange(P['COUNTER']-4):
+        vel[i+2]       = (1. / 12.) * signal[i]       - (2. / 3.) * signal[i+1]       + (2. / 3.) * signal[i+3]       - (1. / 12.) * signal[i+4]
+        vel_minus[i+2] = (1. / 12.) * signal_minus[i] - (2. / 3.) * signal_minus[i+1] + (2. / 3.) * signal_minus[i+3] - (1. / 12.) * signal_minus[i+4]
+        vel_plus[i+2]  = (1. / 12.) * signal_plus[i]  - (2. / 3.) * signal_plus[i+1]  + (2. / 3.) * signal_plus[i+3]  - (1. / 12.) * signal_plus[i+4]
+        
+    for i in [-1, -2]:
+        vel[i]       = (25. / 12.) * signal[i]       - 4. * signal[i-1]       + 3. * signal[i-2]       - (4. / 3.) * signal[i-3]       + (1. / 4.) * signal[i-4]
+        vel_minus[i] = (25. / 12.) * signal_minus[i] - 4. * signal_minus[i-1] + 3. * signal_minus[i-2] - (4. / 3.) * signal_minus[i-3] + (1. / 4.) * signal_minus[i-4]
+        vel_plus[i]  = (25. / 12.) * signal_plus[i]  - 4. * signal_plus[i-1]  + 3. * signal_plus[i-2]  - (4. / 3.) * signal_plus[i-3]  + (1. / 4.) * signal_plus[i-4]
+
+    vel       = [vel[i]       / DEL_T for i in xrange(P['COUNTER'])]
+    vel_minus = [vel_minus[i] / DEL_T for i in xrange(P['COUNTER'])]
+    vel_plus  = [vel_plus[i]  / DEL_T for i in xrange(P['COUNTER'])]
+
+    return(vel, vel_minus, vel_plus)
+
 def accel_multi_kinematics(P, sig):
     """
     Creates an accelleration signal based on an input kinematic signal using 
@@ -594,17 +722,17 @@ def accel_multi_kinematics(P, sig):
     accell_minus = [0. for i in xrange(P['COUNTER'])]
     accell_plus  = [0. for i in xrange(P['COUNTER'])]
     
-    for i in [1, 2, 3]:
+    for i in [0, 1]:
         accell[i]       = (15. / 4.) * signal[i]       - (77. / 6.) * signal[i+1]       + (107. / 6.) * signal[i+2] - 13. * signal[i+3]       + (61. / 12.) * signal[i+4]       - (5. / 6.) * signal[i+5]
         accell_minus[i] = (15. / 4.) * signal_minus[i] - (77. / 6.) * signal_minus[i+1] + (107. / 6.) * signal[i+2] - 13. * signal_minus[i+3] + (61. / 12.) * signal_minus[i+4] - (5. / 6.) * signal_minus[i+5]
         accell_plus[i]  = (15. / 4.) * signal_plus[i]  - (77. / 6.) * signal_plus[i+1]  + (107. / 6.) * signal[i+2] - 13. * signal_plus[i+3]  + (61. / 12.) * signal_plus[i+4]  - (5. / 6.) * signal_plus[i+5]
 
-    for i in xrange(P['COUNTER']-6):
-        accell[i+4]       = (-1. / 12.) * signal[i+2]       + (4. / 3.) * signal[i+3]       - (5. / 2.) * signal[i+4]       + (4. / 3.) * signal[i+5]       - (1. / 12.) * signal[i+6]
-        accell_minus[i+4] = (-1. / 12.) * signal_minus[i+2] + (4. / 3.) * signal_minus[i+3] - (5. / 2.) * signal_minus[i+4] + (4. / 3.) * signal_minus[i+5] - (1. / 12.) * signal_minus[i+6]
-        accell_plus[i+4]  = (-1. / 12.) * signal_plus[i+2]  + (4. / 3.) * signal_plus[i+3]  - (5. / 2.) * signal_plus[i+4]  + (4. / 3.) * signal_plus[i+5]  - (1. / 12.) * signal_plus[i+6]
+    for i in xrange(P['COUNTER']-4):
+        accell[i+2]       = (-1. / 12.) * signal[i]       + (4. / 3.) * signal[i+1]       - (5. / 2.) * signal[i+2]       + (4. / 3.) * signal[i+3]       - (1. / 12.) * signal[i+4]
+        accell_minus[i+2] = (-1. / 12.) * signal_minus[i] + (4. / 3.) * signal_minus[i+1] - (5. / 2.) * signal_minus[i+2] + (4. / 3.) * signal_minus[i+3] - (1. / 12.) * signal_minus[i+4]
+        accell_plus[i+2]  = (-1. / 12.) * signal_plus[i]  + (4. / 3.) * signal_plus[i+1]  - (5. / 2.) * signal_plus[i+2]  + (4. / 3.) * signal_plus[i+3]  - (1. / 12.) * signal_plus[i+4]
         
-    for i in [-1, -2, -3]:
+    for i in [-1, -2]:
         accell[i]       = (15. / 4.) * signal[i]       - (77. / 6.) * signal[i-1]       + (107. / 6.) * signal[i-2]       - 13. * signal[i-3]       + (61. / 12.) * signal[i-4]       - (5. / 6.) * signal[i-5]
         accell_minus[i] = (15. / 4.) * signal_minus[i] - (77. / 6.) * signal_minus[i-1] + (107. / 6.) * signal_minus[i-2] - 13. * signal_minus[i-3] + (61. / 12.) * signal_minus[i-4] - (5. / 6.) * signal_minus[i-5]
         accell_plus[i]  = (15. / 4.) * signal_plus[i]  - (77. / 6.) * signal_plus[i-1]  + (107. / 6.) * signal_plus[i-2]  - 13. * signal_plus[i-3]  + (61. / 12.) * signal_plus[i-4]  - (5. / 6.) * signal_plus[i-5]
@@ -614,53 +742,3 @@ def accel_multi_kinematics(P, sig):
     accell_plus  = [accell_plus[i]  / DEL_T**2 for i in xrange(P['COUNTER'])]
 
     return(accell, accell_minus, accell_plus)
-      
-#    delta = 1. / rate
-#    if (scale == None):
-#        x = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-#        y = [2.1790849673, 1.5669799009, 1.3790259591, 1.2876797596, 1.2332922318, 1.1968681428, 1.1709601874, 1.1512761466, 1.136077986, 1.1238710886]
-#        scaleSig = PchipInterpolator(x, y)
-#        scale = [scaleSig(rate), scaleSig(rate), scaleSig(rate), scaleSig(rate)]
-#    
-#    # Sine Wave Input
-#    sineFrac      = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * P['T'][i] + PHI) for i in xrange(P['COUNTER'])]
-#    sineFracMinus = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
-#    sineFracPlus  = [scale[0] * -4. * np.pi**2 * P['F']**2 * np.sin(2 * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) for i in xrange(P['COUNTER'])]
-#    
-#    # Square Wave Input  
-#    squareFrac      = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * P['T'][i]                + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * P['T'][i]                + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
-#    squareFracMinus = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
-#    squareFracPlus  = [scale[1] * -16. * np.pi * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) * (2. * delta**2 + np.cos(4. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + 2. * PHI) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + 2. * PHI) + 1.)**2 for i in xrange(P['COUNTER'])]
-#    
-#    # Triangle wave
-#    triangleFrac      = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * P['T'][i]                + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * P['T'][i]                + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-#    triangleFracMinus = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * (P['T'][i] - P['TSTEP']) + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-#    triangleFracPlus  = [scale[2] * -16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * P['F']**2 * np.sin(2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * P['F'] * (P['T'][i] + P['TSTEP']) + PHI)) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-#    
-#    # Saw-tooth Wave
-#    xt  = [0.25 * (2. * P['F'] * P['T'][i]                - 1.) for i in xrange(P['COUNTER'])]
-#    xtm = [0.25 * (2. * P['F'] * (P['T'][i] - P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
-#    xtp = [0.25 * (2. * P['F'] * (P['T'][i] + P['TSTEP']) - 1.) for i in xrange(P['COUNTER'])]
-#    
-#    xs  = [0.5 * P['F'] * P['T'][i]                for i in xrange(P['COUNTER'])]
-#    xsm = [0.5 * P['F'] * (P['T'][i] - P['TSTEP']) for i in xrange(P['COUNTER'])]
-#    xsp = [0.5 * P['F'] * (P['T'][i] + P['TSTEP']) for i in xrange(P['COUNTER'])]
-#    
-#    trg  = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xt[i] ) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xt[i] )) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-#    trgM = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xtm[i]) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xtm[i])) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-#    trgP = [-16. * np.sqrt(2.) * np.pi * (delta - 2.) * (delta - 1.) * delta * np.sin(2. * np.pi * xtp[i]) / (-delta**2 + 2. * delta + (delta - 1.)**2 * np.cos(2. * (2. * np.pi * xtp[i])) + 1.)**1.5 for i in xrange(P['COUNTER'])]
-#    
-#    sqr  = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xs[i] ) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xs[i] ) + 1.)**2 for i in xrange(P['COUNTER'])]
-#    sqrM = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xsm[i]) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xsm[i]) + 1.)**2 for i in xrange(P['COUNTER'])]
-#    sqrP = [-16. * np.pi * delta * np.sin(2. * np.pi * xs[i]) * (2. * delta**2 + np.cos(4. * np.pi * xsp[i]) + 3.) / (2. * delta**2 - np.cos(4. * np.pi * xsp[i]) + 1.)**2 for i in xrange(P['COUNTER'])]
-#    
-#    sawFrac      = [scale[3] * trg[i]  * sqr[i]  for i in xrange(P['COUNTER'])]
-#    sawFracMinus = [scale[3] * trgM[i] * sqrM[i] for i in xrange(P['COUNTER'])]
-#    sawFracPlus  = [scale[3] * trgP[i] * sqrP[i] for i in xrange(P['COUNTER'])]
-#
-#    # Form composite signal
-#    signal      = [P['SIG_WEIGHT'][0] * sineFrac[i]      + P['SIG_WEIGHT'][1] * squareFrac[i]      + P['SIG_WEIGHT'][2] * triangleFrac[i]      + P['SIG_WEIGHT'][3] * sawFrac[i]      for i in xrange(P['COUNTER'])]
-#    signalMinus = [P['SIG_WEIGHT'][0] * sineFracMinus[i] + P['SIG_WEIGHT'][1] * squareFracMinus[i] + P['SIG_WEIGHT'][2] * triangleFracMinus[i] + P['SIG_WEIGHT'][3] * sawFracMinus[i] for i in xrange(P['COUNTER'])]
-#    signalPlus  = [P['SIG_WEIGHT'][0] * sineFracPlus[i]  + P['SIG_WEIGHT'][1] * squareFracPlus[i]  + P['SIG_WEIGHT'][2] * triangleFracPlus[i]  + P['SIG_WEIGHT'][3] * sawFracPlus[i]  for i in xrange(P['COUNTER'])]
-#    
-#    return(signal, signalMinus, signalPlus)

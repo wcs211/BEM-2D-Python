@@ -8,7 +8,7 @@ A 2D boundary element method code
 from input_parameters import PARAMETERS as P
 from terminal_output import print_output as po
 
-po().prog_title('1.0.100115a')
+po().prog_title('1.0.02242016a')
 
 if P['SW_FSI']:
     if P['SW_SPRING']:

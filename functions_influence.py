@@ -122,7 +122,7 @@ def influence_matrices(Swimmers, i):
     return(sigma_all, mu_w_all, a_bodydoublet, a_explicit,
            b_bodysource, b_edgedoublet, b_wakedoublet)
 
-def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
+def solve_phi(Swimmers, P, i, outerCorr):
     """Solves the boundary integral equation using a Kutta condition.
 
     Args:
@@ -131,6 +131,10 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
         DEL_T: Time step length.
         i: Time step number.
     """
+    RHO   = P['RHO']
+    DEL_T = P['DEL_T']
+    
+    
     for Swim in Swimmers:  
         if (outerCorr <= 1):
             # mu_past used in differencing for pressure
@@ -190,7 +194,7 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr):
             Swimmers[0].Body.mu = np.linalg.solve(a, rhs)
             
         for Swim in Swimmers:
-            Swim.Body.pressure(RHO, DEL_T, i)
+            Swim.Body.pressure(P, i)
         # Extrapolate pressure as it approaches the top and bottom of the trailing edge panel
         if len(Swimmers) > 1 or Swimmers[0].SW_KUTTA == False:
             break

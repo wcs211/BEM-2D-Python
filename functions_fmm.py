@@ -64,7 +64,7 @@ def influence_matrices(Swimmers, i):
 
     return(sigma_all, mu_w_all, a_bodydoublet, a_explicit, b_edgedoublet)
 
-def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr=0):
+def solve_phi(Swimmers, P, i, outerCorr=0):
     """Solves the boundary integral equation using a Kutta condition and the
     Fast Multipole Method.
 
@@ -108,7 +108,7 @@ def solve_phi(Swimmers, RHO, DEL_T, i, outerCorr=0):
     mu_b_all = np.linalg.solve(a, b)
     
     for Swim in Swimmers:
-        Swim.Body.pressure(RHO, DEL_T, i)     
+        Swim.Body.pressure(P, i)     
 
         Swim.mu_guess = np.empty(2) # [0] is current guess, [1] is previous
         Swim.delta_p = np.empty(2) # [0] is current delta_p, [1] is previous

@@ -160,12 +160,10 @@ class FSI(object):
         # Calculating the inertial torque resulting from the vertical 
         # acceleration of the leading edge
         Ni = -P['RHO_S'] * Solid.tmax * P['C']**2 * np.pi**2 * P['F']**2 * np.cos(PyFEA.theta_n) * P['INERTIA'][i_t]
-#        Ni = 8. * np.pi**2 * Solid.tmax * P['RHO_S'] / P['C']**2 / P['RHO'] * P['INERTIA'][i_t]
-#        Ni = -8. * np.pi**2 * Solid.tmax * P['RHO_S'] / P['C']**2 / P['RHO'] * P['HEAVE_MAX'] * 200. * P['F'] * np.min(np.array([np.cos(2. * np.pi * P['F'] * P['T'][i_t] + P['PHI']) / (2500. * np.sin(2. * np.pi * P['F'] * P['T'][i_t] + P['PHI'])**2 + 1.), 0.01]))
-#        Ni = -8. * np.pi**2 * Solid.tmax * P['RHO_S'] / P['C']**2 / P['RHO'] * P['HEAVE_MAX'] * np.cos(2. * np.pi * P['F'] * P['T'][i_t] + P['PHI'])
         
-        # Calculating the moment of intertia about the leading edge
-        I = PyFEA.RHO_S * Solid.tmax * P['C']**3 / 3.
+        # Calculating the moment of intertia about the leading edge. An extra 
+        # 0.5 is multiplied in to approximate the teardrop geometry's mass.
+        I = 0.5 * PyFEA.RHO_S * Solid.tmax * P['C']**3 / 3.
         
         # Define spring and dampening constants
         kappa = P['KAPPA']
