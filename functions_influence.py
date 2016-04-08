@@ -5,7 +5,7 @@ from functions_general import panel_vectors, transformation
 
 def inf_sourcepanel(xp1, xp2, zp, mask):
     """Returns a matrix of source panel influence coefficients."""
-    return((mask * xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) - 2*(xp1 - xp2)\
+    return(mask * (xp1 * np.log(xp1**2 + zp**2) - xp2 * np.log(xp2**2 + zp**2) - 2*(xp1 - xp2)\
           + 2*zp*(np.arctan2(zp,xp2) - np.arctan2(zp,xp1)))/(4*np.pi))
 
 def inf_doubletpanel(xp1, xp2, zp, mask):
