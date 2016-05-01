@@ -12,7 +12,7 @@ P = PARAMETERS = {
 , 'SW_SV_L_CYCLE':      False
 , 'SW_SV_FORCES':       True
 , 'SAVE_EVERY':         625
-, 'OUTPUT_DIR':         '/home/wcs211/BEM-2D-Python/data'
+, 'OUTPUT_DIR':         '/home/chris/BEM-2D-Python/data'
 , 'START_FROM':         'zeroTime'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -42,8 +42,8 @@ P = PARAMETERS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 , 'V0':                 -0.05
 , 'THETA_MAX':          0.00
-, 'HEAVE_MAX':          0.0125
-, 'F':                  0.3183098862
+, 'HEAVE_MAX':          0.025
+, 'F':                  0.52
 , 'DC':                 0.5
 , 'SIG_WEIGHT':         [0., 1., 0., 0.] # [sine, square, triangle, sawtooth]
 , 'PHI':                0.*np.pi/2.
@@ -72,7 +72,8 @@ P = PARAMETERS = {
 , 'FRAC_DELT':          1.0
 , 'FLEX_RATIO':         0.5
 , 'T_CONST':            0.00125
-, 'KAPPA':              1.0
+, 'KAPPA_1':            1.0
+, 'KAPPA_2':            50.0
 , 'ZETA':               0.0
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -107,7 +108,8 @@ P = PARAMETERS = {
 , 'SW_RAMP':            False
 , 'SW_FMM':             False
 , 'SW_4PRESSURE':       False
-, 'SW_PLOT_FIG':        True
+, 'SW_PLOT_FIG':        False
+, 'SW_REL_RESIDUAL':    False
 }
 
 

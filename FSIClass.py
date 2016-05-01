@@ -112,6 +112,10 @@ class FSI(object):
         fixedPtRelax (float): Fixed-point relaxation value for Newton iteration
         nOutCorrMax (int): Maximum allowed FSI coupling subiterations
         """
+        if (P['SW_REL_RESIDUAL']):
+            self.SW_REL_RESIDUAL = True
+        else:
+            self.SW_REL_RESIDUAL = False
         self.fsiRelaxationFactorMin = P['FIXED_PT_RELAX']
         self.fsiRelaxationFactor = np.copy(self.fsiRelaxationFactorMin)
         self.nOuterCorr = P['N_OUTERCORR_MAX']
@@ -166,7 +170,8 @@ class FSI(object):
         I = 0.5 * PyFEA.RHO_S * Solid.tmax * P['C']**3 / 3.
         
         # Define spring and dampening constants
-        kappa = P['KAPPA']
+        kappa_1 = P['KAPPA_1']
+        kappa_2 = P['KAPPA_2']
         zeta  = P['ZETA']
         
         if (i_t <= 1 and outerCorr <= 1):
@@ -185,7 +190,8 @@ class FSI(object):
             PyFEA.thetaDotDot_n     = np.copy(PyFEA.thetaDotDot_nPlus)
         
         PyFEA.I     = np.copy(I)
-        PyFEA.kappa = np.copy(kappa)
+        PyFEA.kappa_1 = np.copy(kappa_1)
+        PyFEA.kappa_2 = np.copy(kappa_2)
         PyFEA.zeta  = np.copy(zeta)
         PyFEA.Nf    = np.copy(Nf)
         PyFEA.Ni    = np.copy(Ni)
@@ -451,9 +457,10 @@ class FSI(object):
             self.maxInitialFsiResidualNorm = np.copy(self.maxFsiResidualNorm)
             
         # Scale the FSI residual norm based on the first subiteration's
-        # FSI residual norm.
-        self.fsiResidualNorm = self.fsiResidualNorm / self.initialFsiResidualNorm
-        self.maxFsiResidualNorm = self.maxFsiResidualNorm / self.maxInitialFsiResidualNorm
+        # FSI residual norm if the relative residual switch is activated.
+        if (self.SW_REL_RESIDUAL):
+            self.fsiResidualNorm = self.fsiResidualNorm / self.initialFsiResidualNorm
+            self.maxFsiResidualNorm = self.maxFsiResidualNorm / self.maxInitialFsiResidualNorm
         
         # Determine the maximum magnitude of the FSI residual.
         self.maxMagFsiResidual = np.max(magFsiResidual)

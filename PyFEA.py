@@ -24,7 +24,8 @@ class PyFEA(object):
         if SW_SPRING:
             self.deltaT            = FRAC_DELT * endTime
             self.I                 = 0.
-            self.kappa             = 0.
+            self.kappa_1           = 0.
+            self.kappa_2           = 0.
             self.zeta              = 0.
             self.Nf                = 0.
             self.Ni                = 0.
@@ -563,7 +564,8 @@ class PyFEA(object):
         """
         dt = self.deltaT / 1000.
         I = self.I
-        kappa = self.kappa
+        kappa_1 = self.kappa_1
+        kappa_2 = self.kappa_2
         zeta = self.zeta
         Nf = self.Nf
         Ni = self.Ni
@@ -576,14 +578,27 @@ class PyFEA(object):
         
         # Build linear system of equations
         # Part 1: The left hand coefficient matrix
-        A = kappa + I * (2. / dt)**2 + zeta * (2. / dt)
+        A = kappa_1 + I * (2. / dt)**2 + zeta * (2. / dt)
         
         for i in xrange(1000):
             # Part 2: The RHS
             b = I * ((2. / dt)**2 * theta_n + (4. / dt) * thetaDot_n + thetaDotDot_n) + zeta * ((2. / dt) * theta_n + thetaDot_n) + Nf + Ni
             
             # Solve for pitching angle theta
-            theta_nPlus = b / A
+            if (kappa_2 == 0.):
+                theta_nPlus = b / A
+            else:
+                # Since the spring is cubic, there is a possible of three 
+                # solutions to satisfy the equations; however, the problem 
+                # should be posed so that there is only one real valued root. 
+                # The following is the solution to that real valued root.
+                term1 = (np.sqrt(3.) * np.sqrt(4. * A**3 * kappa_2**3 + 27. * kappa_2**4 * b**2) + 9.*kappa_2**2 * b)**(1./3.)
+                term2 = term1 / (2.**(1. / 3.) * 3.**(2. / 3.) * kappa_2)
+                if (term1 == 0.):
+                    theta_nPlus = b / A
+                else:
+                    term3 = ((2. / 3.)**(1. / 3.) * A) / term1
+                    theta_nPlus = term2 - term3
             
             # Update angular velocity and acceleration
             thetaDotDot_nPlus = (2. / dt)**2 * (theta_nPlus - theta_n) - (4. / dt) * thetaDot_n - thetaDotDot_n
